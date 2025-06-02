@@ -83,7 +83,14 @@ func (s *Server) raffle(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		num := rand.N(len(status))
-		member, ok := s.findMemberName(status[num].UserID, resp)
+
+		st := status[num]
+		if st.RSVPStatus != "CHECKED_IN" {
+			status = slices.Delete(status, num, num+1) // Remove non-checked-in member
+			continue
+		}
+
+		member, ok := s.findMemberName(st.UserID, resp)
 		status = slices.Delete(status, num, num+1) // Remove selected member to avoid duplicates
 		if !ok {
 			continue
