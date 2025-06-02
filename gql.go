@@ -15,7 +15,7 @@ func (s *Server) FetchEvent(eventID string) (*Resp, error) {
 		Variables: map[string]any{
 			"id":         eventID,
 			"isLoggedIn": false,
-			"pageSize":   10000000000, // Large enough to fetch all members
+			"pageSize":   10000000, // Large enough to fetch all members
 		},
 	}); err != nil {
 		log.Fatalf("Failed to encode request body: %s", err)
