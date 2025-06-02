@@ -1,0 +1,19 @@
+{{ template "head" }}
+<div class="container">
+    <h1>Raffle</h1>
+    <form action="/raffle" method="GET" class="raffle-form">
+        <label class="raffle-form-control" for="url">
+            Campfire Event URL
+            <input class="raffle-form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
+            {{ if .Error }}
+                <p class="error">{{ .Error }}</p>
+            {{ end }}
+        </label>
+        <label class="raffle-form-control" for="count">
+            Number of Winners
+            <input class="raffle-form-control" type="number" id="count" name="count" min="1" value="1" required>
+        </label>
+        <button class="raffle-form-control" type="submit">Raffle</button>
+    </form>
+</div>
+{{ template "footer" }}

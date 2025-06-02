@@ -1,0 +1,158 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+
+:root {
+    --font-family: Arial;
+    --primary-color: #007bff;
+    --primary-color-hover: #0056b3;
+    --error-color: #ef5656;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #1e1e1e;
+        --background2-color: #2c2c2c;
+        --text-color: #ffffff;
+        --border-color: #444444;
+    }
+
+    html {
+        color-scheme: dark;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --background-color: #ffffff;
+        --background2-color: #f0f0f0;
+        --text-color: #000000;
+        --border-color: #cccccc;
+    }
+
+    html {
+        color-scheme: light;
+    }
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-family), sans-serif;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background2-color);
+    color: var(--text-color);
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+button, .button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+}
+
+button:hover, .button:hover {
+    background-color: var(--primary-color-hover);
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-top: 100px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0 auto;
+    padding: 20px;
+    width: 400px;
+    background-color: var(--background2-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.error {
+    color: var(--error-color);
+    font-size: 16px;
+    text-align: left;
+    background-color: rgba(239, 86, 86, 0.1);
+    padding: 10px;
+    margin: 0;
+    border: 1px solid var(--error-color);
+    border-radius: 4px;
+}
+
+.raffle-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.raffle-form-control {
+    width: 100%;
+}
+
+.raffle-form label {
+    text-align: left;
+}
+
+.raffle-winners {
+    width: 100%;
+    text-align: left;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.raffle-winners > li {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+}

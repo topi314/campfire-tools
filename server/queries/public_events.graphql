@@ -1,0 +1,38 @@
+query PublicMeetupPage_Query(
+  $ids: [ID!]!
+) {
+  ...PublicMeetupPageMainContent_query_3pY7A9
+}
+
+fragment PublicEventDetails_event on PublicEvent {
+  id
+  name
+  details
+  clubName
+  clubId
+  clubAvatarUrl
+  isPasscodeRewardEligible
+  place {
+    location
+    name
+    formattedAddress
+  }
+  mapObjectLocation {
+    latitude
+    longitude
+  }
+  eventTime
+  eventEndTime
+  address
+}
+
+fragment PublicMeetupPageMainContent_query_3pY7A9 on Query {
+  publicMapObjectsById(ids: $ids) {
+    id
+    event {
+      ...PublicEventDetails_event
+      eventEndTime
+      id
+    }
+  }
+}
