@@ -1,12 +1,12 @@
 {{ template "head" "Export" }}
 <div class="container">
     <h1>Export</h1>
-    <form action="/export/csv" method="GET" class="form">
+    <form action="/export/csv" method="GET" class="form" id="export-form">
         <label class="form-control" for="url">
             Campfire Event URL
             <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
             {{ if .Error }}
-                <p class="error">{{ .Error }}</p>
+                <p class="error" id="error-message">{{ .Error }}</p>
             {{ end }}
         </label>
         <label class="form-control" for="include-missing-members">
@@ -16,4 +16,12 @@
         <button class="form-control" type="submit">Export</button>
     </form>
 </div>
+<script>
+    document.getElementById('export-form')?.addEventListener('submit', function () {
+        const err = document.getElementById('error-message');
+        if (err) {
+            err.remove();
+        }
+    });
+</script>
 {{ template "footer" }}
