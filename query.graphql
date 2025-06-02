@@ -1,0 +1,324 @@
+query MeetupDetailsWrapperQR_Query(
+  $id: ID!
+  $isLoggedIn: Boolean!
+  $pageSize: Int!
+) {
+  event(id: $id) {
+    id
+    ...MeetupDetailsWrapper_event_4dcqWc
+  }
+  me @include(if: $isLoggedIn) {
+    ...MeetupDetailsWrapper_me
+    id
+  }
+}
+
+fragment DiscoveryMeetupDetailsHeader_event on Event {
+  id
+  name
+  coverPhotoUrl
+  mapPreviewUrl
+  location
+  club {
+    id
+  }
+  ...DiscoveryMeetupOverflowMenu_event
+}
+
+fragment DiscoveryMeetupDetailsInfoCard_event on Event {
+  id
+  badgeGrants
+  creator {
+    displayName
+    ...DiscoveryUserAvatar_user
+    id
+  }
+  club {
+    id
+    name
+    avatarUrl
+  }
+  campfireLiveEventId
+  campfireLiveEvent {
+    eventName
+    modalHeadingImageUrl
+    id
+  }
+  members(first: $pageSize) {
+    totalCount
+  }
+}
+
+fragment DiscoveryMeetupOverflowMenu_event on Event {
+  id
+  name
+  coverPhotoUrl
+  club {
+    id
+  }
+}
+
+fragment DiscoveryUserAvatar_user on User {
+  id
+  displayName
+  username
+  avatarUrl
+  badges {
+    badgeType
+    alias
+  }
+}
+
+fragment EventAttendeeCheckInQRCodeView_event on Event {
+  id
+}
+
+fragment EventAttendeeList_event on Event {
+  id
+  eventTime
+  creator {
+    id
+    badges {
+      badgeType
+      alias
+    }
+  }
+  club {
+    id
+    game
+  }
+  members(first: $pageSize) {
+    totalCount
+  }
+  checkedInMembersCount
+}
+
+fragment EventHostCheckInQRCodeView_event on Event {
+  id
+}
+
+fragment EventLocationSharePane_locationSharingSession on LocationSharingSession {
+  id
+  expiresAt
+  isStopped
+  user {
+    id
+  }
+}
+
+fragment EventLocationSharePane_me on User {
+  id
+  displayName
+  avatarUrl
+  location
+}
+
+fragment EventRendererEditEventForm_me on User {
+  id
+  badges {
+    badgeType
+    alias
+  }
+}
+
+fragment EventRendererProvider_event_4dcqWc on Event {
+  id
+  name
+  eventTime
+  eventEndTime
+  location
+  isPasscodeRewardEligible
+  badgeGrants
+  coverPhotoUrl
+  rsvpStatus
+  rsvpStatuses {
+    userId
+    rsvpStatus
+  }
+  game
+  clubId
+  club {
+    id
+    name
+    game
+    visibility
+    amIMember
+    avatarUrl
+    myPermissions
+    creator {
+      id
+    }
+  }
+  creator {
+    id
+    displayName
+  }
+  hostLocationSharingSession @include(if: $isLoggedIn) {
+    id
+    ...EventLocationSharePane_locationSharingSession
+  }
+  members(first: $pageSize) {
+    totalCount
+    edges {
+      node {
+        id
+        displayName
+        avatarUrl
+      }
+    }
+  }
+  campfireLiveEvent {
+    checkInRadiusMeters
+    id
+  }
+  ...EventAttendeeList_event
+  ...EventRendererShareEventPane_event
+  passcode
+}
+
+fragment EventRendererProvider_me on User {
+  id
+  ...EventRendererEditEventForm_me
+  ...EventLocationSharePane_me
+}
+
+fragment EventRendererShareEventPane_event on Event {
+  id
+  name
+  visibility
+  club {
+    id
+  }
+}
+
+fragment MeetupCommentPane_event on Event {
+  id
+  creator {
+    id
+  }
+  club {
+    id
+  }
+  rsvpStatus
+  commentCount
+  isSubscribed
+  commentsPermissions
+}
+
+fragment MeetupCommentPane_me on User {
+  id
+  displayName
+  avatarUrl
+}
+
+fragment MeetupCommentsPreview_event on Event {
+  id
+  commentCount
+  commentsPermissions
+  commentsPreview {
+    id
+    body
+    createdAt
+    updatedAt
+    author {
+      id
+      displayName
+      avatarUrl
+      badges {
+        badgeType
+        alias
+      }
+    }
+  }
+}
+
+fragment MeetupCommentsPreview_me on User {
+  id
+}
+
+fragment MeetupDetailsRewardsSection_event on Event {
+  id
+  rsvpStatus
+  isPasscodeRewardEligible
+  passcode
+  club {
+    id
+  }
+}
+
+fragment MeetupDetailsRewardsSection_me on User {
+  id
+  username
+}
+
+fragment MeetupDetailsWrapper_event_4dcqWc on Event {
+  ...MeetupDetails_event
+  ...EventRendererProvider_event_4dcqWc
+}
+
+fragment MeetupDetailsWrapper_me on User {
+  ...MeetupDetails_me
+  ...EventRendererProvider_me
+}
+
+fragment MeetupDetails_event on Event {
+  id
+  name
+  address
+  coverPhotoUrl
+  details
+  eventTime
+  eventEndTime
+  rsvpStatus
+  createdByCommunityAmbassador
+  badgeGrants
+  topicId
+  commentCount
+  discordInterested
+  creator {
+    id
+    displayName
+    avatarUrl
+    badges {
+      badgeType
+      alias
+    }
+  }
+  club {
+    id
+    name
+    avatarUrl
+    visibility
+    myPermissions
+    badgeGrants
+    createdByCommunityAmbassador
+  }
+  members(first: $pageSize) {
+    totalCount
+    edges {
+      node {
+        id
+        displayName
+        avatarUrl
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+  isPasscodeRewardEligible
+  ...MeetupCommentsPreview_event
+  ...EventAttendeeCheckInQRCodeView_event
+  ...EventHostCheckInQRCodeView_event
+  ...MeetupCommentPane_event
+  ...DiscoveryMeetupDetailsInfoCard_event
+  ...DiscoveryMeetupDetailsHeader_event
+  ...MeetupDetailsRewardsSection_event
+}
+
+fragment MeetupDetails_me on User {
+  ...MeetupDetailsRewardsSection_me
+  ...MeetupCommentPane_me
+  ...MeetupCommentsPreview_me
+}
