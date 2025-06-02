@@ -2,7 +2,7 @@ FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS build
 
 WORKDIR /build
 
-COPY go.mod go.sum ./
+COPY go.mod ./
 
 RUN go mod download
 
