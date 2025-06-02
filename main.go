@@ -20,7 +20,7 @@ func main() {
 	go srv.Start()
 	defer srv.Stop()
 
-	log.Println("Server started at http://localhost:8080")
+	log.Printf("Server started at %s", address)
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)

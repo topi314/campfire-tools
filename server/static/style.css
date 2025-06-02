@@ -60,6 +60,10 @@ input {
     color: var(--text-color);
 }
 
+input[type="checkbox"] {
+    width: fit-content;
+}
+
 input:focus {
     border-color: var(--primary-color);
     outline: none;
@@ -128,7 +132,7 @@ button:hover, .button:hover {
     border-radius: 4px;
 }
 
-.raffle-form {
+.form {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -137,22 +141,22 @@ button:hover, .button:hover {
     gap: 20px;
 }
 
-.raffle-form-control {
+.form-control {
     width: 100%;
 }
 
-.raffle-form label {
+.form label {
     text-align: left;
 }
 
-.raffle-winners {
+.winners {
     width: 100%;
     text-align: left;
     font-size: 20px;
     font-weight: bold;
 }
 
-.raffle-winners > li {
+.winners > li {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
 }

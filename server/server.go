@@ -39,8 +39,9 @@ func New(address string) *Server {
 
 	mux.HandleFunc("/", s.Index)
 	mux.HandleFunc("GET /raffle", s.Raffle)
+	mux.HandleFunc("/export", s.Export)
+	mux.HandleFunc("GET /export/csv", s.ExportCSV)
 	mux.Handle("/static/", http.FileServer(http.FS(static)))
-	//mux.Handle("/*", http.RedirectHandler("/", http.StatusFound))
 
 	return s
 }
@@ -67,5 +68,4 @@ func (s *Server) Stop() {
 		log.Printf("Server shutdown failed: %s\n", err)
 		return
 	}
-	log.Println("Server stopped gracefully")
 }

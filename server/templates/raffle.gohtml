@@ -2,7 +2,7 @@
 <div class="container">
     {{ if .Winners }}
         <h1>Raffle Result</h1>
-        <ol class="raffle-winners">
+        <ol class="winners">
             {{ range $index, $element := .Winners }}
                 <li>{{ . }}</li>
             {{ end }}
