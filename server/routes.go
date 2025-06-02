@@ -30,20 +30,6 @@ func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
-		var err error
-		meetupURL, err = s.resolveShortURL(meetupURL)
-		if err != nil {
-			s.renderIndex(w, r, fmt.Sprintf("Failed to resolve short URL: %s", err.Error()))
-			return
-		}
-	}
-
-	if !strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
-		s.renderIndex(w, r, "Invalid URL. Must start with 'niantic-social.nianticlabs.com/public/meetup/' or 'https://cmpf.re/'")
-		return
-	}
-
 	stringCount := r.FormValue("count")
 	if stringCount == "" {
 		http.Error(w, "Missing 'count' parameter", http.StatusBadRequest)
@@ -55,31 +41,53 @@ func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	campfireEventID := path.Base(meetupURL)
+	var campfireEventID string
+	if !strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
+		if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
+			meetupURL, err = s.resolveShortURL(meetupURL)
+			if err != nil {
+				s.renderIndex(w, r, fmt.Sprintf("Failed to resolve short URL: %s", err.Error()))
+				return
+			}
+		}
+
+		if !strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
+			s.renderIndex(w, r, "Invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/' or 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
+			return
+		}
+		eventID := path.Base(meetupURL)
+		if eventID == "" {
+			s.renderIndex(w, r, fmt.Sprintf("Could not extract event ID from URL"))
+			return
+		}
+
+		events, err := s.FetchEvents(eventID)
+		if err != nil {
+			s.renderIndex(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
+			return
+		}
+
+		if len(events.PublicMapObjectsByID) == 0 {
+			s.renderIndex(w, r, fmt.Sprintf("Event not found"))
+			return
+		}
+
+		firstEvent := events.PublicMapObjectsByID[0]
+
+		if firstEvent.ID != eventID {
+			s.renderIndex(w, r, fmt.Sprintf("Event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID))
+			return
+		}
+		campfireEventID = firstEvent.Event.ID
+	} else {
+		campfireEventID = path.Base(meetupURL)
+	}
 	if campfireEventID == "" {
 		s.renderIndex(w, r, fmt.Sprintf("Invalid URL: %s", meetupURL))
 		return
 	}
 
-	events, err := s.FetchEvents(campfireEventID)
-	if err != nil {
-		s.renderIndex(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
-		return
-	}
-
-	if len(events.PublicMapObjectsByID) == 0 {
-		s.renderIndex(w, r, fmt.Sprintf("Event not found"))
-		return
-	}
-
-	firstEvent := events.PublicMapObjectsByID[0]
-
-	if firstEvent.ID != campfireEventID {
-		s.renderIndex(w, r, fmt.Sprintf("Event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID))
-		return
-	}
-
-	event, err := s.FetchFullEvent(firstEvent.Event.ID)
+	event, err := s.FetchFullEvent(campfireEventID)
 	if err != nil {
 		s.renderIndex(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
 		return
