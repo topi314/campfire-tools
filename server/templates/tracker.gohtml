@@ -1,0 +1,28 @@
+{{ template "head" "Tracker" }}
+<div class="container">
+    <h1>Tracker</h1>
+    <form action="/tracker/add" method="GET" class="form">
+        <label class="form-control" for="url">
+            Campfire Event URL
+            <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
+            {{ if .Error }}
+                <p class="error">{{ .Error }}</p>
+            {{ end }}
+        </label>
+        <button class="form-control" type="submit">Add Event</button>
+    </form>
+    <h2>Tracked Events</h2>
+    <ul class="list">
+        {{ range .Events }}
+            <li class="list-item">
+                <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
+                <form action="/tracker/delete" method="POST" class="inline-form">
+                    <input type="hidden" name="id" value="{{ .ID }}">
+                    <button type="submit" class="button">Delete</button>
+                </form>
+            </li>
+        {{ else }}
+            <li class="list-item">No events tracked yet.</li>
+        {{ end }}
+</div>
+{{ template "footer" }}

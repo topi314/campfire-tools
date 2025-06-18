@@ -1,0 +1,20 @@
+{{ template "head" }}
+<div class="container">
+    {{ if .Winners }}
+        <h1>Raffle Result</h1>
+        <ol class="winners">
+            {{ range $index, $element := .Winners }}
+                <li>{{ . }}</li>
+            {{ end }}
+        </ol>
+    {{ end}}
+
+    <div class="buttons">
+        {{ if .RaffleURL }}
+            <a href="{{ .RaffleURL }}" class="button">Rerun Raffle</a>
+        {{ end }}
+        <a href="/" class="button">Back to home</a>
+    </div>
+</div>
+
+{{ template "footer" }}
