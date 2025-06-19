@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -11,8 +12,28 @@ import (
 )
 
 type TrackerVars struct {
-	Events []TrackerEvent
-	Error  string
+	Clubs []TrackerClub
+	Error string
+}
+
+type TrackerClub struct {
+	ID        string
+	Name      string
+	AvatarURL string
+	URL       string
+}
+
+type TrackerClubVars struct {
+	TopMembers []TrackerTopMember
+	Events     []TrackerEvent
+	Error      string
+}
+
+type TrackerTopMember struct {
+	ID          string
+	DisplayName string
+	EventCount  int
+	URL         string
 }
 
 type TrackerEvent struct {
@@ -22,7 +43,11 @@ type TrackerEvent struct {
 }
 
 func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
-	s.renderTracker(w, "")
+	s.renderTracker(w, r, "")
+}
+
+func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
+	s.renderTrackerClub(w, r, "")
 }
 
 func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
@@ -35,17 +60,29 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 
 	event, err := s.client.FetchEvent(meetupURL)
 	if err != nil {
-		s.renderTracker(w, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
+		s.renderTracker(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
 		return
 	}
 
 	if event == nil {
-		s.renderTracker(w, fmt.Sprintf("Event not found"))
+		s.renderTracker(w, r, fmt.Sprintf("Event not found"))
 		return
 	}
 
-	if err = s.database.AddEvent(context.Background(), event.Event.ID, event.Event.Name, event.Event.Details); err != nil {
-		s.renderTracker(w, fmt.Sprintf("Failed to add event: %s", err.Error()))
+	if err = s.database.AddEvent(context.Background(), database.Event{
+		ID:                    event.Event.ID,
+		Name:                  event.Event.Name,
+		Details:               event.Event.Details,
+		CoverPhotoURL:         event.Event.CoverPhotoURL,
+		EventTime:             event.Event.EventTime,
+		EventEndTime:          event.Event.EventEndTime,
+		CampfireLiveEventID:   event.Event.CampfireLiveEventID,
+		CampfireLiveEventName: event.Event.CampfireLiveEvent.EventName,
+		ClubID:                event.Event.ClubID,
+		ClubName:              event.Event.Club.Name,
+		ClubAvatarURL:         event.Event.Club.AvatarURL,
+	}); err != nil {
+		s.renderTracker(w, r, fmt.Sprintf("Failed to add event: %s", err.Error()))
 		return
 	}
 
@@ -63,7 +100,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	if err = s.database.AddMembers(context.Background(), members); err != nil {
-		s.renderTracker(w, fmt.Sprintf("Failed to add members: %s", err.Error()))
+		s.renderTracker(w, r, fmt.Sprintf("Failed to add members: %s", err.Error()))
 		return
 	}
 
@@ -71,8 +108,50 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/tracker", http.StatusFound)
 }
 
-func (s *Server) renderTracker(w http.ResponseWriter, errorMessage string) {
-	events, err := s.database.GetEvents(context.Background())
+func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	clubs, err := s.database.GetClubs(context.Background())
+	if err != nil {
+		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	trackerClubs := make([]TrackerClub, len(clubs))
+	for i, club := range clubs {
+		trackerClubs[i] = TrackerClub{
+			ID:        club.ClubID,
+			Name:      club.ClubName,
+			AvatarURL: club.ClubAvatarURL,
+			URL:       fmt.Sprintf("/tracker/club/%s", club.ClubID),
+		}
+	}
+
+	if err = s.templates.ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
+		Clubs: trackerClubs,
+		Error: errorMessage,
+	}); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to render tracker template", "err", err)
+	}
+}
+
+func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	clubID := r.PathValue("club_id")
+
+	topMembers, err := s.database.GetTopClubMembers(context.Background(), clubID, 10)
+	if err != nil {
+		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	trackerTopMembers := make([]TrackerTopMember, len(topMembers))
+	for i, member := range topMembers {
+		trackerTopMembers[i] = TrackerTopMember{
+			ID:          member.ID,
+			DisplayName: member.DisplayName,
+			EventCount:  member.EventCount,
+			URL:         fmt.Sprintf("/tracker/club/%s/members/%s", clubID, member.ID),
+		}
+	}
+
+	events, err := s.database.GetEvents(context.Background(), clubID)
 	if err != nil {
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -83,13 +162,14 @@ func (s *Server) renderTracker(w http.ResponseWriter, errorMessage string) {
 		trackerEvents[i] = TrackerEvent{
 			ID:   event.ID,
 			Name: event.Name,
-			URL:  fmt.Sprintf("/tracker/event/%s", event.ID),
+			URL:  fmt.Sprintf("/tracker/events/%s", event.ID),
 		}
 	}
 
-	if err = s.templates.ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
-		Events: trackerEvents,
-		Error:  errorMessage,
+	if err = s.templates.ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
+		TopMembers: trackerTopMembers,
+		Events:     trackerEvents,
+		Error:      errorMessage,
 	}); err != nil {
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 	}

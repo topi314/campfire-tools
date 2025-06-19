@@ -11,18 +11,14 @@
         </label>
         <button class="form-control" type="submit">Add Event</button>
     </form>
-    <h2>Tracked Events</h2>
+    <h2>Clubs</h2>
     <ul class="list">
-        {{ range .Events }}
+        {{ range .Clubs }}
             <li class="list-item">
-                <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
-                <form action="/tracker/delete" method="POST" class="inline-form">
-                    <input type="hidden" name="id" value="{{ .ID }}">
-                    <button type="submit" class="button">Delete</button>
-                </form>
+                <a href="{{ .URL }}">{{ .Name }}</a>
             </li>
         {{ else }}
-            <li class="list-item">No events tracked yet.</li>
+            <li class="list-item">No clubs tracked yet.</li>
         {{ end }}
 </div>
 {{ template "footer" }}

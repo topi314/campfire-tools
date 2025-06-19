@@ -53,6 +53,7 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /export/csv", s.ExportCSV)
 
 	mux.HandleFunc("GET /tracker", s.Tracker)
+	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
 	mux.HandleFunc("GET /tracker/add", s.TrackerAdd)
 
 	mux.Handle("/static/", http.FileServer(http.FS(static)))

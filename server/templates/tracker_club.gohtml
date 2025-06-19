@@ -1,0 +1,27 @@
+{{ template "head" "Tracker" }}
+<div class="container">
+    <h1>Tracker Club</h1>
+
+    <h2>Top Members</h2>
+    <ul class="list">
+        {{ range .TopMembers }}
+            <li class="list-item">
+                <a href="{{ .URL }}" target="_blank">{{ .DisplayName }}</a> - {{ .EventCount }} events
+            </li>
+        {{ else }}
+            <li class="list-item">No members found.</li>
+        {{ end }}
+    </ul>
+
+    <h2>Tracked Events</h2>
+    <ul class="list">
+        {{ range .Events }}
+            <li class="list-item">
+                <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
+            </li>
+        {{ else }}
+            <li class="list-item">No events tracked yet.</li>
+        {{ end }}
+    </ul>
+</div>
+{{ template "footer" }}
