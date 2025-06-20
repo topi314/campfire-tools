@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
@@ -66,6 +67,11 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 
 	if event == nil {
 		s.renderTracker(w, r, fmt.Sprintf("Event not found"))
+		return
+	}
+
+	if event.Event.EventEndTime.After(time.Now()) {
+		s.renderTracker(w, r, "Event hasn't ended yet, please try again once it has ended.")
 		return
 	}
 

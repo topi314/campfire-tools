@@ -1,9 +1,9 @@
-{{ template "head" "Export" }}
+{{ template "head" "Campfire Export" }}
 <div class="container">
-    <h1>Export</h1>
+    <h1>Campfire Export</h1>
     <form action="/export/csv" method="GET" class="form" id="export-form">
         <label class="form-control" for="url">
-            Campfire Event URL
+            Event URL
             <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
             {{ if .Error }}
                 <p class="error" id="error-message">{{ .Error }}</p>

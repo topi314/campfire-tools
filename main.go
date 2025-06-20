@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"flag"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,8 +11,6 @@ import (
 
 	"github.com/topi314/campfire-tools/server"
 )
-
-var address = os.Getenv("SERVER_ADDRESS")
 
 func main() {
 	cfgPath := flag.String("config", "config.toml", "path to config file")
@@ -45,7 +42,7 @@ func main() {
 	go srv.Start()
 	defer srv.Stop()
 
-	log.Printf("Server started at %s", address)
+	slog.Info("Server started", slog.String("addr", cfg.Server.Addr))
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
