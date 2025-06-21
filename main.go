@@ -32,7 +32,7 @@ func main() {
 	}
 
 	slog.Info("Starting bpt...", slog.String("version", version), slog.String("go_version", goVersion))
-	slog.Info("Config loaded", slog.Any("config", cfg))
+	slog.Info("Config loaded", slog.Any("config", cfg.String()))
 
 	srv, err := server.New(cfg)
 	if err != nil {

@@ -164,6 +164,10 @@ button:hover, .button:hover {
     text-align: left;
 }
 
+#urls {
+    resize: vertical;
+}
+
 .winners {
     width: 100%;
     text-align: left;

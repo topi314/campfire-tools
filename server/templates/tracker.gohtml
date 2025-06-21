@@ -1,17 +1,18 @@
-{{ template "head" "Campfire Tracker" }}
+{{ template "head" "Campfire Event Tracker" }}
 <div class="container">
-    <h1>Campfire Tracker</h1>
+    <h1>Event Tracker</h1>
     <div class="section">
-        <h2>Add a Event to track</h2>
+        <h2>Add Events to track</h2>
         <form action="/tracker/add" method="GET" class="form">
-            <label class="form-control" for="url">
-                Event URL
-                <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
+            <label class="form-control" for="urls">
+                Event Links
+                <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...
+https://cmpf.re/..." required autofocus></textarea>
                 {{ if .Error }}
                     <p class="error">{{ .Error }}</p>
                 {{ end }}
             </label>
-            <button class="form-control" type="submit">Add Event to track</button>
+            <button class="form-control" type="submit">Add</button>
         </form>
     </div>
 
@@ -28,4 +29,11 @@
         </ul>
     </div>
 </div>
+<script>
+    const urls = document.getElementById('urls')
+    urls.addEventListener('input', function () {
+        urls.style.height = 'auto';
+        urls.style.height = (urls.scrollHeight + 4) + 'px';
+    });
+</script>
 {{ template "footer" }}

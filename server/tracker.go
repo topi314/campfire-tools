@@ -2,12 +2,15 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/tsync"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -53,64 +56,85 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received tracker add request: %s", r.URL.Path)
-	meetupURL := r.FormValue("url")
-	if meetupURL == "" {
-		http.Error(w, "Missing 'url' parameter", http.StatusBadRequest)
+	meetupURLs := r.FormValue("urls")
+	if meetupURLs == "" {
+		s.renderTracker(w, r, "Missing 'urls' parameter")
 		return
 	}
 
-	event, err := s.client.FetchEvent(meetupURL)
-	if err != nil {
-		s.renderTracker(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
-		return
-	}
+	var eg tsync.ErrorGroup
+	for _, url := range strings.Split(meetupURLs, "\n") {
+		meetupURL := strings.TrimSpace(url)
+		if meetupURL == "" {
+			continue
+		}
 
-	if event == nil {
-		s.renderTracker(w, r, fmt.Sprintf("Event not found"))
-		return
-	}
+		eg.Go(func() error {
+			event, err := s.client.FetchEvent(context.Background(), meetupURL)
+			if err != nil {
+				return fmt.Errorf("failed to fetch event from URL %s: %w", meetupURL, err)
+			}
 
-	if event.Event.EventEndTime.After(time.Now()) {
-		s.renderTracker(w, r, "Event hasn't ended yet, please try again once it has ended.")
-		return
-	}
+			if event == nil {
+				return fmt.Errorf("event not found for URL: %s", meetupURL)
+			}
 
-	if err = s.database.AddEvent(context.Background(), database.Event{
-		ID:                    event.Event.ID,
-		Name:                  event.Event.Name,
-		Details:               event.Event.Details,
-		CoverPhotoURL:         event.Event.CoverPhotoURL,
-		EventTime:             event.Event.EventTime,
-		EventEndTime:          event.Event.EventEndTime,
-		CampfireLiveEventID:   event.Event.CampfireLiveEventID,
-		CampfireLiveEventName: event.Event.CampfireLiveEvent.EventName,
-		ClubID:                event.Event.ClubID,
-		ClubName:              event.Event.Club.Name,
-		ClubAvatarURL:         event.Event.Club.AvatarURL,
-	}); err != nil {
-		s.renderTracker(w, r, fmt.Sprintf("Failed to add event: %s", err.Error()))
-		return
-	}
+			if event.Event.EventEndTime.After(time.Now()) {
+				return fmt.Errorf("event is in the future, skipping: %s", event.Event.Name)
+			}
 
-	log.Printf("Event added: %s (%s)", event.Event.Name, event.Event.ID)
+			if err = s.database.AddEvent(context.Background(), database.Event{
+				ID:                    event.Event.ID,
+				Name:                  event.Event.Name,
+				Details:               event.Event.Details,
+				CoverPhotoURL:         event.Event.CoverPhotoURL,
+				EventTime:             event.Event.EventTime,
+				EventEndTime:          event.Event.EventEndTime,
+				CampfireLiveEventID:   event.Event.CampfireLiveEventID,
+				CampfireLiveEventName: event.Event.CampfireLiveEvent.EventName,
+				ClubID:                event.Event.ClubID,
+				ClubName:              event.Event.Club.Name,
+				ClubAvatarURL:         event.Event.Club.AvatarURL,
+			}); err != nil {
+				if errors.Is(err, database.ErrDuplicate) {
+					return nil
+				}
+				return fmt.Errorf("failed to add event: %s", err.Error())
+			}
 
-	var members []database.Member
-	for _, rsvpStatus := range event.Event.RSVPStatuses {
-		name, _ := campfire.FindMemberName(rsvpStatus.UserID, *event)
+			log.Printf("Event added: %s (%s)", event.Event.Name, event.Event.ID)
 
-		members = append(members, database.Member{
-			ID:          rsvpStatus.UserID,
-			DisplayName: name,
-			Status:      rsvpStatus.RSVPStatus,
-			EventID:     event.Event.ID,
+			var members []database.Member
+			for _, rsvpStatus := range event.Event.RSVPStatuses {
+				name, _ := campfire.FindMemberName(rsvpStatus.UserID, *event)
+
+				members = append(members, database.Member{
+					ID:          rsvpStatus.UserID,
+					DisplayName: name,
+					Status:      rsvpStatus.RSVPStatus,
+					EventID:     event.Event.ID,
+				})
+			}
+			if err = s.database.AddMembers(context.Background(), members); err != nil {
+				return fmt.Errorf("failed to add members: %w", err)
+			}
+
+			log.Printf("Members added for event: %s (%s)", event.Event.Name, event.Event.ID)
+			return nil
 		})
 	}
-	if err = s.database.AddMembers(context.Background(), members); err != nil {
-		s.renderTracker(w, r, fmt.Sprintf("Failed to add members: %s", err.Error()))
+
+	if errs := eg.Wait(); len(errs) > 0 {
+		var errorMessages []string
+		for _, err := range errs {
+			if err != nil {
+				errorMessages = append(errorMessages, err.Error())
+			}
+		}
+		s.renderTracker(w, r, strings.Join(errorMessages, "\n"))
 		return
 	}
 
-	log.Printf("Members added for event: %s (%s)", event.Event.Name, event.Event.ID)
 	http.Redirect(w, r, "/tracker", http.StatusFound)
 }
 

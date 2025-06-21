@@ -2,8 +2,13 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+var ErrDuplicate = errors.New("duplicate entry")
 
 func (d *Database) AddEvent(ctx context.Context, event Event) error {
 	query := `
@@ -11,6 +16,11 @@ func (d *Database) AddEvent(ctx context.Context, event Event) error {
 		VALUES 
     	(:id, :name, :details, :cover_photo_url, :event_time, :event_end_time, :campfire_live_event_id, :campfire_live_event_name, :club_id, :club_name, :club_avatar_url)`
 	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
+		var sqlErr *pgconn.PgError
+		if errors.As(err, &sqlErr) && sqlErr.Code == "23505" { // Unique violation
+			return ErrDuplicate
+		}
+
 		return fmt.Errorf("failed to add event: %w", err)
 	}
 	return nil

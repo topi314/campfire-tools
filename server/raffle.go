@@ -39,7 +39,7 @@ func (s *Server) RaffleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := s.client.FetchEvent(meetupURL)
+	event, err := s.client.FetchEvent(r.Context(), meetupURL)
 	if err != nil {
 		s.renderRaffle(w, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
 		return

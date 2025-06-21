@@ -2,6 +2,7 @@ package campfire
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -42,12 +43,12 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func (c *Client) FetchEvent(meetupURL string) (*FullEvent, error) {
+func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, error) {
 	var campfireEventID string
 	if !strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
 		if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
 			var err error
-			meetupURL, err = c.ResolveShortURL(meetupURL)
+			meetupURL, err = c.ResolveShortURL(ctx, meetupURL)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve short URL: %w", err)
 			}
@@ -61,7 +62,7 @@ func (c *Client) FetchEvent(meetupURL string) (*FullEvent, error) {
 			return nil, errors.New("could not extract event ID from URL")
 		}
 
-		events, err := c.FetchEvents(eventID)
+		events, err := c.FetchEvents(ctx, eventID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch event: %w", err)
 		}
@@ -83,7 +84,7 @@ func (c *Client) FetchEvent(meetupURL string) (*FullEvent, error) {
 		return nil, fmt.Errorf("invalid URL: %s", meetupURL)
 	}
 
-	event, err := c.FetchFullEvent(campfireEventID)
+	event, err := c.FetchFullEvent(ctx, campfireEventID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch event: %w", err)
 	}
@@ -91,7 +92,7 @@ func (c *Client) FetchEvent(meetupURL string) (*FullEvent, error) {
 	return event, nil
 }
 
-func (c *Client) FetchEvents(eventID string) (*Events, error) {
+func (c *Client) FetchEvents(ctx context.Context, eventID string) (*Events, error) {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: publicEventsQuery,
@@ -102,7 +103,7 @@ func (c *Client) FetchEvents(eventID string) (*Events, error) {
 		log.Fatalf("Failed to encode request body: %s", err)
 	}
 
-	rq, err := http.NewRequest(http.MethodPost, publicEndpoint, buf)
+	rq, err := http.NewRequestWithContext(ctx, http.MethodPost, publicEndpoint, buf)
 	if err != nil {
 		log.Fatalf("Failed to create request: %s", err)
 	}
@@ -132,7 +133,7 @@ func (c *Client) FetchEvents(eventID string) (*Events, error) {
 	return &resp.Data, nil
 }
 
-func (c *Client) FetchFullEvent(eventID string) (*FullEvent, error) {
+func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent, error) {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: fullEventQuery,
@@ -145,7 +146,7 @@ func (c *Client) FetchFullEvent(eventID string) (*FullEvent, error) {
 		log.Fatalf("Failed to encode request body: %s", err)
 	}
 
-	rq, err := http.NewRequest(http.MethodPost, endpoint, buf)
+	rq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, buf)
 	if err != nil {
 		log.Fatalf("Failed to create request: %s", err)
 	}
@@ -175,8 +176,13 @@ func (c *Client) FetchFullEvent(eventID string) (*FullEvent, error) {
 	return &resp.Data, nil
 }
 
-func (c *Client) ResolveShortURL(shortURL string) (string, error) {
-	rs, err := c.httpClient.Get(shortURL)
+func (c *Client) ResolveShortURL(ctx context.Context, shortURL string) (string, error) {
+	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, shortURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request for short URL: %w", err)
+	}
+
+	rs, err := c.httpClient.Do(rq)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve short URL: %w", err)
 	}

@@ -1,10 +1,11 @@
-{{ template "head" "Campfire Export" }}
+{{ template "head" "Campfire Check-in Export" }}
 <div class="container">
-    <h1>Campfire Export</h1>
+    <h1>Check-in Export</h1>
     <form action="/export/csv" method="GET" class="form" id="export-form">
-        <label class="form-control" for="url">
-            Event URL
-            <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
+        <label class="form-control" for="urls">
+            Event Links
+            <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...
+https://cmpf.re/..." required autofocus></textarea>
             {{ if .Error }}
                 <p class="error" id="error-message">{{ .Error }}</p>
             {{ end }}
@@ -12,6 +13,10 @@
         <label class="form-control" for="include-missing-members">
             Include Missing Members
             <input class="form-control" type="checkbox" id="include-missing-members" name="include_missing_members" value="true">
+        </label>
+        <label class="form-control" for="combine-csv">
+            Combine CSVs
+            <input class="form-control" type="checkbox" id="combine-csv" name="combine_csv" value="true">
         </label>
         <button class="form-control" type="submit">Export</button>
     </form>
@@ -22,6 +27,12 @@
         if (err) {
             err.remove();
         }
+    });
+
+    const urls = document.getElementById('urls')
+    urls.addEventListener('input', function () {
+        urls.style.height = 'auto';
+        urls.style.height = (urls.scrollHeight + 4) + 'px';
     });
 </script>
 {{ template "footer" }}
