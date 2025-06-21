@@ -9,8 +9,8 @@
             <span>Member</span>
             <span>Event Count</span>
             {{ range .TopMembers }}
-                    <a href="{{ .URL }}">{{ .DisplayName }}</a>
-                    <span>{{ .EventCount }}</span>
+                <span>{{ .DisplayName }}</span>
+                <span>{{ .EventCount }}</span>
             {{ else }}
                 <div>No members found.</div>
             {{ end }}
@@ -22,7 +22,7 @@
         <ul class="list">
             {{ range .Events }}
                 <li class="list-item">
-                    <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
+                    <span>{{ .Name }}</span>
                 </li>
             {{ else }}
                 <li class="list-item">No events tracked yet.</li>
