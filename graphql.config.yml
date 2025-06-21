@@ -1,1 +1,3 @@
-schema: https://niantic-social-api.nianticlabs.com/graphql
+schema:
+  - "https://niantic-social-api.nianticlabs.com/public/graphql"
+  - "https://niantic-social-api.nianticlabs.com/graphql"

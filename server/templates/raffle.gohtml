@@ -1,20 +1,19 @@
-{{ template "head" }}
+{{ template "head" "Campfire Raffle" }}
 <div class="container">
-    {{ if .Winners }}
-        <h1>Raffle Result</h1>
-        <ol class="winners">
-            {{ range $index, $element := .Winners }}
-                <li>{{ . }}</li>
+    <h1>Raffle</h1>
+    <form action="/raffle/result" method="GET" class="form">
+        <label class="form-control" for="url">
+            Event Link
+            <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
+            {{ if .Error }}
+                <p class="error">{{ .Error }}</p>
             {{ end }}
-        </ol>
-    {{ end}}
-
-    <div class="buttons">
-        {{ if .RaffleURL }}
-            <a href="{{ .RaffleURL }}" class="button">Rerun Raffle</a>
-        {{ end }}
-        <a href="/" class="button">Back to home</a>
-    </div>
+        </label>
+        <label class="form-control" for="count">
+            Number of Winners
+            <input class="form-control" type="number" id="count" name="count" min="1" value="1" required>
+        </label>
+        <button class="form-control" type="submit">Raffle</button>
+    </form>
 </div>
-
 {{ template "footer" }}

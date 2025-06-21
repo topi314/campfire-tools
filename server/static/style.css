@@ -121,6 +121,21 @@ button:hover, .button:hover {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+.section {
+    width: 100%;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.section h2 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
+}
+
 .error {
     color: var(--error-color);
     font-size: 16px;
@@ -149,6 +164,10 @@ button:hover, .button:hover {
     text-align: left;
 }
 
+#urls {
+    resize: vertical;
+}
+
 .winners {
     width: 100%;
     text-align: left;
@@ -159,4 +178,53 @@ button:hover, .button:hover {
 .winners > li {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
+}
+
+.winners > li:last-child {
+    border-bottom: none;
+}
+
+.list {
+    width: 100%;
+    text-align: left;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.list-item {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.list-item:last-child {
+    border-bottom: none;
+}
+
+.top-members {
+    width: 100%;
+    text-align: left;
+    font-size: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    margin: 0;
+    border: 1px solid var(--border-color);
+}
+
+.top-members > * {
+    padding: 5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.top-members > *:last-child, .top-members > *:nth-last-child(2) {
+    border-bottom: none;
+}
+
+.top-members > *:nth-child(2n-1) {
+    border-right: 1px solid var(--border-color);
+}
+
+.top-members > span:first-child, .top-members > span:nth-child(2) {
+    font-weight: bold;
+    background-color: var(--background-color);
 }

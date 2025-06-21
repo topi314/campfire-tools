@@ -1,0 +1,33 @@
+{{ template "head" "Tracker" }}
+<div class="container">
+    <h1>Tracker Club</h1>
+
+    <div class="section">
+        <h2>Top Members</h2>
+        {{/* Display top members with their event counts as a grid */}}
+        <div class="top-members">
+            <span>Member</span>
+            <span>Event Count</span>
+            {{ range .TopMembers }}
+                    <a href="{{ .URL }}">{{ .DisplayName }}</a>
+                    <span>{{ .EventCount }}</span>
+            {{ else }}
+                <div>No members found.</div>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Tracked Events ({{ len .Events }})</h2>
+        <ul class="list">
+            {{ range .Events }}
+                <li class="list-item">
+                    <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
+                </li>
+            {{ else }}
+                <li class="list-item">No events tracked yet.</li>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ template "footer" }}

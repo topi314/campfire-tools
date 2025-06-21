@@ -1,19 +1,11 @@
-{{ template "head" "Raffle" }}
+{{ template "head" "Campfire Tools" }}
 <div class="container">
-    <h1>Raffle</h1>
-    <form action="/raffle" method="GET" class="form">
-        <label class="form-control" for="url">
-            Campfire Event URL
-            <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>
-            {{ if .Error }}
-                <p class="error">{{ .Error }}</p>
-            {{ end }}
-        </label>
-        <label class="form-control" for="count">
-            Number of Winners
-            <input class="form-control" type="number" id="count" name="count" min="1" value="1" required>
-        </label>
-        <button class="form-control" type="submit">Raffle</button>
-    </form>
+    <h1>Campfire Tools</h1>
+    <p>Welcome to the Campfire Tools! Here you can run raffles, export campfire data and track your campfire check-ins.</p>
+    <div class="buttons">
+        <a href="/raffle" class="button">Raffle</a>
+        <a href="/export" class="button">Export</a>
+        <a href="/tracker" class="button">Tracker</a>
+    </div>
 </div>
 {{ template "footer" }}

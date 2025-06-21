@@ -16,10 +16,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 \
     GOOS=$TARGETOS \
     GOARCH=$TARGETARCH \
-    go build -o campfire-raffle github.com/topi314/campfire-raffle
+    go build -o campfire-tools github.com/topi314/campfire-tools
 
 FROM alpine
 
-COPY --from=build /build/campfire-raffle /bin/campfire-raffle
+COPY --from=build /build/campfire-tools /bin/campfire-tools
 
-ENTRYPOINT ["/bin/campfire-raffle"]
+ENTRYPOINT ["/bin/campfire-tools"]
