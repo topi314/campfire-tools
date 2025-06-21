@@ -29,7 +29,7 @@ func (d *Database) GetTopClubMembers(ctx context.Context, clubID string, limit i
 		SELECT m.id, m.display_name, COUNT(e.id) AS event_count
 		FROM members m
 		JOIN events e ON m.event_id = e.id
-		WHERE e.club_id = $1
+		WHERE e.club_id = $1 AND m.status = 'CHECKED_IN'
 		GROUP BY m.id, m.display_name
 		ORDER BY event_count DESC
 		LIMIT $2`
