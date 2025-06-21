@@ -23,3 +23,5 @@ FROM alpine
 COPY --from=build /build/campfire-tools /bin/campfire-tools
 
 ENTRYPOINT ["/bin/campfire-tools"]
+
+CMD ["-config", "/var/lib/config.toml"]
