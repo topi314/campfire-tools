@@ -13,7 +13,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"time"
 )
 
 const (
@@ -31,11 +30,9 @@ var (
 	fullEventQuery string
 )
 
-func New() *Client {
+func New(httpClient *http.Client) *Client {
 	return &Client{
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: httpClient,
 	}
 }
 

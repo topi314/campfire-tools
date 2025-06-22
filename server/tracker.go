@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
+	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,9 +31,14 @@ type TrackerClub struct {
 }
 
 type TrackerClubVars struct {
-	TopMembers []TrackerTopMember
-	Events     []TrackerEvent
-	Error      string
+	ClubName        string
+	ClubAvatarURL   string
+	ClubID          string
+	TopMemberCounts []int
+	TopMemberCount  int
+	TopMembers      []TrackerTopMember
+	Events          []TrackerEvent
+	Error           string
 }
 
 type TrackerTopMember struct {
@@ -41,9 +49,10 @@ type TrackerTopMember struct {
 }
 
 type TrackerEvent struct {
-	ID   string
-	Name string
-	URL  string
+	ID            string
+	Name          string
+	URL           string
+	CoverPhotoURL string
 }
 
 func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +159,7 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 		trackerClubs[i] = TrackerClub{
 			ID:        club.ClubID,
 			Name:      club.ClubName,
-			AvatarURL: club.ClubAvatarURL,
+			AvatarURL: path.Join("/images", path.Base(club.ClubAvatarURL)),
 			URL:       fmt.Sprintf("/tracker/club/%s", club.ClubID),
 		}
 	}
@@ -165,8 +174,29 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 
 func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	clubID := r.PathValue("club_id")
+	query := r.URL.Query()
+	topCountStr := query.Get("top_count")
+	topCount := 10
+	if topCountStr != "" {
+		var err error
+		topCount, err = strconv.Atoi(topCountStr)
+		if err != nil || topCount <= 0 {
+			s.renderTrackerClub(w, r, "Invalid 'top_count' parameter")
+			return
+		}
+	}
 
-	topMembers, err := s.database.GetTopClubMembers(context.Background(), clubID, 10)
+	club, err := s.database.GetClub(context.Background(), clubID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	topMembers, err := s.database.GetTopClubMembers(context.Background(), clubID, topCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -190,16 +220,22 @@ func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, error
 	trackerEvents := make([]TrackerEvent, len(events))
 	for i, event := range events {
 		trackerEvents[i] = TrackerEvent{
-			ID:   event.ID,
-			Name: event.Name,
-			URL:  fmt.Sprintf("/tracker/events/%s", event.ID),
+			ID:            event.ID,
+			Name:          event.Name,
+			URL:           fmt.Sprintf("/tracker/events/%s", event.ID),
+			CoverPhotoURL: path.Join("/images", path.Base(event.CoverPhotoURL)),
 		}
 	}
 
 	if err = s.templates.ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
-		TopMembers: trackerTopMembers,
-		Events:     trackerEvents,
-		Error:      errorMessage,
+		ClubName:        club.ClubName,
+		ClubAvatarURL:   path.Join("/images", path.Base(club.ClubAvatarURL)),
+		ClubID:          club.ClubID,
+		TopMemberCounts: []int{10, 25, 50, 75, 100},
+		TopMemberCount:  topCount,
+		TopMembers:      trackerTopMembers,
+		Events:          trackerEvents,
+		Error:           errorMessage,
 	}); err != nil {
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 	}

@@ -24,6 +24,26 @@ var (
 
 func New(cfg Config) (*Server, error) {
 	t := template.Must(template.New("templates").
+		Funcs(template.FuncMap{
+			"add":                 add,
+			"seq":                 seq,
+			"hasIndex":            hasIndex,
+			"now":                 time.Now,
+			"dict":                dict,
+			"reverse":             reverse,
+			"parseTime":           parseTime,
+			"convertNewLinesToBR": convertNewLinesToBR,
+			"safeHTML":            safeHTML,
+			"safeCSS":             safeCSS,
+			"safeHTMLAttr":        safeHTMLAttr,
+			"safeURL":             safeURL,
+			"safeJS":              safeJS,
+			"safeJSStr":           safeJSStr,
+			"safeSrcset":          safeSrcset,
+			"formatTimeToHour":    formatTimeToHour,
+			"formatTimeToDay":     formatTimeToDay,
+			"formatTimeToRelDay":  formatTimeToRelDay,
+		}).
 		ParseFS(templates, "templates/*.gohtml"),
 	)
 
@@ -33,15 +53,19 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 
 	s := &Server{
 		server: &http.Server{
 			Addr:    cfg.Server.Addr,
 			Handler: mux,
 		},
-		client:    campfire.New(),
-		database:  db,
-		templates: t,
+		httpClient: httpClient,
+		client:     campfire.New(httpClient),
+		database:   db,
+		templates:  t,
 	}
 
 	mux.HandleFunc("/", s.Index)
@@ -56,16 +80,19 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
 	mux.HandleFunc("GET /tracker/add", s.TrackerAdd)
 
+	mux.HandleFunc("/images/{image_id}", s.Image)
+
 	mux.Handle("/static/", http.FileServer(http.FS(static)))
 
 	return s, nil
 }
 
 type Server struct {
-	server    *http.Server
-	client    *campfire.Client
-	database  *database.Database
-	templates *template.Template
+	server     *http.Server
+	httpClient *http.Client
+	client     *campfire.Client
+	database   *database.Database
+	templates  *template.Template
 }
 
 func (s *Server) Start() {
