@@ -7,16 +7,15 @@
 
     <div class="section">
         <h2>Top Members</h2>
-            <label for="top-members" class="inline-form-control">
-                <select id="top-members" onchange="updateTopParam(this);">
-                    {{/* iterate over the top member counts and create an option for each, when it is selected set selected */}}
-                    {{ range $count := .TopMemberCounts }}
-                        <option value="{{ $count }}" {{ if eq $count $.TopMemberCount }}selected{{ end }}>
-                            {{ $count }}
-                        </option>
-                    {{ end }}
-                </select>
-            </label>
+        <label for="top-members" class="inline-form-control">
+            <select id="top-members" onchange="updateTopParam(this);">
+                {{ range $count := .TopMemberCounts }}
+                    <option value="{{ $count }}" {{ if eq $count $.TopMemberCount }}selected{{ end }}>
+                        {{ $count }}
+                    </option>
+                {{ end }}
+            </select>
+        </label>
 
         <div class="top-members">
             <span>Position</span>
@@ -37,7 +36,9 @@
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
-                    <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }} cover photo">
+                    {{ if $event.CoverPhotoURL }}
+                        <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }} cover photo">
+                    {{ end }}
                     <span>{{ $event.Name }}</span>
                 </li>
             {{ else }}

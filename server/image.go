@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 )
 
 func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
@@ -39,4 +40,12 @@ func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to write image to response: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func imageURL(imageURL string) string {
+	if imageURL == "" {
+		return ""
+	}
+
+	return path.Join("/images", path.Base(imageURL))
 }

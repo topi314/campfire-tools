@@ -8,7 +8,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -159,7 +158,7 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 		trackerClubs[i] = TrackerClub{
 			ID:        club.ClubID,
 			Name:      club.ClubName,
-			AvatarURL: path.Join("/images", path.Base(club.ClubAvatarURL)),
+			AvatarURL: imageURL(club.ClubAvatarURL),
 			URL:       fmt.Sprintf("/tracker/club/%s", club.ClubID),
 		}
 	}
@@ -223,13 +222,13 @@ func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, error
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/events/%s", event.ID),
-			CoverPhotoURL: path.Join("/images", path.Base(event.CoverPhotoURL)),
+			CoverPhotoURL: imageURL(event.CoverPhotoURL),
 		}
 	}
 
 	if err = s.templates.ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
 		ClubName:        club.ClubName,
-		ClubAvatarURL:   path.Join("/images", path.Base(club.ClubAvatarURL)),
+		ClubAvatarURL:   imageURL(club.ClubAvatarURL),
 		ClubID:          club.ClubID,
 		TopMemberCounts: []int{10, 25, 50, 75, 100},
 		TopMemberCount:  topCount,
