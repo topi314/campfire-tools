@@ -31,7 +31,7 @@ func (d *Database) GetTopClubMembers(ctx context.Context, clubID string, limit i
 		JOIN events e ON m.event_id = e.id
 		WHERE e.club_id = $1 AND m.status = 'CHECKED_IN'
 		GROUP BY m.id, m.display_name
-		ORDER BY event_count DESC
+		ORDER BY event_count DESC, m.display_name DESC
 		LIMIT $2`
 	if err := d.db.SelectContext(ctx, &members, query, clubID, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top club members: %w", err)
