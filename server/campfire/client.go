@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"path"
 	"regexp"
@@ -163,7 +164,8 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 	}
 	defer rs.Body.Close()
 
-	if rs.StatusCode == http.StatusBadGateway {
+	if rs.StatusCode == http.StatusBadGateway || rs.StatusCode == http.StatusTooManyRequests {
+		slog.WarnContext(ctx, "Received temporary error from server, retrying", slog.Int("status_code", rs.StatusCode), slog.String("event_id", eventID))
 		time.Sleep(5 * time.Second) // Retry after a short delay
 		return c.FetchFullEvent(ctx, eventID)
 	}

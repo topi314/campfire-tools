@@ -17,8 +17,8 @@ import (
 )
 
 type TrackerVars struct {
-	Clubs []TrackerClub
-	Error string
+	Clubs  []TrackerClub
+	Errors []string
 }
 
 type TrackerClub struct {
@@ -56,7 +56,7 @@ type TrackerEvent struct {
 func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderTracker(w, r, "")
+		s.renderTracker(w, r)
 	case http.MethodPost:
 		s.trackerAdd(w, r)
 	}
@@ -67,7 +67,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
-	slog.InfoContext(r.Context(), "Received tracker add request", slog.Any("url", r.URL))
+	slog.InfoContext(r.Context(), "Received tracker add request", slog.String("url", r.URL.String()))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {
 		s.renderTracker(w, r, "Missing 'urls' parameter")
@@ -145,14 +145,14 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 				slog.ErrorContext(r.Context(), "Failed to add event or members", "err", err)
 			}
 		}
-		s.renderTracker(w, r, strings.Join(errorMessages, "\n\n"))
+		s.renderTracker(w, r, errorMessages...)
 		return
 	}
 
 	http.Redirect(w, r, "/tracker", http.StatusFound)
 }
 
-func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
 	clubs, err := s.database.GetClubs(context.Background())
 	if err != nil {
 		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
@@ -170,8 +170,8 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 	}
 
 	if err = s.templates.ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
-		Clubs: trackerClubs,
-		Error: errorMessage,
+		Clubs:  trackerClubs,
+		Errors: errorMessages,
 	}); err != nil {
 		slog.ErrorContext(r.Context(), "Failed to render tracker template", "err", err)
 	}

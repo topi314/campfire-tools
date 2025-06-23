@@ -8,8 +8,13 @@
                 Event Links
                 <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...
 https://cmpf.re/..." required autofocus></textarea>
-                {{ if .Error }}
-                    <p class="error">{{ .Error }}</p>
+                {{ if .Errors }}
+                    <p class="error">
+                        {{ range $error := .Errors }}
+                            {{ $error }}
+                            <br/>
+                        {{ end }}
+                    </p>
                 {{ end }}
             </label>
             <button class="form-control" type="submit">Add</button>

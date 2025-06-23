@@ -25,7 +25,7 @@ func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Received export request", slog.Any("url", r.URL))
+	slog.Info("Received export request", slog.String("url", r.URL.String()))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {
 		s.renderExport(w, "Missing 'urls' parameter")
