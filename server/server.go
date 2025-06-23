@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -108,7 +108,7 @@ func (s *Server) Stop() {
 	defer cancel()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		log.Printf("Server shutdown failed: %s\n", err)
+		slog.Error("Server shutdown failed", slog.Any("err", err))
 		return
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"encoding/csv"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received export request: %s", r.URL.Path)
+	slog.Info("Received export request", slog.Any("url", r.URL))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {
 		s.renderExport(w, "Missing 'urls' parameter")
@@ -50,6 +50,7 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eg, ctx := errgroup.WithContext(r.Context())
+	eg.SetLimit(50)
 	var events []campfire.FullEvent
 	var mu sync.Mutex
 	for _, url := range strings.Split(meetupURLs, "\n") {
@@ -61,7 +62,7 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		eg.Go(func() error {
 			event, err := s.client.FetchEvent(ctx, meetupURL)
 			if err != nil {
-				return fmt.Errorf("failed to fetch event from URL %s: %w", meetupURL, err)
+				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
 			}
 
 			if event == nil || len(event.Event.RSVPStatuses) == 0 {
@@ -76,18 +77,18 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		log.Printf("Failed to fetch events: %s", err.Error())
+		slog.ErrorContext(r.Context(), "Failed to fetch events", slog.Any("err", err))
 		s.renderExport(w, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	if len(events) == 0 {
-		log.Println("No events found for the provided URLs")
+		slog.ErrorContext(r.Context(), "No events found for the provided URLs")
 		s.renderExport(w, "No events found for the provided URLs")
 		return
 	}
 
-	log.Printf("Fetched %d events", len(events))
+	slog.InfoContext(r.Context(), "Fetched events", slog.Int("events", len(events)))
 
 	if combineCSVs {
 		records := [][]string{
@@ -110,11 +111,11 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		log.Printf("Combined CSV records: %d", len(records))
+		slog.InfoContext(r.Context(), "Combined CSV records", slog.Int("records", len(records)))
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=export.csv")
 		if err := csv.NewWriter(w).WriteAll(records); err != nil {
-			log.Printf("Failed to write CSV records: %s", err.Error())
+			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.Any("err", err))
 			return
 		}
 		return
@@ -144,7 +145,7 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=export.csv")
 		if err := csv.NewWriter(w).WriteAll(allRecords[0]); err != nil {
-			log.Printf("Failed to write CSV records: %s", err.Error())
+			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.Any("err", err))
 			return
 		}
 		return
@@ -157,21 +158,21 @@ func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		filename := fmt.Sprintf("export_%d.csv", i+1)
 		f, err := zw.Create(filename)
 		if err != nil {
-			log.Printf("Failed to create zip entry %s: %s", filename, err.Error())
+			slog.ErrorContext(r.Context(), "Failed to create zip entry", slog.String("filename", filename), slog.Any("err", err))
 			return
 		}
 
 		if err = csv.NewWriter(f).WriteAll(records); err != nil {
-			log.Printf("Failed to write CSV records for %s: %s", filename, err.Error())
+			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.String("filename", filename), slog.Any("err", err))
 			return
 		}
 	}
 	if err := zw.Close(); err != nil {
-		log.Printf("Failed to close zip writer: %s", err.Error())
+		slog.ErrorContext(r.Context(), "Failed to close zip writer: %s", err.Error())
 		return
 	}
 
-	log.Printf("Export completed successfully, %d files created", len(allRecords))
+	slog.InfoContext(r.Context(), "Export completed successfully", slog.Int("files", len(allRecords)))
 }
 
 func (s *Server) renderExport(w http.ResponseWriter, errorMessage string) {

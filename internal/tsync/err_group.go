@@ -2,29 +2,32 @@ package tsync
 
 import (
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type ErrorGroup struct {
 	sync.Mutex
 	errors []error
-	wg     sync.WaitGroup
+	eg     errgroup.Group
 }
 
 func (g *ErrorGroup) Go(n func() error) {
-	g.wg.Add(1)
-	go func() {
-		defer g.wg.Done()
+	g.eg.Go(func() error {
 		if err := n(); err != nil {
 			g.Lock()
+			defer g.Unlock()
 			g.errors = append(g.errors, err)
-			g.Unlock()
 		}
-	}()
+		return nil
+	})
+}
+
+func (g *ErrorGroup) SetLimit(n int) {
+	g.eg.SetLimit(n)
 }
 
 func (g *ErrorGroup) Wait() []error {
-	g.wg.Wait()
-	g.Lock()
-	defer g.Unlock()
+	_ = g.eg.Wait()
 	return g.errors
 }

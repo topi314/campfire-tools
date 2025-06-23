@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -63,7 +62,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received tracker add request: %s", r.URL.Path)
+	slog.InfoContext(r.Context(), "Received tracker add request", slog.Any("url", r.URL))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {
 		s.renderTracker(w, r, "Missing 'urls' parameter")
@@ -71,6 +70,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var eg tsync.ErrorGroup
+	eg.SetLimit(50)
 	for _, url := range strings.Split(meetupURLs, "\n") {
 		meetupURL := strings.TrimSpace(url)
 		if meetupURL == "" {
@@ -80,7 +80,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		eg.Go(func() error {
 			event, err := s.client.FetchEvent(context.Background(), meetupURL)
 			if err != nil {
-				return fmt.Errorf("failed to fetch event from URL %s: %w", meetupURL, err)
+				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
 			}
 
 			if event == nil {
@@ -110,7 +110,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to add event: %s", err.Error())
 			}
 
-			log.Printf("Event added: %s (%s)", event.Event.Name, event.Event.ID)
+			slog.InfoContext(r.Context(), "Event added", slog.String("name", event.Event.Name), slog.String("id", event.Event.ID))
 
 			var members []database.Member
 			for _, rsvpStatus := range event.Event.RSVPStatuses {
@@ -127,7 +127,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to add members: %w", err)
 			}
 
-			log.Printf("Members added for event: %s (%s)", event.Event.Name, event.Event.ID)
+			slog.InfoContext(r.Context(), "Members added for event", slog.String("name", event.Event.Name), slog.String("id", event.Event.ID), slog.Int("count", len(members)))
 			return nil
 		})
 	}
@@ -137,9 +137,10 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		for _, err := range errs {
 			if err != nil {
 				errorMessages = append(errorMessages, err.Error())
+				slog.ErrorContext(r.Context(), "Failed to add event or members", "err", err)
 			}
 		}
-		s.renderTracker(w, r, strings.Join(errorMessages, "\n"))
+		s.renderTracker(w, r, strings.Join(errorMessages, "\n\n"))
 		return
 	}
 

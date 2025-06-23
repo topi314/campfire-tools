@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"slices"
@@ -21,7 +21,7 @@ func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) RaffleResult(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received raffle request: %s", r.URL.Path)
+	slog.InfoContext(r.Context(), "Received raffle request", slog.Any("url", r.URL))
 	meetupURL := r.FormValue("url")
 	if meetupURL == "" {
 		s.renderRaffle(w, "Missing 'url' parameter. Please specify the event URL.")

@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -21,7 +21,9 @@ const (
 )
 
 var (
-	MeetupURLRegex = regexp.MustCompile(`https://niantic-social.nianticlabs.com/public/meetup/[a-zA-Z0-9-]+`)
+	MeetupURLRegex = regexp.MustCompile(`https://niantic-social.nianticlabs.com/public/meetup(-without-location)?/[a-zA-Z0-9-]+`)
+
+	ErrUnsupportedMeetup = errors.New("meetup not supported")
 
 	//go:embed queries/public_events.graphql
 	publicEventsQuery string
@@ -51,15 +53,19 @@ func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, 
 			}
 		}
 
+		if strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup-without-location/") {
+			return nil, ErrUnsupportedMeetup
+		}
+
 		if !strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
-			return nil, errors.New("invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/' or 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
+			return nil, errors.New("invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
 		}
 		eventID := path.Base(meetupURL)
 		if eventID == "" {
 			return nil, errors.New("could not extract event ID from URL")
 		}
 
-		events, err := c.FetchEvents(ctx, eventID)
+		events, err := c.FetchEvents(ctx, []string{eventID})
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch event: %w", err)
 		}
@@ -89,20 +95,20 @@ func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, 
 	return event, nil
 }
 
-func (c *Client) FetchEvents(ctx context.Context, eventID string) (*Events, error) {
+func (c *Client) FetchEvents(ctx context.Context, eventIDs []string) (*Events, error) {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: publicEventsQuery,
 		Variables: map[string]any{
-			"ids": []string{eventID},
+			"ids": eventIDs,
 		},
 	}); err != nil {
-		log.Fatalf("Failed to encode request body: %s", err)
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
 	rq, err := http.NewRequestWithContext(ctx, http.MethodPost, publicEndpoint, buf)
 	if err != nil {
-		log.Fatalf("Failed to create request: %s", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	rq.Header.Set("Content-Type", "application/json")
@@ -110,13 +116,13 @@ func (c *Client) FetchEvents(ctx context.Context, eventID string) (*Events, erro
 
 	rs, err := c.httpClient.Do(rq)
 	if err != nil {
-		log.Fatalf("Failed to send request: %s", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer rs.Body.Close()
 
 	if rs.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(rs.Body)
-		log.Fatalf("Request failed with status code: %d, response: %s", rs.StatusCode, data)
+		return nil, fmt.Errorf("request failed with status code: %d, response: %s", rs.StatusCode, data)
 	}
 
 	logBuf := &bytes.Buffer{}
@@ -124,7 +130,7 @@ func (c *Client) FetchEvents(ctx context.Context, eventID string) (*Events, erro
 
 	var resp Resp[Events]
 	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
-		log.Fatalf("Failed to decode response: %s, response: %s", err, logBuf.String())
+		return nil, fmt.Errorf("failed to decode response: %q: %w", logBuf.String(), err)
 	}
 
 	return &resp.Data, nil
@@ -140,12 +146,12 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 			"pageSize":   10000000, // Large enough to fetch all members
 		},
 	}); err != nil {
-		log.Fatalf("Failed to encode request body: %s", err)
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
 	rq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, buf)
 	if err != nil {
-		log.Fatalf("Failed to create request: %s", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	rq.Header.Set("Content-Type", "application/json")
@@ -153,13 +159,18 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 
 	rs, err := c.httpClient.Do(rq)
 	if err != nil {
-		log.Fatalf("Failed to send request: %s", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer rs.Body.Close()
 
+	if rs.StatusCode == http.StatusBadGateway {
+		time.Sleep(5 * time.Second) // Retry after a short delay
+		return c.FetchFullEvent(ctx, eventID)
+	}
+
 	if rs.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(rs.Body)
-		log.Fatalf("Request failed with status code: %d, response: %s", rs.StatusCode, data)
+		return nil, fmt.Errorf("request failed with status code: %d, response: %s", rs.StatusCode, data)
 	}
 
 	logBuf := &bytes.Buffer{}
@@ -167,7 +178,7 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 
 	var resp Resp[FullEvent]
 	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
-		log.Fatalf("Failed to decode response: %s, response: %s", err, logBuf.String())
+		return nil, fmt.Errorf("failed to decode response: %q: %w", logBuf.String(), err)
 	}
 
 	return &resp.Data, nil
