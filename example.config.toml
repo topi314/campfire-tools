@@ -1,3 +1,5 @@
+dev = false
+
 [log]
 level = "info"
 format = "text"

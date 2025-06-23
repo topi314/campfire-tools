@@ -48,13 +48,15 @@ func defaultConfig() Config {
 }
 
 type Config struct {
+	Dev      bool            `toml:"dev"`
 	Log      LogConfig       `toml:"log"`
 	Server   ServerConfig    `toml:"server"`
 	Database database.Config `toml:"database"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Log: %s\nServer: %s\nDatabase: %s",
+	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s",
+		c.Dev,
 		c.Log,
 		c.Server,
 		c.Database,

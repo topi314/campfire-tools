@@ -54,14 +54,19 @@ type TrackerEvent struct {
 }
 
 func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
-	s.renderTracker(w, r, "")
+	switch r.Method {
+	case http.MethodGet:
+		s.renderTracker(w, r, "")
+	case http.MethodPost:
+		s.trackerAdd(w, r)
+	}
 }
 
 func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	s.renderTrackerClub(w, r, "")
 }
 
-func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
+func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(r.Context(), "Received tracker add request", slog.Any("url", r.URL))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {

@@ -1,7 +1,7 @@
 {{ template "head" "Campfire Check-in Export" }}
 <div class="container">
     <h1>Check-in Export</h1>
-    <form action="/export/csv" method="GET" class="form" id="export-form">
+    <form action="/export" method="POST" class="form" id="export-form">
         <label class="form-control" for="urls">
             Event Links
             <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...

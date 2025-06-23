@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -60,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 	s := &Server{
 		server: &http.Server{
 			Addr:    cfg.Server.Addr,
-			Handler: mux,
+			Handler: cleanPathMiddleware(mux),
 		},
 		httpClient: httpClient,
 		client:     campfire.New(httpClient),
@@ -69,22 +70,23 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	mux.HandleFunc("/", s.Index)
-
-	mux.HandleFunc("GET /raffle", s.Raffle)
-	mux.HandleFunc("GET /raffle/result", s.RaffleResult)
-
-	mux.HandleFunc("GET /export", s.Export)
-	mux.HandleFunc("GET /export/csv", s.ExportCSV)
-
-	mux.HandleFunc("GET /tracker", s.Tracker)
-	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
-	mux.HandleFunc("GET /tracker/add", s.TrackerAdd)
+	mux.HandleFunc("/raffle", s.Raffle)
+	mux.HandleFunc("/export", s.Export)
+	mux.HandleFunc("/tracker", s.Tracker)
+	mux.HandleFunc("/tracker/club/{club_id}", s.TrackerClub)
 
 	mux.HandleFunc("/images/{image_id}", s.Image)
-
 	mux.Handle("/static/", http.FileServer(http.FS(static)))
 
 	return s, nil
+}
+
+func cleanPathMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Clean the request URL path
+		r.URL.Path = path.Clean(r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
 }
 
 type Server struct {

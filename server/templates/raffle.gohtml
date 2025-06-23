@@ -1,7 +1,7 @@
 {{ template "head" "Campfire Raffle" }}
 <div class="container">
     <h1>Raffle</h1>
-    <form action="/raffle/result" method="GET" class="form">
+    <form action="/raffle" method="POST" class="form">
         <label class="form-control" for="url">
             Event Link
             <input class="form-control" type="text" id="url" name="url" placeholder="https://cmpf.re/..." required autofocus>

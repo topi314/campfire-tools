@@ -11,17 +11,23 @@ import (
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
-type RaffleVars struct {
-	Winners   []string
-	RaffleURL string
+type DoRaffleVars struct {
+	Winners []string
+	URL     string
+	Count   int
 }
 
 func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
-	s.renderRaffle(w, "")
+	switch r.Method {
+	case http.MethodGet:
+		s.renderRaffle(w, "")
+	case http.MethodPost:
+		s.doRaffle(w, r)
+	}
 }
 
-func (s *Server) RaffleResult(w http.ResponseWriter, r *http.Request) {
-	slog.InfoContext(r.Context(), "Received raffle request", slog.Any("url", r.URL))
+func (s *Server) doRaffle(w http.ResponseWriter, r *http.Request) {
+	slog.InfoContext(r.Context(), "Received raffle request", slog.String("url", r.URL.String()))
 	meetupURL := r.FormValue("url")
 	if meetupURL == "" {
 		s.renderRaffle(w, "Missing 'url' parameter. Please specify the event URL.")
@@ -77,9 +83,10 @@ func (s *Server) RaffleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = s.templates.ExecuteTemplate(w, "raffle_result.gohtml", RaffleVars{
-		Winners:   winners,
-		RaffleURL: r.URL.Path + "?" + r.URL.RawQuery,
+	if err = s.templates.ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
+		Winners: winners,
+		URL:     meetupURL,
+		Count:   count,
 	}); err != nil {
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 	}

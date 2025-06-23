@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"path"
 )
@@ -36,8 +37,8 @@ func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
 	h.Set("Content-Length", rs.Header.Get("Content-Length"))
 	h.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 
-	if _, err := io.Copy(w, rs.Body); err != nil {
-		http.Error(w, "Failed to write image to response: "+err.Error(), http.StatusInternalServerError)
+	if _, err = io.Copy(w, rs.Body); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to write image to response", slog.Any("err", err))
 		return
 	}
 }

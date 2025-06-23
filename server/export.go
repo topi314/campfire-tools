@@ -16,10 +16,15 @@ import (
 )
 
 func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
-	s.renderExport(w, "")
+	switch r.Method {
+	case http.MethodGet:
+		s.renderExport(w, "")
+	case http.MethodPost:
+		s.doExport(w, r)
+	}
 }
 
-func (s *Server) ExportCSV(w http.ResponseWriter, r *http.Request) {
+func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Received export request", slog.Any("url", r.URL))
 	meetupURLs := r.FormValue("urls")
 	if meetupURLs == "" {
