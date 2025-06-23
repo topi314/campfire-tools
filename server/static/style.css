@@ -50,7 +50,7 @@ body, html {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-input {
+input, textarea {
     width: 100%;
     padding: 10px;
     font-size: 16px;
@@ -64,7 +64,7 @@ input[type="checkbox"] {
     width: fit-content;
 }
 
-input:focus {
+input:focus, textarea:focus {
     border-color: var(--primary-color);
     outline: none;
 }
