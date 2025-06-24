@@ -17,8 +17,8 @@ import (
 )
 
 type TrackerVars struct {
-	Clubs []TrackerClub
-	Error string
+	Clubs  []TrackerClub
+	Errors []string
 }
 
 type TrackerClub struct {
@@ -56,7 +56,7 @@ type TrackerEvent struct {
 func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderTracker(w, r, "")
+		s.renderTracker(w, r)
 	case http.MethodPost:
 		s.trackerAdd(w, r)
 	}
@@ -67,16 +67,25 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
-	slog.InfoContext(r.Context(), "Received tracker add request", slog.Any("url", r.URL))
 	meetupURLs := r.FormValue("urls")
+
+	slog.InfoContext(r.Context(), "Received tracker add request", slog.String("url", r.URL.String()), slog.String("urls", meetupURLs))
+
 	if meetupURLs == "" {
 		s.renderTracker(w, r, "Missing 'urls' parameter")
 		return
 	}
 
+	var errs []error
+	urls := strings.Split(meetupURLs, "\n")
+	if len(urls) > 50 {
+		urls = urls[:50]
+		errs = append(errs, fmt.Errorf("please limit the number of URLs to 50, got %d. Only the first 50 will be processed", len(urls)))
+	}
+
+	now := time.Now()
 	var eg tsync.ErrorGroup
-	eg.SetLimit(50)
-	for _, url := range strings.Split(meetupURLs, "\n") {
+	for _, url := range urls {
 		meetupURL := strings.TrimSpace(url)
 		if meetupURL == "" {
 			continue
@@ -88,12 +97,8 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
 			}
 
-			if event == nil {
-				return fmt.Errorf("event not found for URL: %s", meetupURL)
-			}
-
-			if event.Event.EventEndTime.After(time.Now()) {
-				return fmt.Errorf("event is in the future, skipping: %s", event.Event.Name)
+			if event.Event.EventEndTime.After(now) {
+				return fmt.Errorf("event has not ended yet: %s", event.Event.Name)
 			}
 
 			if err = s.database.AddEvent(context.Background(), database.Event{
@@ -137,7 +142,7 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if errs := eg.Wait(); len(errs) > 0 {
+	if errs = append(errs, eg.Wait()...); len(errs) > 0 {
 		var errorMessages []string
 		for _, err := range errs {
 			if err != nil {
@@ -145,14 +150,14 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 				slog.ErrorContext(r.Context(), "Failed to add event or members", "err", err)
 			}
 		}
-		s.renderTracker(w, r, strings.Join(errorMessages, "\n\n"))
+		s.renderTracker(w, r, errorMessages...)
 		return
 	}
 
 	http.Redirect(w, r, "/tracker", http.StatusFound)
 }
 
-func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
 	clubs, err := s.database.GetClubs(context.Background())
 	if err != nil {
 		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
@@ -170,8 +175,8 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 	}
 
 	if err = s.templates.ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
-		Clubs: trackerClubs,
-		Error: errorMessage,
+		Clubs:  trackerClubs,
+		Errors: errorMessages,
 	}); err != nil {
 		slog.ErrorContext(r.Context(), "Failed to render tracker template", "err", err)
 	}
@@ -186,7 +191,7 @@ func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, error
 		var err error
 		topCount, err = strconv.Atoi(topCountStr)
 		if err != nil || topCount <= 0 {
-			s.renderTrackerClub(w, r, "Invalid 'top_count' parameter")
+			http.Error(w, "Invalid top_count parameter: "+topCountStr, http.StatusBadRequest)
 			return
 		}
 	}

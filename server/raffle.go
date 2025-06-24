@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/topi314/campfire-tools/server/campfire"
 )
@@ -27,14 +28,16 @@ func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) doRaffle(w http.ResponseWriter, r *http.Request) {
-	slog.InfoContext(r.Context(), "Received raffle request", slog.String("url", r.URL.String()))
-	meetupURL := r.FormValue("url")
+	meetupURL := strings.TrimSpace(r.FormValue("url"))
+	stringCount := r.FormValue("count")
+
+	slog.InfoContext(r.Context(), "Received raffle request", slog.String("url", r.URL.String()), slog.String("meetup_url", meetupURL), slog.String("count", stringCount))
+
 	if meetupURL == "" {
 		s.renderRaffle(w, "Missing 'url' parameter. Please specify the event URL.")
 		return
 	}
 
-	stringCount := r.FormValue("count")
 	if stringCount == "" {
 		s.renderRaffle(w, "Missing 'count' parameter. Please specify the number of winners to draw.")
 		return

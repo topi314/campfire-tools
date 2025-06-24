@@ -55,7 +55,7 @@ func New(cfg Config) (*Server, error) {
 
 	mux := http.NewServeMux()
 	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
+		//Timeout: 30 * time.Second,
 	}
 
 	s := &Server{
@@ -64,7 +64,7 @@ func New(cfg Config) (*Server, error) {
 			Handler: cleanPathMiddleware(mux),
 		},
 		httpClient: httpClient,
-		client:     campfire.New(httpClient),
+		client:     campfire.New(cfg.Campfire, httpClient),
 		database:   db,
 		templates:  t,
 	}
