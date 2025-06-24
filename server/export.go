@@ -57,10 +57,16 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 		combineCSVs = parsed
 	}
 
+	urls := strings.Split(meetupURLs, "\n")
+	if len(urls) > 50 {
+		s.renderExport(w, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
+		return
+	}
+
 	eg, ctx := errgroup.WithContext(r.Context())
 	var events []campfire.FullEvent
 	var mu sync.Mutex
-	for _, url := range strings.Split(meetupURLs, "\n") {
+	for _, url := range urls {
 		meetupURL := strings.TrimSpace(url)
 		if meetupURL == "" {
 			continue

@@ -76,8 +76,16 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var errs []error
+	urls := strings.Split(meetupURLs, "\n")
+	if len(urls) > 50 {
+		urls = urls[:50]
+		errs = append(errs, fmt.Errorf("please limit the number of URLs to 50, got %d. Only the first 50 will be processed", len(urls)))
+	}
+
+	now := time.Now()
 	var eg tsync.ErrorGroup
-	for _, url := range strings.Split(meetupURLs, "\n") {
+	for _, url := range urls {
 		meetupURL := strings.TrimSpace(url)
 		if meetupURL == "" {
 			continue
@@ -89,12 +97,8 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
 			}
 
-			if event == nil {
-				return fmt.Errorf("event not found for URL: %s", meetupURL)
-			}
-
-			if event.Event.EventEndTime.After(time.Now()) {
-				return fmt.Errorf("event is in the future, skipping: %s", event.Event.Name)
+			if event.Event.EventEndTime.After(now) {
+				return fmt.Errorf("event has not ended yet: %s", event.Event.Name)
 			}
 
 			if err = s.database.AddEvent(context.Background(), database.Event{
@@ -138,7 +142,7 @@ func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if errs := eg.Wait(); len(errs) > 0 {
+	if errs = append(errs, eg.Wait()...); len(errs) > 0 {
 		var errorMessages []string
 		for _, err := range errs {
 			if err != nil {
@@ -187,7 +191,7 @@ func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, error
 		var err error
 		topCount, err = strconv.Atoi(topCountStr)
 		if err != nil || topCount <= 0 {
-			s.renderTrackerClub(w, r, "Invalid 'top_count' parameter")
+			http.Error(w, "Invalid top_count parameter: "+topCountStr, http.StatusBadRequest)
 			return
 		}
 	}
