@@ -3,6 +3,7 @@ package server
 import (
 	"archive/zip"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -25,14 +26,17 @@ func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Received export request", slog.String("url", r.URL.String()))
 	meetupURLs := r.FormValue("urls")
+	includeMissingMembersStr := r.FormValue("include_missing_members")
+	combineCSVsStr := r.FormValue("combine_csv")
+
+	slog.Info("Received export request", slog.String("url", r.URL.String()), slog.String("meetup_urls", meetupURLs), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
+
 	if meetupURLs == "" {
 		s.renderExport(w, "Missing 'urls' parameter")
 		return
 	}
 
-	includeMissingMembersStr := r.FormValue("include_missing_members")
 	var includeMissingMembers bool
 	if includeMissingMembersStr != "" {
 		parsed, err := strconv.ParseBool(includeMissingMembersStr)
@@ -43,7 +47,6 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 		includeMissingMembers = parsed
 	}
 
-	combineCSVsStr := r.FormValue("combine_csv")
 	var combineCSVs bool
 	if combineCSVsStr != "" {
 		parsed, err := strconv.ParseBool(combineCSVsStr)
@@ -55,7 +58,6 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eg, ctx := errgroup.WithContext(r.Context())
-	eg.SetLimit(50)
 	var events []campfire.FullEvent
 	var mu sync.Mutex
 	for _, url := range strings.Split(meetupURLs, "\n") {
@@ -67,11 +69,16 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 		eg.Go(func() error {
 			event, err := s.client.FetchEvent(ctx, meetupURL)
 			if err != nil {
+				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
+					return nil
+				}
+
 				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
 			}
 
-			if event == nil || len(event.Event.RSVPStatuses) == 0 {
-				return fmt.Errorf("no RSVPs found for event at URL %s", meetupURL)
+			// ignore events without RSVP statuses
+			if len(event.Event.RSVPStatuses) == 0 {
+				return nil
 			}
 
 			mu.Lock()

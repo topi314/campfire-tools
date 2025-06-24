@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	_ "embed"
+	"errors"
 	"flag"
 	"log/slog"
 	"os"
@@ -9,6 +11,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
+	"github.com/topi314/campfire-tools/internal/xslog"
 	"github.com/topi314/campfire-tools/server"
 )
 
@@ -69,5 +72,19 @@ func setupLogger(cfg server.LogConfig) {
 		os.Exit(-1)
 	}
 
-	slog.SetDefault(slog.New(handler))
+	slog.SetDefault(slog.New(xslog.NewFilterHandler(handler, filterContextCancelled)))
+}
+
+func filterContextCancelled(_ context.Context, record slog.Record) bool {
+	shouldLog := true
+	record.Attrs(func(attr slog.Attr) bool {
+		if err, ok := attr.Value.Any().(error); ok {
+			if errors.Is(err, context.Canceled) {
+				shouldLog = false
+			}
+			return false
+		}
+		return true
+	})
+	return shouldLog
 }

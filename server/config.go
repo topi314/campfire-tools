@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
 
+	"github.com/topi314/campfire-tools/internal/xtime"
+	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -44,6 +47,11 @@ func defaultConfig() Config {
 			Password: "password",
 			Database: "campfire-tools",
 		},
+		Campfire: campfire.Config{
+			Every:      xtime.Duration(1 * time.Second),
+			Burst:      40,
+			MaxRetries: 3,
+		},
 	}
 }
 
@@ -52,14 +60,16 @@ type Config struct {
 	Log      LogConfig       `toml:"log"`
 	Server   ServerConfig    `toml:"server"`
 	Database database.Config `toml:"database"`
+	Campfire campfire.Config `toml:"campfire"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s",
+	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s",
 		c.Dev,
 		c.Log,
 		c.Server,
 		c.Database,
+		c.Campfire,
 	)
 }
 

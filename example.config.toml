@@ -15,3 +15,8 @@ username = "campfire-tools"
 password = "password"
 database = "campfire-tools"
 ssl_mode = "disable"
+
+[campfire]
+every = "2s"
+burst = 10
+max_retries = 3

@@ -67,15 +67,16 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackerAdd(w http.ResponseWriter, r *http.Request) {
-	slog.InfoContext(r.Context(), "Received tracker add request", slog.String("url", r.URL.String()))
 	meetupURLs := r.FormValue("urls")
+
+	slog.InfoContext(r.Context(), "Received tracker add request", slog.String("url", r.URL.String()), slog.String("urls", meetupURLs))
+
 	if meetupURLs == "" {
 		s.renderTracker(w, r, "Missing 'urls' parameter")
 		return
 	}
 
 	var eg tsync.ErrorGroup
-	eg.SetLimit(50)
 	for _, url := range strings.Split(meetupURLs, "\n") {
 		meetupURL := strings.TrimSpace(url)
 		if meetupURL == "" {

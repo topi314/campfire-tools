@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -25,6 +27,7 @@ var (
 	MeetupURLRegex = regexp.MustCompile(`https://niantic-social.nianticlabs.com/public/meetup(-without-location)?/[a-zA-Z0-9-]+`)
 
 	ErrUnsupportedMeetup = errors.New("meetup not supported")
+	ErrTooManyRequests   = errors.New("too many requests, please try again later")
 
 	//go:embed queries/public_events.graphql
 	publicEventsQuery string
@@ -33,17 +36,25 @@ var (
 	fullEventQuery string
 )
 
-func New(httpClient *http.Client) *Client {
+func New(cfg Config, httpClient *http.Client) *Client {
 	return &Client{
+		cfg:        cfg,
 		httpClient: httpClient,
+		limiter:    rate.NewLimiter(rate.Every(time.Duration(cfg.Every)), cfg.Burst),
 	}
 }
 
 type Client struct {
+	cfg        Config
 	httpClient *http.Client
+	limiter    *rate.Limiter
 }
 
 func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, error) {
+	if err := c.limiter.Wait(ctx); err != nil {
+		return nil, err
+	}
+
 	var campfireEventID string
 	if !strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
 		if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
@@ -68,7 +79,7 @@ func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, 
 
 		events, err := c.FetchEvents(ctx, []string{eventID})
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch event: %w", err)
+			return nil, fmt.Errorf("failed to fetch events: %w", err)
 		}
 
 		if len(events.PublicMapObjectsByID) == 0 {
@@ -90,13 +101,20 @@ func (c *Client) FetchEvent(ctx context.Context, meetupURL string) (*FullEvent, 
 
 	event, err := c.FetchFullEvent(ctx, campfireEventID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch event: %w", err)
+		return nil, fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
 	return event, nil
 }
 
 func (c *Client) FetchEvents(ctx context.Context, eventIDs []string) (*Events, error) {
+	return c.fetchEvents(ctx, eventIDs, 0)
+}
+
+func (c *Client) fetchEvents(ctx context.Context, eventIDs []string, try int) (*Events, error) {
+	if try >= c.cfg.MaxRetries {
+		return nil, fmt.Errorf("failed to fetch events after %d retries: %w", c.cfg.MaxRetries, ErrTooManyRequests)
+	}
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: publicEventsQuery,
@@ -123,7 +141,8 @@ func (c *Client) FetchEvents(ctx context.Context, eventIDs []string) (*Events, e
 
 	if rs.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(rs.Body)
-		return nil, fmt.Errorf("request failed with status code: %d, response: %s", rs.StatusCode, data)
+		slog.ErrorContext(ctx, "Failed to fetch events", slog.Int("status_code", rs.StatusCode), slog.String("response", string(data)))
+		return nil, fmt.Errorf("request failed with status code: %d", rs.StatusCode)
 	}
 
 	logBuf := &bytes.Buffer{}
@@ -131,13 +150,23 @@ func (c *Client) FetchEvents(ctx context.Context, eventIDs []string) (*Events, e
 
 	var resp Resp[Events]
 	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %q: %w", logBuf.String(), err)
+		slog.ErrorContext(ctx, "Failed to decode response", slog.String("response", logBuf.String()), slog.Any("error", err))
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &resp.Data, nil
 }
 
 func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent, error) {
+	slog.DebugContext(ctx, "Fetching full event", slog.String("event_id", eventID))
+	return c.fetchFullEvent(ctx, eventID, 0)
+}
+
+func (c *Client) fetchFullEvent(ctx context.Context, eventID string, try int) (*FullEvent, error) {
+	if try >= c.cfg.MaxRetries {
+		return nil, fmt.Errorf("failed to fetch full event after %d retries: %w", c.cfg.MaxRetries, ErrTooManyRequests)
+	}
+
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: fullEventQuery,
@@ -164,15 +193,20 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 	}
 	defer rs.Body.Close()
 
-	if rs.StatusCode == http.StatusBadGateway || rs.StatusCode == http.StatusTooManyRequests {
-		slog.WarnContext(ctx, "Received temporary error from server, retrying", slog.Int("status_code", rs.StatusCode), slog.String("event_id", eventID))
-		time.Sleep(5 * time.Second) // Retry after a short delay
-		return c.FetchFullEvent(ctx, eventID)
-	}
-
 	if rs.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(rs.Body)
-		return nil, fmt.Errorf("request failed with status code: %d, response: %s", rs.StatusCode, data)
+		slog.ErrorContext(ctx, "Failed to fetch full event", slog.Int("status_code", rs.StatusCode), slog.String("response", string(data)))
+
+		if rs.StatusCode == http.StatusBadGateway {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(30 * time.Second):
+			}
+			return c.fetchFullEvent(ctx, eventID, try+1)
+		}
+
+		return nil, fmt.Errorf("request failed with status code: %d", rs.StatusCode)
 	}
 
 	logBuf := &bytes.Buffer{}
@@ -180,7 +214,8 @@ func (c *Client) FetchFullEvent(ctx context.Context, eventID string) (*FullEvent
 
 	var resp Resp[FullEvent]
 	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %q: %w", logBuf.String(), err)
+		slog.ErrorContext(ctx, "Failed to decode response", slog.String("response", logBuf.String()), slog.Any("error", err))
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &resp.Data, nil
