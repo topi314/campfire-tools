@@ -20,20 +20,40 @@ type Event struct {
 	ClubAvatarURL string `db:"club_avatar_url"`
 }
 
+type TopEvent struct {
+	Event
+	RSVP     int `db:"rsvp"`
+	CheckIns int `db:"check_ins"`
+}
+
+type MemberEvent struct {
+	Event
+	Status string `db:"status"`
+}
+
 type Club struct {
 	ClubID        string `db:"club_id"`
 	ClubName      string `db:"club_name"`
 	ClubAvatarURL string `db:"club_avatar_url"`
 }
 
-type Member struct {
+type ClubMember struct {
 	ID          string `db:"id"`
 	DisplayName string `db:"display_name"`
-	Status      string `db:"status"`
-	EventID     string `db:"event_id"`
+}
+
+type Member struct {
+	ClubMember
+	Status  string `db:"status"`
+	EventID string `db:"event_id"`
+}
+
+type EventMember struct {
+	Member
+	EventName string `db:"event_name"`
 }
 
 type TopMember struct {
 	Member
-	EventCount int `db:"event_count"`
+	CheckIns int `db:"check_ins"`
 }

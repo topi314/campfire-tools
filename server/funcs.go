@@ -21,6 +21,18 @@ func add(a, b any) (int, error) {
 	return ai + bi, nil
 }
 
+func addStr(a, b any) (string, error) {
+	as, ok := a.(string)
+	if !ok {
+		return "", fmt.Errorf("first argument must be a string: %v", a)
+	}
+	bs, ok := b.(string)
+	if !ok {
+		return "", fmt.Errorf("second argument must be a string: %v", b)
+	}
+	return as + bs, nil
+}
+
 func seq(n int) []int {
 	s := make([]int, n)
 	for i := range s {

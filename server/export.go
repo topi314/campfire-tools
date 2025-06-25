@@ -19,7 +19,7 @@ import (
 func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderExport(w, "")
+		s.renderExport(w, r, "")
 	case http.MethodPost:
 		s.doExport(w, r)
 	}
@@ -33,7 +33,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Received export request", slog.String("url", r.URL.String()), slog.String("meetup_urls", meetupURLs), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
 
 	if meetupURLs == "" {
-		s.renderExport(w, "Missing 'urls' parameter")
+		s.renderExport(w, r, "Missing 'urls' parameter")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	if includeMissingMembersStr != "" {
 		parsed, err := strconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
-			s.renderExport(w, "Invalid 'include_missing_members' parameter")
+			s.renderExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
 		}
 		includeMissingMembers = parsed
@@ -51,7 +51,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	if combineCSVsStr != "" {
 		parsed, err := strconv.ParseBool(combineCSVsStr)
 		if err != nil {
-			s.renderExport(w, "Invalid 'combine_csv' parameter")
+			s.renderExport(w, r, "Invalid 'combine_csv' parameter")
 			return
 		}
 		combineCSVs = parsed
@@ -59,7 +59,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 
 	urls := strings.Split(meetupURLs, "\n")
 	if len(urls) > 50 {
-		s.renderExport(w, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
+		s.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
 		return
 	}
 
@@ -96,39 +96,75 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := eg.Wait(); err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch events", slog.Any("err", err))
-		s.renderExport(w, "Failed to fetch events: "+err.Error())
+		s.renderExport(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	if len(events) == 0 {
 		slog.ErrorContext(r.Context(), "No events found for the provided URLs")
-		s.renderExport(w, "No events found for the provided URLs")
+		s.renderExport(w, r, "No events found for the provided URLs")
 		return
 	}
 
 	slog.InfoContext(r.Context(), "Fetched events", slog.Int("events", len(events)))
 
+	var allRecords [][][]string
 	if combineCSVs {
 		records := [][]string{
 			{"id", "name", "status", "event_id", "event_name"},
 		}
 		for _, event := range events {
 			for _, rsvpStatus := range event.Event.RSVPStatuses {
-				member, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
+				name, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
 				if !ok && !includeMissingMembers {
 					continue
 				}
 
 				records = append(records, []string{
 					rsvpStatus.UserID,
-					member,
+					name,
 					rsvpStatus.RSVPStatus,
 					event.Event.ID,
 					event.Event.Name,
 				})
 			}
 		}
+		allRecords = append(allRecords, records)
+	} else {
+		for _, event := range events {
+			records := [][]string{
+				{"id", "name", "status"},
+			}
+			for _, rsvpStatus := range event.Event.RSVPStatuses {
+				name, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
+				if !ok && !includeMissingMembers {
+					continue
+				}
 
+				records = append(records, []string{
+					rsvpStatus.UserID,
+					name,
+					rsvpStatus.RSVPStatus,
+				})
+			}
+			allRecords = append(allRecords, records)
+		}
+	}
+
+	s.exportRecords(w, r, allRecords, combineCSVs)
+}
+
+func (s *Server) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	if err := s.templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
+		"Error": errorMessage,
+	}); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to render export template", slog.Any("err", err))
+	}
+}
+
+func (s *Server) exportRecords(w http.ResponseWriter, r *http.Request, allRecords [][][]string, combineCSVs bool) {
+	if combineCSVs {
+		records := allRecords[0]
 		slog.InfoContext(r.Context(), "Combined CSV records", slog.Int("records", len(records)))
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=export.csv")
@@ -137,26 +173,6 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		return
-	}
-
-	var allRecords [][][]string
-	for _, event := range events {
-		records := [][]string{
-			{"id", "name", "status"},
-		}
-		for _, rsvpStatus := range event.Event.RSVPStatuses {
-			member, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
-			if !ok && !includeMissingMembers {
-				continue
-			}
-
-			records = append(records, []string{
-				rsvpStatus.UserID,
-				member,
-				rsvpStatus.RSVPStatus,
-			})
-		}
-		allRecords = append(allRecords, records)
 	}
 
 	if len(allRecords) == 1 {
@@ -191,12 +207,4 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.InfoContext(r.Context(), "Export completed successfully", slog.Int("files", len(allRecords)))
-}
-
-func (s *Server) renderExport(w http.ResponseWriter, errorMessage string) {
-	if err := s.templates.ExecuteTemplate(w, "export.gohtml", map[string]any{
-		"Error": errorMessage,
-	}); err != nil {
-		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
-	}
 }
