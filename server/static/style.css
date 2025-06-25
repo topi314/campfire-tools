@@ -110,6 +110,29 @@ button.loading::after, .button.loading::after {
     font-size: 16px;
 }
 
+select {
+    overflow-y: auto;
+    background-color: var(--background2-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+select[multiple] {
+    height: 150px;
+}
+
+select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+select option {
+    padding: 10px;
+    background-color: var(--background2-color);
+    color: var(--text-color);
+}
+
+
 .main {
     display: flex;
     flex-direction: column;

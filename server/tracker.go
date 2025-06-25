@@ -223,6 +223,7 @@ func (s *Server) renderTrackerClub(w http.ResponseWriter, r *http.Request, error
 
 	events, err := s.database.GetEvents(context.Background(), clubID)
 	if err != nil {
+		slog.ErrorContext(r.Context(), "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -13,9 +13,15 @@ func (d *Database) AddMembers(ctx context.Context, members []Member) error {
 	return nil
 }
 
-func (d *Database) GetMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
-	var members []Member
-	if err := d.db.SelectContext(ctx, &members, "SELECT id, display_name, status, event_id FROM members WHERE event_id = $1", eventID); err != nil {
+func (d *Database) GetMembersByEvent(ctx context.Context, eventID string) ([]EventMember, error) {
+	var members []EventMember
+	query := `
+		SELECT m.id, m.display_name, m.status, e.name AS event_name
+		FROM members m
+		JOIN events e ON m.event_id = e.id
+		WHERE m.event_id = $1
+		`
+	if err := d.db.SelectContext(ctx, &members, query, eventID); err != nil {
 		return nil, fmt.Errorf("failed to get members by event: %w", err)
 	}
 	return members, nil

@@ -33,6 +33,11 @@ type Member struct {
 	EventID     string `db:"event_id"`
 }
 
+type EventMember struct {
+	Member
+	EventName string `db:"event_name"`
+}
+
 type TopMember struct {
 	Member
 	EventCount int `db:"event_count"`

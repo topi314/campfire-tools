@@ -55,7 +55,7 @@ func New(cfg Config) (*Server, error) {
 
 	mux := http.NewServeMux()
 	httpClient := &http.Client{
-		//Timeout: 30 * time.Second,
+		// Timeout: 30 * time.Second,
 	}
 
 	s := &Server{
@@ -74,6 +74,7 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("/export", s.Export)
 	mux.HandleFunc("/tracker", s.Tracker)
 	mux.HandleFunc("/tracker/club/{club_id}", s.TrackerClub)
+	mux.HandleFunc("/tracker/club/{club_id}/export", s.TrackerClubExport)
 
 	mux.HandleFunc("/images/{image_id}", s.Image)
 	mux.Handle("/static/", http.FileServer(http.FS(static)))

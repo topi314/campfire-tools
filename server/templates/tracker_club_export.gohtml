@@ -1,0 +1,39 @@
+{{ template "head" "Campfire Club Export" }}
+<div class="container">
+    <h1>
+        <img src="{{ .ClubAvatarURL }}" alt="{{ .ClubName }} avatar">
+        {{ .ClubName }} Export
+    </h1>
+
+    <form action="/tracker/club/{{ .ClubID }}/export" method="POST" id="export-form">
+        <label class="form-control" for="events">
+            Events
+            <select class="form-control" id="events" name="events[]" required multiple>
+                {{ range .Events }}
+                    <option value="{{ .ID }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+            {{ if .Error }}
+                <p class="error" id="error-message">{{ .Error }}</p>
+            {{ end }}
+        </label>
+        <label class="form-control" for="include-missing-members">
+            Include Missing Members
+            <input class="form-control" type="checkbox" id="include-missing-members" name="include_missing_members" value="true">
+        </label>
+        <label class="form-control" for="combine-csv">
+            Combine CSVs
+            <input class="form-control" type="checkbox" id="combine-csv" name="combine_csv" value="true">
+        </label>
+        <button class="form-control" type="submit">Export</button>
+    </form>
+</div>
+<script>
+    document.getElementById('export-form')?.addEventListener('submit', function () {
+        const err = document.getElementById('error-message');
+        if (err) {
+            err.remove();
+        }
+    });
+</script>
+{{ template "footer" }}
