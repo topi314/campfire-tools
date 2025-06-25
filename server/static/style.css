@@ -238,6 +238,13 @@ form {
     width: 100%;
 }
 
+.form-control:has(input[type="checkbox"]) {
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
 form label {
     text-align: left;
 }

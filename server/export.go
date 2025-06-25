@@ -17,15 +17,10 @@ import (
 )
 
 func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		s.renderExport(w, r, "")
-	case http.MethodPost:
-		s.doExport(w, r)
-	}
+	s.renderExport(w, r, "")
 }
 
-func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	meetupURLs := r.FormValue("urls")
 	includeMissingMembersStr := r.FormValue("include_missing_members")
 	combineCSVsStr := r.FormValue("combine_csv")

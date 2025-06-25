@@ -19,15 +19,10 @@ type DoRaffleVars struct {
 }
 
 func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		s.renderRaffle(w, r, "")
-	case http.MethodPost:
-		s.doRaffle(w, r)
-	}
+	s.renderRaffle(w, r, "")
 }
 
-func (s *Server) doRaffle(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	meetupURL := strings.TrimSpace(r.FormValue("url"))
 	stringCount := r.FormValue("count")
 

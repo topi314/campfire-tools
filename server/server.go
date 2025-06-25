@@ -35,54 +35,14 @@ func New(cfg Config) (*Server, error) {
 		staticFS = http.FS(root.FS())
 		t = func() *template.Template {
 			return template.Must(template.New("templates").
-				Funcs(template.FuncMap{
-					"add":                 add,
-					"addStr":              addStr,
-					"seq":                 seq,
-					"hasIndex":            hasIndex,
-					"now":                 time.Now,
-					"dict":                dict,
-					"reverse":             reverse,
-					"parseTime":           parseTime,
-					"convertNewLinesToBR": convertNewLinesToBR,
-					"safeHTML":            safeHTML,
-					"safeCSS":             safeCSS,
-					"safeHTMLAttr":        safeHTMLAttr,
-					"safeURL":             safeURL,
-					"safeJS":              safeJS,
-					"safeJSStr":           safeJSStr,
-					"safeSrcset":          safeSrcset,
-					"formatTimeToHour":    formatTimeToHour,
-					"formatTimeToDay":     formatTimeToDay,
-					"formatTimeToRelDay":  formatTimeToRelDay,
-				}).
+				Funcs(templateFuncs).
 				ParseFS(root.FS(), "templates/*.gohtml"))
 		}
 	} else {
 		staticFS = http.FS(static)
 
 		st := template.Must(template.New("templates").
-			Funcs(template.FuncMap{
-				"add":                 add,
-				"addStr":              addStr,
-				"seq":                 seq,
-				"hasIndex":            hasIndex,
-				"now":                 time.Now,
-				"dict":                dict,
-				"reverse":             reverse,
-				"parseTime":           parseTime,
-				"convertNewLinesToBR": convertNewLinesToBR,
-				"safeHTML":            safeHTML,
-				"safeCSS":             safeCSS,
-				"safeHTMLAttr":        safeHTMLAttr,
-				"safeURL":             safeURL,
-				"safeJS":              safeJS,
-				"safeJSStr":           safeJSStr,
-				"safeSrcset":          safeSrcset,
-				"formatTimeToHour":    formatTimeToHour,
-				"formatTimeToDay":     formatTimeToDay,
-				"formatTimeToRelDay":  formatTimeToRelDay,
-			}).
+			Funcs(templateFuncs).
 			ParseFS(templates, "templates/*.gohtml"),
 		)
 
@@ -110,17 +70,25 @@ func New(cfg Config) (*Server, error) {
 		templates:  t,
 	}
 
-	mux.HandleFunc("/", s.Index)
-	mux.HandleFunc("/raffle", s.Raffle)
-	mux.HandleFunc("/export", s.Export)
-	mux.HandleFunc("/tracker", s.Tracker)
-	mux.HandleFunc("/tracker/club/{club_id}", s.TrackerClub)
-	mux.HandleFunc("/tracker/club/{club_id}/export", s.TrackerClubExport)
-	mux.HandleFunc("/tracker/club/{club_id}/member/{member_id}", s.TrackerClubMember)
-	mux.HandleFunc("/tracker/event/{event_id}", s.TrackerClubEvent)
+	fs := http.FileServer(staticFS)
 
-	mux.HandleFunc("/images/{image_id}", s.Image)
-	mux.Handle("/static/", http.FileServer(staticFS))
+	mux.HandleFunc("/", s.NotFound)
+	mux.HandleFunc("GET /{$}", s.Index)
+	mux.HandleFunc("GET /raffle", s.Raffle)
+	mux.HandleFunc("POST /raffle", s.DoRaffle)
+	mux.HandleFunc("GET /export", s.Export)
+	mux.HandleFunc("POST /export", s.DoExport)
+	mux.HandleFunc("GET /tracker", s.Tracker)
+	mux.HandleFunc("POST /tracker", s.TrackerAdd)
+	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
+	mux.HandleFunc("GET /tracker/club/{club_id}/export", s.TrackerClubExport)
+	mux.HandleFunc("POST /tracker/club/{club_id}/export", s.DoTrackerClubExport)
+	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", s.TrackerClubMember)
+	mux.HandleFunc("GET /tracker/event/{event_id}", s.TrackerClubEvent)
+
+	mux.HandleFunc("GET /images/{image_id}", s.Image)
+	mux.Handle("GET /static/", fs)
+	mux.Handle("HEAD /static/", fs)
 
 	return s, nil
 }

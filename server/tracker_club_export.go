@@ -19,12 +19,7 @@ type TrackerClubExportVars struct {
 }
 
 func (s *Server) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		s.renderTrackerClubExport(w, r, "")
-	case http.MethodPost:
-		s.doTrackerClubExport(w, r)
-	}
+	s.renderTrackerClubExport(w, r, "")
 }
 
 func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
@@ -65,7 +60,7 @@ func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request,
 	}
 }
 
-func (s *Server) doTrackerClubExport(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.ErrorContext(r.Context(), "Failed to parse form", slog.Any("err", err))
 		http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)

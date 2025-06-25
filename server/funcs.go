@@ -9,6 +9,28 @@ import (
 	"time"
 )
 
+var templateFuncs = template.FuncMap{
+	"add":                 add,
+	"addStr":              addStr,
+	"seq":                 seq,
+	"hasIndex":            hasIndex,
+	"now":                 time.Now,
+	"dict":                dict,
+	"reverse":             reverse,
+	"parseTime":           parseTime,
+	"convertNewLinesToBR": convertNewLinesToBR,
+	"safeHTML":            safeHTML,
+	"safeCSS":             safeCSS,
+	"safeHTMLAttr":        safeHTMLAttr,
+	"safeURL":             safeURL,
+	"safeJS":              safeJS,
+	"safeJSStr":           safeJSStr,
+	"safeSrcset":          safeSrcset,
+	"formatTimeToHour":    formatTimeToHour,
+	"formatTimeToDay":     formatTimeToDay,
+	"formatTimeToRelDay":  formatTimeToRelDay,
+}
+
 func add(a, b any) (int, error) {
 	ai, err := toInt(a)
 	if err != nil {
