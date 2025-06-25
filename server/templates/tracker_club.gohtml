@@ -1,4 +1,4 @@
-{{ template "head" "Tracker" }}
+{{ template "head" addStr "Tracker - " .ClubName }}
 <div class="container">
     <h1>
         <img src="{{ .ClubAvatarURL }}" alt="{{ .ClubName }} avatar">
@@ -7,51 +7,121 @@
 
     <div class="section">
         <h2>Top Members</h2>
-        <label for="top-members" class="inline-form-control">
-            <select id="top-members" onchange="updateTopParam(this);">
-                {{ range $count := .TopMemberCounts }}
-                    <option value="{{ $count }}" {{ if eq $count $.TopMemberCount }}selected{{ end }}>
-                        {{ $count }}
-                    </option>
-                {{ end }}
-            </select>
-        </label>
+        <details id="top-members-details" {{ if .TopMembersOpen }}open{{ end }}>
+            <summary>
+                View Top Members based on check-ins
+            </summary>
+            <div class="inline-form-control">
+                <label for="top-members">
+                    <select id="top-members" onchange="updateParam(this, 'members');">
+                        {{ range $count := .TopCounts }}
+                            <option value="{{ $count }}" {{ if eq $count $.TopMembersCount }}selected{{ end }}>
+                                {{ $count }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+                <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
+            </div>
 
-        <div class="top-members">
-            <span>Position</span>
-            <span>Member</span>
-            <span>Count</span>
-            {{ range $index, $member := .TopMembers }}
-                <span>{{ add $index 1 }}</span>
-                <span>{{ $member.DisplayName }}</span>
-                <span>{{ $member.EventCount }}</span>
-            {{ else }}
-                <div>No members found.</div>
-            {{ end }}
-        </div>
+            <div class="top-members">
+                <span>Position</span>
+                <span>Member</span>
+                <span>Check-Ins</span>
+                {{ range $index, $member := .TopMembers }}
+                    <span>{{ add $index 1 }}</span>
+                    <a href="{{ $member.URL }}" title="{{ $member.ID }}">{{ $member.Name }}</a>
+                    <span>{{ $member.CheckIns }}</span>
+                {{ else }}
+                    <span>No members found.</span>
+                {{ end }}
+            </div>
+        </details>
     </div>
 
     <div class="section">
-        <h2>Tracked Events ({{ len .Events }})</h2>
+        <h2>Top Events</h2>
+        <details id="top-events-details" {{ if .TopEventsOpen }}open{{ end }}>
+            <summary>
+                View top events based on RSVP and check-ins.
+            </summary>
+
+            <div class="inline-form-control">
+                <label for="top-events">
+                    <select id="top-events" onchange="updateParam(this, 'events');">
+                        {{ range $count := .TopCounts }}
+                            <option value="{{ $count }}" {{ if eq $count $.TopEventsCount }}selected{{ end }}>
+                                {{ $count }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+            </div>
+
+            <div class="top-events">
+                <span>Position</span>
+                <span>Event</span>
+                <span>RSVP</span>
+                <span>Check-Ins</span>
+                {{ range $index, $event := .TopEvents }}
+                    <span>{{ add $index 1 }}</span>
+                    <a href="{{ $event.URL }}">{{ $event.Name }}</a>
+                    <span>{{ $event.RSVP }}</span>
+                    <span>{{ $event.CheckIns }}</span>
+                {{ else }}
+                    <span>No events found.</span>
+                {{ end }}
+            </div>
+        </details>
+    </div>
+
+    <div class="section">
+        <h2>Events ({{ len .Events }})</h2>
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
                     {{ if $event.CoverPhotoURL }}
                         <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }} cover photo">
+                    {{ else }}
+                        <img src="/static/default.png" alt="Default cover photo">
                     {{ end }}
-                    <span>{{ $event.Name }}</span>
+                    <a href="{{ $event.URL }}">{{ $event.Name }}</a>
                 </li>
             {{ else }}
-                <li class="list-item">No events tracked yet.</li>
+                <span>No events tracked yet.</span>
             {{ end }}
         </ul>
     </div>
 </div>
 <script>
-    function updateTopParam(select) {
+    function updateParam(select, name) {
         const url = new URL(window.location);
-        url.searchParams.set('top_count', select.value);
+        url.searchParams.set(name, select.value);
         window.location = url.toString();
     }
+
+    const topMembersDetails = document.getElementById('top-members-details');
+    topMembersDetails.addEventListener('toggle', function () {
+        console.log('Top Members Details toggled:', topMembersDetails.open);
+        const url = new URL(window.location);
+        if (topMembersDetails.open) {
+            url.searchParams.set('members-open', 'true');
+        } else {
+            url.searchParams.delete('members-open');
+        }
+        window.history.replaceState({}, '', url.toString());
+    });
+
+    const topEventsDetails = document.getElementById('top-events-details');
+    topEventsDetails.addEventListener('toggle', function () {
+        console.log('Top Events Details toggled:', topEventsDetails.open);
+        const url = new URL(window.location);
+        if (topEventsDetails.open) {
+            url.searchParams.set('events-open', 'true');
+        } else {
+            url.searchParams.delete('events-open');
+        }
+        window.history.replaceState({}, '', url.toString());
+    });
 </script>
 {{ template "footer" }}

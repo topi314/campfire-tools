@@ -1,17 +1,12 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 )
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
-	s.renderIndex(w, "")
-}
-
-func (s *Server) renderIndex(w http.ResponseWriter, errorMessage string) {
-	if err := s.templates.ExecuteTemplate(w, "index.gohtml", map[string]any{
-		"Error": errorMessage,
-	}); err != nil {
-		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+	if err := s.templates().ExecuteTemplate(w, "index.gohtml", nil); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to render index template", slog.String("error", err.Error()))
 	}
 }

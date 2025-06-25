@@ -19,7 +19,7 @@ import (
 func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderExport(w, "")
+		s.renderExport(w, r, "")
 	case http.MethodPost:
 		s.doExport(w, r)
 	}
@@ -33,7 +33,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Received export request", slog.String("url", r.URL.String()), slog.String("meetup_urls", meetupURLs), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
 
 	if meetupURLs == "" {
-		s.renderExport(w, "Missing 'urls' parameter")
+		s.renderExport(w, r, "Missing 'urls' parameter")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	if includeMissingMembersStr != "" {
 		parsed, err := strconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
-			s.renderExport(w, "Invalid 'include_missing_members' parameter")
+			s.renderExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
 		}
 		includeMissingMembers = parsed
@@ -51,7 +51,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	if combineCSVsStr != "" {
 		parsed, err := strconv.ParseBool(combineCSVsStr)
 		if err != nil {
-			s.renderExport(w, "Invalid 'combine_csv' parameter")
+			s.renderExport(w, r, "Invalid 'combine_csv' parameter")
 			return
 		}
 		combineCSVs = parsed
@@ -59,7 +59,7 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 
 	urls := strings.Split(meetupURLs, "\n")
 	if len(urls) > 50 {
-		s.renderExport(w, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
+		s.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
 		return
 	}
 
@@ -96,13 +96,13 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := eg.Wait(); err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch events", slog.Any("err", err))
-		s.renderExport(w, "Failed to fetch events: "+err.Error())
+		s.renderExport(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	if len(events) == 0 {
 		slog.ErrorContext(r.Context(), "No events found for the provided URLs")
-		s.renderExport(w, "No events found for the provided URLs")
+		s.renderExport(w, r, "No events found for the provided URLs")
 		return
 	}
 
@@ -154,11 +154,11 @@ func (s *Server) doExport(w http.ResponseWriter, r *http.Request) {
 	s.exportRecords(w, r, allRecords, combineCSVs)
 }
 
-func (s *Server) renderExport(w http.ResponseWriter, errorMessage string) {
-	if err := s.templates.ExecuteTemplate(w, "export.gohtml", map[string]any{
+func (s *Server) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	if err := s.templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
 		"Error": errorMessage,
 	}); err != nil {
-		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(r.Context(), "Failed to render export template", slog.Any("err", err))
 	}
 }
 

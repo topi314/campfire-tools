@@ -21,7 +21,7 @@ type DoRaffleVars struct {
 func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderRaffle(w, "")
+		s.renderRaffle(w, r, "")
 	case http.MethodPost:
 		s.doRaffle(w, r)
 	}
@@ -34,28 +34,28 @@ func (s *Server) doRaffle(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(r.Context(), "Received raffle request", slog.String("url", r.URL.String()), slog.String("meetup_url", meetupURL), slog.String("count", stringCount))
 
 	if meetupURL == "" {
-		s.renderRaffle(w, "Missing 'url' parameter. Please specify the event URL.")
+		s.renderRaffle(w, r, "Missing 'url' parameter. Please specify the event URL.")
 		return
 	}
 
 	if stringCount == "" {
-		s.renderRaffle(w, "Missing 'count' parameter. Please specify the number of winners to draw.")
+		s.renderRaffle(w, r, "Missing 'count' parameter. Please specify the number of winners to draw.")
 		return
 	}
 	count, err := strconv.Atoi(stringCount)
 	if err != nil || count <= 0 {
-		s.renderRaffle(w, "Invalid 'count' parameter. It must be a positive number.")
+		s.renderRaffle(w, r, "Invalid 'count' parameter. It must be a positive number.")
 		return
 	}
 
 	event, err := s.client.FetchEvent(r.Context(), meetupURL)
 	if err != nil {
-		s.renderRaffle(w, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
+		s.renderRaffle(w, r, fmt.Sprintf("Failed to fetch event: %s", err.Error()))
 		return
 	}
 
 	if event == nil || len(event.Event.RSVPStatuses) == 0 {
-		s.renderRaffle(w, fmt.Sprintf("Event not found or no checked-in members found"))
+		s.renderRaffle(w, r, fmt.Sprintf("Event not found or no checked-in members found"))
 		return
 	}
 
@@ -82,23 +82,23 @@ func (s *Server) doRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(winners) == 0 {
-		s.renderRaffle(w, "No winners found. Please check the event URL and ensure there are checked-in members.")
+		s.renderRaffle(w, r, "No winners found. Please check the event URL and ensure there are checked-in members.")
 		return
 	}
 
-	if err = s.templates.ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
+	if err = s.templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
 		Winners: winners,
 		URL:     meetupURL,
 		Count:   count,
 	}); err != nil {
-		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(r.Context(), "Failed to render raffle result template", slog.Any("err", err))
 	}
 }
 
-func (s *Server) renderRaffle(w http.ResponseWriter, errorMessage string) {
-	if err := s.templates.ExecuteTemplate(w, "raffle.gohtml", map[string]any{
+func (s *Server) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	if err := s.templates().ExecuteTemplate(w, "raffle.gohtml", map[string]any{
 		"Error": errorMessage,
 	}); err != nil {
-		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(r.Context(), "Failed to render raffle template", slog.Any("err", err))
 	}
 }

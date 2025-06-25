@@ -62,6 +62,12 @@ input, textarea {
 
 input[type="checkbox"] {
     width: fit-content;
+    border: 1px solid var(--border-color);
+}
+
+input[type="checkbox"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 input:focus, textarea:focus {
@@ -115,10 +121,8 @@ select {
     background-color: var(--background2-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-}
-
-select[multiple] {
-    height: 150px;
+    padding: 10px;
+    border-radius: 4px;
 }
 
 select:focus {
@@ -130,6 +134,28 @@ select option {
     padding: 10px;
     background-color: var(--background2-color);
     color: var(--text-color);
+    border: 1px solid transparent;
+}
+
+select option:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+select option:checked {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+select option:hover {
+    background-color: var(--primary-color-hover);
+    color: #ffffff;
+}
+
+details summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 10px;
 }
 
 
@@ -155,7 +181,7 @@ select option {
     margin: 0 auto;
     padding: 20px;
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
     background-color: var(--background2-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -175,6 +201,7 @@ select option {
     width: 100%;
     padding: 10px 20px;
     border-bottom: 1px solid var(--border-color);
+    text-align: left
 }
 
 .section:last-child {
@@ -184,6 +211,7 @@ select option {
 .section h2 {
     font-size: 24px;
     margin: 0 0 10px 0;
+    text-align: center;
 }
 
 .error {
@@ -197,7 +225,7 @@ select option {
     border-radius: 4px;
 }
 
-.form {
+form {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -210,7 +238,7 @@ select option {
     width: 100%;
 }
 
-.form label {
+form label {
     text-align: left;
 }
 
@@ -218,7 +246,9 @@ select option {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
+    margin-bottom: 10px;
 }
 
 #urls {
@@ -245,13 +275,13 @@ select option {
 .list {
     width: 100%;
     text-align: left;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: bold;
     margin: 0;
 }
 
 .list-item {
-    padding: 10px;
+    padding: 4px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -287,12 +317,45 @@ select option {
     background-color: var(--background-color);
 }
 
-h1 > img {
+.top-events {
+    width: 100%;
+    text-align: left;
+    font-size: 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    margin: 0;
+    border: 1px solid var(--border-color);
+}
+
+.top-events > * {
+    padding: 5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.top-events > *:last-child, .top-events > *:nth-last-child(2), .top-events > *:nth-last-child(3), .top-events > *:nth-last-child(4) {
+    border-bottom: none;
+}
+
+.top-events > *:nth-child(4n-1), .top-events > *:nth-child(4n-2), .top-events > *:nth-child(4n-3) {
+    border-right: 1px solid var(--border-color);
+}
+
+.top-events > span:first-child, .top-events > span:nth-child(2), .top-events > span:nth-child(3), .top-events > span:nth-child(4) {
+    font-weight: bold;
+    background-color: var(--background-color);
+}
+
+h1 > img, h2 > img {
     width: 48px;
     height: 48px;
     vertical-align: middle;
     border-radius: 12px;
     object-fit: cover;
+}
+
+h2 > img {
+    width: 32px;
+    height: 32px;
 }
 
 .list-item > img {

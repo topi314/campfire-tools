@@ -24,6 +24,7 @@ func (d *Database) AddEvent(ctx context.Context, event Event) error {
 
 		return fmt.Errorf("failed to add event: %w", err)
 	}
+
 	return nil
 }
 
@@ -35,6 +36,7 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*Event, error)
 		}
 		return nil, fmt.Errorf("failed to get event: %w", err)
 	}
+
 	return &event, nil
 }
 
@@ -43,5 +45,53 @@ func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error
 	if err := d.db.SelectContext(ctx, &events, "SELECT * FROM events WHERE club_id = $1 ORDER BY event_time DESC", clubID); err != nil {
 		return nil, fmt.Errorf("failed to get events: %w", err)
 	}
+
+	return events, nil
+}
+
+func (d *Database) GetTopClubEvents(ctx context.Context, clubID string, limit int) ([]TopEvent, error) {
+	var events []TopEvent
+	query := `
+		SELECT e.*, COUNT(CASE WHEN m.status != 'DECLINED' THEN 1 END) AS rsvp, COUNT(CASE WHEN m.status = 'CHECKED_IN' THEN 1 END) AS check_ins
+		FROM events e
+		LEFT JOIN members m ON e.id = m.event_id
+		WHERE e.club_id = $1
+		GROUP BY e.id
+		ORDER BY check_ins DESC, rsvp DESC
+		LIMIT $2`
+	if err := d.db.SelectContext(ctx, &events, query, clubID, limit); err != nil {
+		return nil, fmt.Errorf("failed to get top club events: %w", err)
+	}
+
+	return events, nil
+}
+
+func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]MemberEvent, error) {
+	var events []MemberEvent
+	query := `
+		SELECT e.*, m.status
+		FROM events e
+		JOIN members m ON e.id = m.event_id
+		WHERE e.club_id = $1 AND m.id = $2 AND m.status = 'CHECKED_IN'
+		ORDER BY e.event_time DESC`
+	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
+		return nil, fmt.Errorf("failed to get club events by member: %w", err)
+	}
+
+	return events, nil
+}
+
+func (d *Database) GetRSVPClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]MemberEvent, error) {
+	var events []MemberEvent
+	query := `
+		SELECT e.*, m.status
+		FROM events e
+		JOIN members m ON e.id = m.event_id
+		WHERE e.club_id = $1 AND m.id = $2 AND m.status = 'ACCEPTED'
+		ORDER BY e.event_time DESC`
+	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
+		return nil, fmt.Errorf("failed to get RSVP club events by member: %w", err)
+	}
+
 	return events, nil
 }

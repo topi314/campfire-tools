@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -24,29 +25,71 @@ var (
 )
 
 func New(cfg Config) (*Server, error) {
-	t := template.Must(template.New("templates").
-		Funcs(template.FuncMap{
-			"add":                 add,
-			"seq":                 seq,
-			"hasIndex":            hasIndex,
-			"now":                 time.Now,
-			"dict":                dict,
-			"reverse":             reverse,
-			"parseTime":           parseTime,
-			"convertNewLinesToBR": convertNewLinesToBR,
-			"safeHTML":            safeHTML,
-			"safeCSS":             safeCSS,
-			"safeHTMLAttr":        safeHTMLAttr,
-			"safeURL":             safeURL,
-			"safeJS":              safeJS,
-			"safeJSStr":           safeJSStr,
-			"safeSrcset":          safeSrcset,
-			"formatTimeToHour":    formatTimeToHour,
-			"formatTimeToDay":     formatTimeToDay,
-			"formatTimeToRelDay":  formatTimeToRelDay,
-		}).
-		ParseFS(templates, "templates/*.gohtml"),
-	)
+	var staticFS http.FileSystem
+	var t func() *template.Template
+	if cfg.Dev {
+		root, err := os.OpenRoot("server/")
+		if err != nil {
+			return nil, fmt.Errorf("failed to open static directory: %w", err)
+		}
+		staticFS = http.FS(root.FS())
+		t = func() *template.Template {
+			return template.Must(template.New("templates").
+				Funcs(template.FuncMap{
+					"add":                 add,
+					"addStr":              addStr,
+					"seq":                 seq,
+					"hasIndex":            hasIndex,
+					"now":                 time.Now,
+					"dict":                dict,
+					"reverse":             reverse,
+					"parseTime":           parseTime,
+					"convertNewLinesToBR": convertNewLinesToBR,
+					"safeHTML":            safeHTML,
+					"safeCSS":             safeCSS,
+					"safeHTMLAttr":        safeHTMLAttr,
+					"safeURL":             safeURL,
+					"safeJS":              safeJS,
+					"safeJSStr":           safeJSStr,
+					"safeSrcset":          safeSrcset,
+					"formatTimeToHour":    formatTimeToHour,
+					"formatTimeToDay":     formatTimeToDay,
+					"formatTimeToRelDay":  formatTimeToRelDay,
+				}).
+				ParseFS(root.FS(), "templates/*.gohtml"))
+		}
+	} else {
+		staticFS = http.FS(static)
+
+		st := template.Must(template.New("templates").
+			Funcs(template.FuncMap{
+				"add":                 add,
+				"addStr":              addStr,
+				"seq":                 seq,
+				"hasIndex":            hasIndex,
+				"now":                 time.Now,
+				"dict":                dict,
+				"reverse":             reverse,
+				"parseTime":           parseTime,
+				"convertNewLinesToBR": convertNewLinesToBR,
+				"safeHTML":            safeHTML,
+				"safeCSS":             safeCSS,
+				"safeHTMLAttr":        safeHTMLAttr,
+				"safeURL":             safeURL,
+				"safeJS":              safeJS,
+				"safeJSStr":           safeJSStr,
+				"safeSrcset":          safeSrcset,
+				"formatTimeToHour":    formatTimeToHour,
+				"formatTimeToDay":     formatTimeToDay,
+				"formatTimeToRelDay":  formatTimeToRelDay,
+			}).
+			ParseFS(templates, "templates/*.gohtml"),
+		)
+
+		t = func() *template.Template {
+			return st
+		}
+	}
 
 	db, err := database.New(cfg.Database)
 	if err != nil {
@@ -54,9 +97,7 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
-	httpClient := &http.Client{
-		// Timeout: 30 * time.Second,
-	}
+	httpClient := &http.Client{}
 
 	s := &Server{
 		server: &http.Server{
@@ -75,9 +116,11 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("/tracker", s.Tracker)
 	mux.HandleFunc("/tracker/club/{club_id}", s.TrackerClub)
 	mux.HandleFunc("/tracker/club/{club_id}/export", s.TrackerClubExport)
+	mux.HandleFunc("/tracker/club/{club_id}/member/{member_id}", s.TrackerClubMember)
+	mux.HandleFunc("/tracker/event/{event_id}", s.TrackerClubEvent)
 
 	mux.HandleFunc("/images/{image_id}", s.Image)
-	mux.Handle("/static/", http.FileServer(http.FS(static)))
+	mux.Handle("/static/", http.FileServer(staticFS))
 
 	return s, nil
 }
@@ -95,7 +138,7 @@ type Server struct {
 	httpClient *http.Client
 	client     *campfire.Client
 	database   *database.Database
-	templates  *template.Template
+	templates  func() *template.Template
 }
 
 func (s *Server) Start() {
