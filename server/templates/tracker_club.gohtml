@@ -1,7 +1,7 @@
 {{ template "head" addStr "Tracker - " .ClubName }}
 <div class="container">
     <h1>
-        <img src="{{ .ClubAvatarURL }}" alt="{{ .ClubName }} avatar">
+        <img src="{{ .ClubAvatarURL }}">
         {{ .ClubName }}
     </h1>
 
@@ -81,9 +81,9 @@
             {{ range $event := .Events }}
                 <li class="list-item">
                     {{ if $event.CoverPhotoURL }}
-                        <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }} cover photo">
+                        <img src="{{ $event.CoverPhotoURL }}">
                     {{ else }}
-                        <img src="/static/default.png" alt="Default cover photo">
+                        <img src="/static/default.png">
                     {{ end }}
                     <a href="{{ $event.URL }}">{{ $event.Name }}</a>
                 </li>

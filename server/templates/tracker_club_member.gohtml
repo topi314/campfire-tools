@@ -2,7 +2,7 @@
 <div class="container">
     <h1 title="{{ .ID }}">
         {{ if .ClubAvatarURL }}
-            <img src="{{ .ClubAvatarURL }}" alt="{{ .Name }} avatar">
+            <img src="{{ .ClubAvatarURL }}">
         {{ end }}
         <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a> - {{ .Name }}
     </h1>
@@ -13,9 +13,9 @@
             {{ range $event := .Events }}
                 <li class="list-item">
                     {{ if $event.CoverPhotoURL }}
-                        <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }}">
+                        <img src="{{ $event.CoverPhotoURL }}">
                     {{ else }}
-                        <img src="/static/default.png" alt="Default cover photo">
+                        <img src="/static/default.png">
                     {{ end }}
                     <a href="{{ $event.URL }}" title="{{ .ID }}">{{ $event.Name }}</a>
                 </li>
@@ -31,9 +31,9 @@
             {{ range $event := .RSVPEvents }}
                 <li class="list-item">
                     {{ if $event.CoverPhotoURL }}
-                        <img src="{{ $event.CoverPhotoURL }}" alt="{{ $event.Name }}">
+                        <img src="{{ $event.CoverPhotoURL }}">
                     {{ else }}
-                        <img src="/static/default.png" alt="Default cover photo">
+                        <img src="/static/default.png"">
                     {{ end }}
                     <a href="{{ $event.URL }}" title="{{ .ID }}">{{ $event.Name }}</a>
                 </li>

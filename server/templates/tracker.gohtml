@@ -27,9 +27,9 @@ https://cmpf.re/..." required autofocus></textarea>
             {{ range $club := .Clubs }}
                 <li class="list-item">
                     {{ if $club.AvatarURL }}
-                        <img src="{{ $club.AvatarURL }}" alt="{{ $club.Name }} avatar">
+                        <img src="{{ $club.AvatarURL }}">
                     {{ else }}
-                        <img src="/static/default.png" alt="Default avatar">
+                        <img src="/static/default.png">
                     {{ end }}
                     <a href="{{ $club.URL }}">{{ $club.Name }}</a>
                 </li>
