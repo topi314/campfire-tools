@@ -19,6 +19,6 @@ func (c Config) String() string {
 		c.ClientID,
 		strings.Repeat("*", len(c.ClientSecret)),
 		c.DiscordGuildID,
-		c.RefreshPassword,
+		strings.Repeat("*", len(c.RefreshPassword)),
 	)
 }
