@@ -14,7 +14,7 @@ type TrackerClubExportVars struct {
 	ClubName      string
 	ClubAvatarURL string
 	ClubID        string
-	Events        []TrackerEvent
+	Events        []Event
 	Error         string
 }
 
@@ -23,25 +23,27 @@ func (s *Server) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	ctx := r.Context()
+
 	clubID := r.PathValue("club_id")
 
-	club, err := s.db.GetClub(r.Context(), clubID)
+	club, err := s.db.GetClub(ctx, clubID)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "Failed to get club", slog.String("club_id", clubID), slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to get club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to get club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.db.GetEvents(r.Context(), clubID)
+	events, err := s.db.GetEvents(ctx, clubID)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	trackerEvents := make([]TrackerEvent, len(events))
+	trackerEvents := make([]Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = TrackerEvent{
+		trackerEvents[i] = Event{
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
@@ -56,13 +58,15 @@ func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request,
 		Events:        trackerEvents,
 		Error:         errorMessage,
 	}); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to render tracker club export template", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to render tracker club export template", slog.Any("err", err))
 	}
 }
 
 func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	if err := r.ParseForm(); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to parse form", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to parse form", slog.Any("err", err))
 		http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -105,9 +109,9 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		members, err := s.db.GetCheckedInMembersByEvent(r.Context(), eventID)
+		members, err := s.db.GetCheckedInMembersByEvent(ctx, eventID)
 		if err != nil {
-			slog.ErrorContext(r.Context(), "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
+			slog.ErrorContext(ctx, "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
 			continue
 		}
 
@@ -123,7 +127,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.InfoContext(r.Context(), "Fetched events", slog.Int("events", len(allMembers)))
+	slog.InfoContext(ctx, "Fetched events", slog.Int("events", len(allMembers)))
 
 	var allRecords [][][]string
 	if combineCSVs {
@@ -166,5 +170,5 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.exportRecords(w, r, allRecords, true)
+	s.exportRecords(ctx, w, allRecords, true)
 }

@@ -13,9 +13,10 @@ var ErrDuplicate = errors.New("duplicate entry")
 
 func (d *Database) AddEvent(ctx context.Context, event Event) error {
 	query := `
-		INSERT INTO events (id, name, details, cover_photo_url, event_time, event_end_time, campfire_live_event_id, campfire_live_event_name, club_id, club_name, club_avatar_url) 
-		VALUES 
-    	(:id, :name, :details, :cover_photo_url, :event_time, :event_end_time, :campfire_live_event_id, :campfire_live_event_name, :club_id, :club_name, :club_avatar_url)`
+		INSERT INTO events (id, name, details, cover_photo_url, event_time, event_end_time, campfire_live_event_id, campfire_live_event_name, club_id, club_name, club_avatar_url, raw_json) 
+		VALUES
+		(:id, :name, :details, :cover_photo_url, :event_time, :event_end_time, :campfire_live_event_id, :campfire_live_event_name, :club_id, :club_name, :club_avatar_url, :raw_json)
+		`
 	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
 		var sqlErr *pgconn.PgError
 		if errors.As(err, &sqlErr) && sqlErr.Code == "23505" { // Unique violation
@@ -23,6 +24,20 @@ func (d *Database) AddEvent(ctx context.Context, event Event) error {
 		}
 
 		return fmt.Errorf("failed to add event: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) UpdateEvent(ctx context.Context, event Event) error {
+	query := `
+		UPDATE events 
+		SET name = :name, details = :details, cover_photo_url = :cover_photo_url, event_time = :event_time, event_end_time = :event_end_time, 
+		    campfire_live_event_id = :campfire_live_event_id, campfire_live_event_name = :campfire_live_event_name, club_id = :club_id, 
+		    club_name = :club_name, club_avatar_url = :club_avatar_url, raw_json = :raw_json
+		WHERE id = :id`
+	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
+		return fmt.Errorf("failed to update event: %w", err)
 	}
 
 	return nil
@@ -49,15 +64,24 @@ func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error
 	return events, nil
 }
 
+func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
+	var events []Event
+	if err := d.db.SelectContext(ctx, &events, "SELECT * FROM events ORDER BY event_time DESC"); err != nil {
+		return nil, fmt.Errorf("failed to get all events: %w", err)
+	}
+
+	return events, nil
+}
+
 func (d *Database) GetTopClubEvents(ctx context.Context, clubID string, limit int) ([]TopEvent, error) {
 	var events []TopEvent
 	query := `
-		SELECT e.*, COUNT(CASE WHEN m.status != 'DECLINED' THEN 1 END) AS rsvp, COUNT(CASE WHEN m.status = 'CHECKED_IN' THEN 1 END) AS check_ins
+		SELECT e.*, COUNT(CASE WHEN m.status != 'DECLINED' THEN 1 END) AS accepted, COUNT(CASE WHEN m.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM events e
 		LEFT JOIN members m ON e.id = m.event_id
 		WHERE e.club_id = $1
 		GROUP BY e.id
-		ORDER BY check_ins DESC, rsvp DESC
+		ORDER BY check_ins DESC, accepted DESC
 		LIMIT $2`
 	if err := d.db.SelectContext(ctx, &events, query, clubID, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top club events: %w", err)
@@ -81,7 +105,7 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 	return events, nil
 }
 
-func (d *Database) GetRSVPClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]MemberEvent, error) {
+func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]MemberEvent, error) {
 	var events []MemberEvent
 	query := `
 		SELECT e.*, m.status
@@ -90,7 +114,7 @@ func (d *Database) GetRSVPClubEventsByMember(ctx context.Context, clubID string,
 		WHERE e.club_id = $1 AND m.id = $2 AND m.status = 'ACCEPTED'
 		ORDER BY e.event_time DESC`
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
-		return nil, fmt.Errorf("failed to get RSVP club events by member: %w", err)
+		return nil, fmt.Errorf("failed to get accepted club events by member: %w", err)
 	}
 
 	return events, nil

@@ -30,7 +30,7 @@
                 <span>Check-Ins</span>
                 {{ range $index, $member := .TopMembers }}
                     <span>{{ add $index 1 }}</span>
-                    <a href="{{ $member.URL }}" title="{{ $member.ID }}">{{ $member.Name }}</a>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
                     <span>{{ $member.CheckIns }}</span>
                 {{ else }}
                     <span>No members found.</span>
@@ -61,12 +61,12 @@
             <div class="top-events">
                 <span>Position</span>
                 <span>Event</span>
-                <span>RSVP</span>
+                <span>Accepted</span>
                 <span>Check-Ins</span>
                 {{ range $index, $event := .TopEvents }}
                     <span>{{ add $index 1 }}</span>
                     <a href="{{ $event.URL }}">{{ $event.Name }}</a>
-                    <span>{{ $event.RSVP }}</span>
+                    <span>{{ $event.Accepted }}</span>
                     <span>{{ $event.CheckIns }}</span>
                 {{ else }}
                     <span>No events found.</span>

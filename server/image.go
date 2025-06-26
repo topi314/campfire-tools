@@ -9,10 +9,12 @@ import (
 )
 
 func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	imageID := r.PathValue("image_id")
 
 	remoteImageURL := fmt.Sprintf("https://niantic-social-api.nianticlabs.com/images/%s", imageID)
-	rq, err := http.NewRequestWithContext(r.Context(), http.MethodGet, remoteImageURL, nil)
+	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, remoteImageURL, nil)
 	if err != nil {
 		http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -38,7 +40,7 @@ func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
 	h.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 
 	if _, err = io.Copy(w, rs.Body); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to write image to response", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to write image to response", slog.Any("err", err))
 		return
 	}
 }

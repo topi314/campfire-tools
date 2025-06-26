@@ -105,17 +105,21 @@ type FullEvent struct {
 }
 
 type MemberEdge struct {
-	Node struct {
-		ID          string `json:"id"`
-		DisplayName string `json:"displayName"`
-	}
+	Node MemberNode `json:"node"`
 }
 
-func FindMemberName(id string, event FullEvent) (string, bool) {
+type MemberNode struct {
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	AvatarURL   string `json:"avatarUrl"`
+}
+
+func FindMember(id string, event FullEvent) (MemberNode, bool) {
 	for _, edge := range event.Event.Members.Edges {
 		if edge.Node.ID == id {
-			return edge.Node.DisplayName, true
+			return edge.Node, true
 		}
 	}
-	return "", false
+	return MemberNode{}, false
 }

@@ -61,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 	s := &Server{
 		cfg:        cfg,
 		httpClient: httpClient,
-		client:     campfire.New(cfg.Campfire, httpClient),
+		campfire:   campfire.New(cfg.Campfire, httpClient),
 		db:         db,
 		auth:       auth.New(cfg.Auth, db),
 		templates:  t,
@@ -81,10 +81,13 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /tracker", s.Tracker)
 	mux.HandleFunc("POST /tracker", s.TrackerAdd)
 	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
+	mux.HandleFunc("GET /tracker/club/{club_id}/events/export", s.TrackerClubEventsExport)
 	mux.HandleFunc("GET /tracker/club/{club_id}/export", s.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", s.DoTrackerClubExport)
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", s.TrackerClubMember)
 	mux.HandleFunc("GET /tracker/event/{event_id}", s.TrackerClubEvent)
+	mux.HandleFunc("GET /tracker/event/{event_id}/export", s.TrackerClubEventExport)
+	mux.HandleFunc("GET /tracker/refresh", s.TrackerRefresh)
 
 	mux.HandleFunc("GET /images/{image_id}", s.Image)
 	mux.Handle("GET /static/", fs)
@@ -110,7 +113,7 @@ type Server struct {
 	cfg        Config
 	server     *http.Server
 	httpClient *http.Client
-	client     *campfire.Client
+	campfire   *campfire.Client
 	db         *database.Database
 	auth       *auth.Auth
 	templates  func() *template.Template

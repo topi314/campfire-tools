@@ -1,8 +1,8 @@
 package server
 
 import (
-	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -19,34 +19,36 @@ type TrackerClubVars struct {
 	TopCounts       []int
 	TopMembersCount int
 	TopMembersOpen  bool
-	TopMembers      []TrackerTopMember
+	TopMembers      []TopMember
 	TopEventsCount  int
 	TopEventsOpen   bool
-	TopEvents       []TrackerTopEvent
-	Events          []TrackerEvent
+	TopEvents       []TopEvent
+	Events          []Event
 }
 
-type TrackerMember struct {
-	ID   string
-	Name string
-	URL  string
+type Member struct {
+	ID          string
+	Username    string
+	DisplayName string
+	AvatarURL   string
+	URL         string
 }
 
-type TrackerTopMember struct {
-	TrackerMember
+type TopMember struct {
+	Member
 	CheckIns int
 }
 
-type TrackerTopEvent struct {
+type TopEvent struct {
 	ID            string
 	Name          string
 	URL           string
 	CoverPhotoURL string
-	RSVP          int
+	Accepted      int
 	CheckIns      int
 }
 
-type TrackerEvent struct {
+type Event struct {
 	ID            string
 	Name          string
 	URL           string
@@ -54,6 +56,8 @@ type TrackerEvent struct {
 }
 
 func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	clubID := r.PathValue("club_id")
 	query := r.URL.Query()
 	membersStr := query.Get("members")
@@ -93,60 +97,62 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	club, err := s.db.GetClub(context.Background(), clubID)
+	club, err := s.db.GetClub(ctx, clubID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.NotFound(w, r)
+			s.NotFound(w, r)
 			return
 		}
 		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	topMembers, err := s.db.GetTopClubMembers(context.Background(), clubID, membersCount)
+	topMembers, err := s.db.GetTopClubMembers(ctx, clubID, membersCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	trackerTopMembers := make([]TrackerTopMember, len(topMembers))
+	trackerTopMembers := make([]TopMember, len(topMembers))
 	for i, member := range topMembers {
-		trackerTopMembers[i] = TrackerTopMember{
-			TrackerMember: TrackerMember{
-				ID:   member.ID,
-				Name: member.DisplayName,
-				URL:  fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
+		trackerTopMembers[i] = TopMember{
+			Member: Member{
+				ID:          member.ID,
+				Username:    member.Username,
+				DisplayName: member.GetDisplayName(),
+				AvatarURL:   imageURL(member.AvatarURL),
+				URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
 			},
 			CheckIns: member.CheckIns,
 		}
 	}
 
-	topEvents, err := s.db.GetTopClubEvents(context.Background(), clubID, eventsCount)
+	topEvents, err := s.db.GetTopClubEvents(ctx, clubID, eventsCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	trackerTopEvents := make([]TrackerTopEvent, len(topEvents))
+	trackerTopEvents := make([]TopEvent, len(topEvents))
 	for i, event := range topEvents {
-		trackerTopEvents[i] = TrackerTopEvent{
+		trackerTopEvents[i] = TopEvent{
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
 			CoverPhotoURL: imageURL(event.CoverPhotoURL),
-			RSVP:          event.RSVP,
+			Accepted:      event.Accepted,
 			CheckIns:      event.CheckIns,
 		}
 	}
 
-	events, err := s.db.GetEvents(context.Background(), clubID)
+	events, err := s.db.GetEvents(ctx, clubID)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	trackerEvents := make([]TrackerEvent, len(events))
+	trackerEvents := make([]Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = TrackerEvent{
+		trackerEvents[i] = Event{
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
@@ -167,6 +173,29 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		TopEvents:       trackerTopEvents,
 		Events:          trackerEvents,
 	}); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
+	}
+}
+
+func (s *Server) TrackerClubEventsExport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	clubID := r.PathValue("club_id")
+
+	events, err := s.db.GetEvents(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var exportEvents []json.RawMessage
+	for _, event := range events {
+		exportEvents = append(exportEvents, event.RawJSON)
+	}
+
+	if err = json.NewEncoder(w).Encode(exportEvents); err != nil {
+		slog.ErrorContext(ctx, "Failed to write events export", slog.String("club_id", clubID), slog.Any("err", err))
+		return
 	}
 }

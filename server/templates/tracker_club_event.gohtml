@@ -32,7 +32,7 @@
         <ul class="list">
             {{ range $member := .Members }}
                 <li class="list-item">
-                    <a href="{{ $member.URL }}" title="{{ .ID }}">{{ $member.Name }}</a>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
                 </li>
             {{ else }}
                 <span>No members have checked in.</span>
@@ -42,14 +42,14 @@
     </div>
 
     <div class="section">
-        <h2>RSVP ({{ len .RSVPMembers }})</h2>
+        <h2>Accepted ({{ len .AcceptedMembers }})</h2>
         <ul class="list">
-            {{ range $rsvp := .RSVPMembers }}
+            {{ range $member := .AcceptedMembers }}
                 <li class="list-item">
-                    <a href="{{ $rsvp.URL }}" title="{{ $rsvp.ID }}">{{ $rsvp.Name }}</a>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
                 </li>
             {{ else }}
-                <span>No RSVPs.</span>
+                <span>No members have accepted and not checked in.</span>
             {{ end }}
         </ul>
     </div>

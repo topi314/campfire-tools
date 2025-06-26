@@ -162,6 +162,7 @@ fragment EventRendererProvider_event_4dcqWc on Event {
     edges {
       node {
         id
+        username
         displayName
         avatarUrl
       }

@@ -1,10 +1,10 @@
-{{ template "head" addStr "Tracker - " .Name }}
+{{ template "head" addStr "Tracker - " .DisplayName }}
 <div class="container">
     <h1 title="{{ .ID }}">
         {{ if .ClubAvatarURL }}
             <img src="{{ .ClubAvatarURL }}">
         {{ end }}
-        <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a> - {{ .Name }}
+        <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a> - <span title="{{ .Username }}">{{ .DisplayName }}</span>
     </h1>
 
     <div class="section">
@@ -26,14 +26,14 @@
     </div>
 
     <div class="section">
-        <h2>RSVP ({{ len .RSVPEvents }})</h2>
+        <h2>Accepted ({{ len .AcceptedEvents }})</h2>
         <ul class="list">
-            {{ range $event := .RSVPEvents }}
+            {{ range $event := .AcceptedEvents }}
                 <li class="list-item">
                     {{ if $event.CoverPhotoURL }}
                         <img src="{{ $event.CoverPhotoURL }}">
                     {{ else }}
-                        <img src="/static/default.png"">
+                        <img src="/static/default.png">
                     {{ end }}
                     <a href="{{ $event.URL }}" title="{{ .ID }}">{{ $event.Name }}</a>
                 </li>

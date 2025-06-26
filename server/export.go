@@ -2,6 +2,7 @@ package server
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -21,6 +22,8 @@ func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	meetupURLs := r.FormValue("urls")
 	includeMissingMembersStr := r.FormValue("include_missing_members")
 	combineCSVsStr := r.FormValue("combine_csv")
@@ -58,7 +61,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eg, ctx := errgroup.WithContext(r.Context())
+	eg, ctx := errgroup.WithContext(ctx)
 	var events []campfire.FullEvent
 	var mu sync.Mutex
 	for _, url := range urls {
@@ -68,7 +71,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		}
 
 		eg.Go(func() error {
-			event, err := s.client.FetchEvent(ctx, meetupURL)
+			event, err := s.campfire.FetchEvent(ctx, meetupURL)
 			if err != nil {
 				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
 					return nil
@@ -90,34 +93,35 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to fetch events", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to fetch events", slog.Any("err", err))
 		s.renderExport(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	if len(events) == 0 {
-		slog.ErrorContext(r.Context(), "No events found for the provided URLs")
+		slog.ErrorContext(ctx, "No events found for the provided URLs")
 		s.renderExport(w, r, "No events found for the provided URLs")
 		return
 	}
 
-	slog.InfoContext(r.Context(), "Fetched events", slog.Int("events", len(events)))
+	slog.InfoContext(ctx, "Fetched events", slog.Int("events", len(events)))
 
 	var allRecords [][][]string
 	if combineCSVs {
 		records := [][]string{
-			{"id", "name", "status", "event_id", "event_name"},
+			{"id", "username", "display_name", "status", "event_id", "event_name"},
 		}
 		for _, event := range events {
 			for _, rsvpStatus := range event.Event.RSVPStatuses {
-				name, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
+				member, ok := campfire.FindMember(rsvpStatus.UserID, event)
 				if !ok && !includeMissingMembers {
 					continue
 				}
 
 				records = append(records, []string{
 					rsvpStatus.UserID,
-					name,
+					member.Username,
+					member.DisplayName,
 					rsvpStatus.RSVPStatus,
 					event.Event.ID,
 					event.Event.Name,
@@ -128,17 +132,18 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	} else {
 		for _, event := range events {
 			records := [][]string{
-				{"id", "name", "status"},
+				{"id", "username", "display_name", "status"},
 			}
 			for _, rsvpStatus := range event.Event.RSVPStatuses {
-				name, ok := campfire.FindMemberName(rsvpStatus.UserID, event)
+				member, ok := campfire.FindMember(rsvpStatus.UserID, event)
 				if !ok && !includeMissingMembers {
 					continue
 				}
 
 				records = append(records, []string{
 					rsvpStatus.UserID,
-					name,
+					member.Username,
+					member.DisplayName,
 					rsvpStatus.RSVPStatus,
 				})
 			}
@@ -146,25 +151,27 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.exportRecords(w, r, allRecords, combineCSVs)
+	s.exportRecords(ctx, w, allRecords, combineCSVs)
 }
 
 func (s *Server) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	ctx := r.Context()
+
 	if err := s.templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
 		"Error": errorMessage,
 	}); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to render export template", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to render export template", slog.Any("err", err))
 	}
 }
 
-func (s *Server) exportRecords(w http.ResponseWriter, r *http.Request, allRecords [][][]string, combineCSVs bool) {
+func (s *Server) exportRecords(ctx context.Context, w http.ResponseWriter, allRecords [][][]string, combineCSVs bool) {
 	if combineCSVs {
 		records := allRecords[0]
-		slog.InfoContext(r.Context(), "Combined CSV records", slog.Int("records", len(records)))
+		slog.InfoContext(ctx, "Combined CSV records", slog.Int("records", len(records)))
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=export.csv")
 		if err := csv.NewWriter(w).WriteAll(records); err != nil {
-			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.Any("err", err))
+			slog.ErrorContext(ctx, "Failed to write CSV records", slog.Any("err", err))
 			return
 		}
 		return
@@ -174,7 +181,7 @@ func (s *Server) exportRecords(w http.ResponseWriter, r *http.Request, allRecord
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=export.csv")
 		if err := csv.NewWriter(w).WriteAll(allRecords[0]); err != nil {
-			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.Any("err", err))
+			slog.ErrorContext(ctx, "Failed to write CSV records", slog.Any("err", err))
 			return
 		}
 		return
@@ -187,19 +194,19 @@ func (s *Server) exportRecords(w http.ResponseWriter, r *http.Request, allRecord
 		filename := fmt.Sprintf("export_%d.csv", i+1)
 		f, err := zw.Create(filename)
 		if err != nil {
-			slog.ErrorContext(r.Context(), "Failed to create zip entry", slog.String("filename", filename), slog.Any("err", err))
+			slog.ErrorContext(ctx, "Failed to create zip entry", slog.String("filename", filename), slog.Any("err", err))
 			return
 		}
 
 		if err = csv.NewWriter(f).WriteAll(records); err != nil {
-			slog.ErrorContext(r.Context(), "Failed to write CSV records", slog.String("filename", filename), slog.Any("err", err))
+			slog.ErrorContext(ctx, "Failed to write CSV records", slog.String("filename", filename), slog.Any("err", err))
 			return
 		}
 	}
 	if err := zw.Close(); err != nil {
-		slog.ErrorContext(r.Context(), "Failed to close zip writer: %s", err.Error())
+		slog.ErrorContext(ctx, "Failed to close zip writer: %s", err.Error())
 		return
 	}
 
-	slog.InfoContext(r.Context(), "Export completed successfully", slog.Int("files", len(allRecords)))
+	slog.InfoContext(ctx, "Export completed successfully", slog.Int("files", len(allRecords)))
 }

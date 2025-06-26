@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -18,11 +19,13 @@ type Event struct {
 	ClubID        string `db:"club_id"`
 	ClubName      string `db:"club_name"`
 	ClubAvatarURL string `db:"club_avatar_url"`
+
+	RawJSON json.RawMessage `db:"raw_json"`
 }
 
 type TopEvent struct {
 	Event
-	RSVP     int `db:"rsvp"`
+	Accepted int `db:"accepted"`
 	CheckIns int `db:"check_ins"`
 }
 
@@ -39,7 +42,20 @@ type Club struct {
 
 type ClubMember struct {
 	ID          string `db:"id"`
+	Username    string `db:"username"`
 	DisplayName string `db:"display_name"`
+	AvatarURL   string `db:"avatar_url"`
+}
+
+func (m ClubMember) GetDisplayName() string {
+	displayName := m.DisplayName
+	if displayName == "" {
+		displayName = m.Username
+	}
+	if displayName == "" {
+		displayName = "<unknown>"
+	}
+	return displayName
 }
 
 type Member struct {
