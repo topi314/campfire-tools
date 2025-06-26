@@ -31,7 +31,7 @@ func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
-	clubs, err := s.database.GetClubs(context.Background())
+	clubs, err := s.db.GetClubs(context.Background())
 	if err != nil {
 		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -90,7 +90,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("event has not ended yet: %s", event.Event.Name)
 			}
 
-			if err = s.database.AddEvent(context.Background(), database.Event{
+			if err = s.db.AddEvent(context.Background(), database.Event{
 				ID:                    event.Event.ID,
 				Name:                  event.Event.Name,
 				Details:               event.Event.Details,
@@ -124,7 +124,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 					EventID: event.Event.ID,
 				})
 			}
-			if err = s.database.AddMembers(context.Background(), members); err != nil {
+			if err = s.db.AddMembers(context.Background(), members); err != nil {
 				return fmt.Errorf("failed to add members: %w", err)
 			}
 

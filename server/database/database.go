@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"log/slog"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -28,9 +29,13 @@ func New(cfg Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	return &Database{
+	db := &Database{
 		db: dbx,
-	}, nil
+	}
+
+	go db.cleanupSessions()
+
+	return db, nil
 }
 
 type Database struct {
@@ -42,4 +47,20 @@ func (d *Database) Close() error {
 		return fmt.Errorf("failed to close database connection: %w", err)
 	}
 	return nil
+}
+
+func (d *Database) cleanupSessions() {
+	for {
+		d.doCleanupSessions()
+		time.Sleep(1 * time.Hour)
+	}
+}
+
+func (d *Database) doCleanupSessions() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	if err := d.DeleteExpiredSessions(ctx); err != nil {
+		slog.Error("failed to cleanup expired sessions", slog.Any("err", err))
+	}
 }

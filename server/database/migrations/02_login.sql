@@ -1,0 +1,6 @@
+CREATE TABLE sessions
+(
+    id         VARCHAR(36) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL
+);
