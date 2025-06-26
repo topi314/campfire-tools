@@ -20,21 +20,21 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	clubID := r.PathValue("club_id")
 	memberID := r.PathValue("member_id")
 
-	member, err := s.database.GetClubMember(r.Context(), clubID, memberID)
+	member, err := s.db.GetClubMember(r.Context(), clubID, memberID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch club member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club member: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	club, err := s.database.GetClub(r.Context(), clubID)
+	club, err := s.db.GetClub(r.Context(), clubID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.database.GetCheckedInClubEventsByMember(r.Context(), clubID, memberID)
+	events, err := s.db.GetCheckedInClubEventsByMember(r.Context(), clubID, memberID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club events by member: "+err.Error(), http.StatusInternalServerError)
@@ -50,7 +50,7 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rsvpEvents, err := s.database.GetRSVPClubEventsByMember(r.Context(), clubID, memberID)
+	rsvpEvents, err := s.db.GetRSVPClubEventsByMember(r.Context(), clubID, memberID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch RSVP club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch RSVP club events by member: "+err.Error(), http.StatusInternalServerError)

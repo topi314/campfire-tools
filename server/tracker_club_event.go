@@ -27,7 +27,7 @@ type TrackerClubEventVars struct {
 func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("event_id")
 
-	event, err := s.database.GetEvent(r.Context(), eventID)
+	event, err := s.db.GetEvent(r.Context(), eventID)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
 			http.NotFound(w, r)
@@ -38,7 +38,7 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := s.database.GetCheckedInMembersByEvent(r.Context(), eventID)
+	members, err := s.db.GetCheckedInMembersByEvent(r.Context(), eventID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch checked-in members", slog.String("event_id", eventID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
@@ -57,7 +57,7 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rsvpMembers, err := s.database.GetRSVPMembersByEvent(r.Context(), eventID)
+	rsvpMembers, err := s.db.GetRSVPMembersByEvent(r.Context(), eventID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch RSVP members", slog.String("event_id", eventID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch RSVP members: "+err.Error(), http.StatusInternalServerError)

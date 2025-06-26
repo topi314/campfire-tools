@@ -25,14 +25,14 @@ func (s *Server) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
 func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	clubID := r.PathValue("club_id")
 
-	club, err := s.database.GetClub(r.Context(), clubID)
+	club, err := s.db.GetClub(r.Context(), clubID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to get club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to get club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.database.GetEvents(r.Context(), clubID)
+	events, err := s.db.GetEvents(r.Context(), clubID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -105,7 +105,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		members, err := s.database.GetCheckedInMembersByEvent(r.Context(), eventID)
+		members, err := s.db.GetCheckedInMembersByEvent(r.Context(), eventID)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
 			continue

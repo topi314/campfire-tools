@@ -9,6 +9,7 @@ import (
 	"github.com/BurntSushi/toml"
 
 	"github.com/topi314/campfire-tools/internal/xtime"
+	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -61,15 +62,17 @@ type Config struct {
 	Server   ServerConfig    `toml:"server"`
 	Database database.Config `toml:"database"`
 	Campfire campfire.Config `toml:"campfire"`
+	Auth     auth.Config     `toml:"auth"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s",
+	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s",
 		c.Dev,
 		c.Log,
 		c.Server,
 		c.Database,
 		c.Campfire,
+		c.Auth,
 	)
 }
 

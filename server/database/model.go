@@ -57,3 +57,9 @@ type TopMember struct {
 	Member
 	CheckIns int `db:"check_ins"`
 }
+
+type Session struct {
+	ID        string    `db:"id"`
+	CreatedAt time.Time `db:"created_at"`
+	ExpiresAt time.Time `db:"expires_at"`
+}

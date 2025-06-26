@@ -12,6 +12,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -56,23 +57,22 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	mux := http.NewServeMux()
 	httpClient := &http.Client{}
-
 	s := &Server{
-		server: &http.Server{
-			Addr:    cfg.Server.Addr,
-			Handler: cleanPathMiddleware(mux),
-		},
+		cfg:        cfg,
 		httpClient: httpClient,
 		client:     campfire.New(cfg.Campfire, httpClient),
-		database:   db,
+		db:         db,
+		auth:       auth.New(cfg.Auth, db),
 		templates:  t,
 	}
 
 	fs := http.FileServer(staticFS)
 
+	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.NotFound)
+	mux.HandleFunc("GET /login", s.Login)
+	mux.HandleFunc("GET /login/callback", s.LoginCallback)
 	mux.HandleFunc("GET /{$}", s.Index)
 	mux.HandleFunc("GET /raffle", s.Raffle)
 	mux.HandleFunc("POST /raffle", s.DoRaffle)
@@ -90,6 +90,11 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /static/", fs)
 	mux.Handle("HEAD /static/", fs)
 
+	s.server = &http.Server{
+		Addr:    cfg.Server.Addr,
+		Handler: cleanPathMiddleware(s.AuthMiddleware(mux)),
+	}
+
 	return s, nil
 }
 
@@ -102,10 +107,12 @@ func cleanPathMiddleware(next http.Handler) http.Handler {
 }
 
 type Server struct {
+	cfg        Config
 	server     *http.Server
 	httpClient *http.Client
 	client     *campfire.Client
-	database   *database.Database
+	db         *database.Database
+	auth       *auth.Auth
 	templates  func() *template.Template
 }
 

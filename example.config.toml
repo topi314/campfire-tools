@@ -20,3 +20,9 @@ ssl_mode = "disable"
 every = "2s"
 burst = 10
 max_retries = 3
+
+[auth]
+public_url = "http://localhost:8085"
+client_id = "123456789012345678"
+client_secret = "your_client_secret"
+discord_guild_id = "123456789012345678"

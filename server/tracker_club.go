@@ -91,7 +91,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	club, err := s.database.GetClub(context.Background(), clubID)
+	club, err := s.db.GetClub(context.Background(), clubID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.NotFound(w, r)
@@ -101,7 +101,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topMembers, err := s.database.GetTopClubMembers(context.Background(), clubID, membersCount)
+	topMembers, err := s.db.GetTopClubMembers(context.Background(), clubID, membersCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -118,7 +118,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	topEvents, err := s.database.GetTopClubEvents(context.Background(), clubID, eventsCount)
+	topEvents, err := s.db.GetTopClubEvents(context.Background(), clubID, eventsCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -135,7 +135,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	events, err := s.database.GetEvents(context.Background(), clubID)
+	events, err := s.db.GetEvents(context.Background(), clubID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
