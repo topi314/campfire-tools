@@ -20,6 +20,7 @@ type ErrorGroup struct {
 func (g *ErrorGroup) Go(n func() error) {
 	g.wg.Add(1)
 	go func() {
+		defer g.wg.Done()
 		if err := n(); err != nil {
 			g.Lock()
 			defer g.Unlock()
