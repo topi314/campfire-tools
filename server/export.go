@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/topi314/campfire-tools/internal/xstrconv"
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
@@ -34,7 +34,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 
 	var includeMissingMembers bool
 	if includeMissingMembersStr != "" {
-		parsed, err := strconv.ParseBool(includeMissingMembersStr)
+		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
 			s.renderExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
@@ -44,7 +44,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 
 	var combineCSVs bool
 	if combineCSVsStr != "" {
-		parsed, err := strconv.ParseBool(combineCSVsStr)
+		parsed, err := xstrconv.ParseBool(combineCSVsStr)
 		if err != nil {
 			s.renderExport(w, r, "Invalid 'combine_csv' parameter")
 			return

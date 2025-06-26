@@ -10,11 +10,11 @@ https://cmpf.re/..." required autofocus></textarea>
                 <p class="error" id="error-message">{{ .Error }}</p>
             {{ end }}
         </label>
-        <label class="form-control" for="include-missing-members">
+        <label class="form-control" for="include-missing-members" title="Include members which campfire doesn't return a name for.">
             Include Missing Members
             <input class="form-control" type="checkbox" id="include-missing-members" name="include_missing_members" checked>
         </label>
-        <label class="form-control" for="combine-csv">
+        <label class="form-control" for="combine-csv" title="Combine all selected events into a single CSV file, rather than one CSV per event.">
             Combine CSVs
             <input class="form-control" type="checkbox" id="combine-csv" name="combine_csv" checked>
         </label>

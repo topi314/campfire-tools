@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/topi314/campfire-tools/internal/xstrconv"
 )
 
 type TrackerClubVars struct {
@@ -77,7 +79,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 
 	var topMembersOpen bool
 	if topMembersOpenStr != "" {
-		parsedTopMembersOpen, err := strconv.ParseBool(topMembersOpenStr)
+		parsedTopMembersOpen, err := xstrconv.ParseBool(topMembersOpenStr)
 		if err == nil {
 			topMembersOpen = parsedTopMembersOpen
 		}
@@ -85,7 +87,7 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 
 	var topEventsOpen bool
 	if topEventsOpenStr != "" {
-		parsedTopEventsOpen, err := strconv.ParseBool(topEventsOpenStr)
+		parsedTopEventsOpen, err := xstrconv.ParseBool(topEventsOpenStr)
 		if err == nil {
 			topEventsOpen = parsedTopEventsOpen
 		}

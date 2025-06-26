@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
+	"github.com/topi314/campfire-tools/internal/xstrconv"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -80,7 +80,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 
 	var includeMissingMembers bool
 	if includeMissingMembersStr != "" {
-		parsed, err := strconv.ParseBool(includeMissingMembersStr)
+		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
 			s.renderTrackerClubExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
@@ -90,7 +90,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 
 	var combineCSVs bool
 	if combineCSVsStr != "" {
-		parsed, err := strconv.ParseBool(combineCSVsStr)
+		parsed, err := xstrconv.ParseBool(combineCSVsStr)
 		if err != nil {
 			s.renderTrackerClubExport(w, r, "Invalid 'combine_csv' parameter")
 			return
