@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
@@ -84,7 +86,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(event, "https://") {
 				fullEvent, err = s.campfire.FetchEvent(ctx, event)
 			} else {
-				fullEvent, err = s.campfire.FetchFullEvent(ctx, event)
+				fullEvent, err = s.fetchFullEvent(ctx, event)
 			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", event, err)
@@ -162,6 +164,18 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}
+}
+
+func (s *Server) fetchFullEvent(ctx context.Context, event string) (*campfire.FullEvent, error) {
+	dbEvent, err := s.db.GetEvent(ctx, event)
+	if err == nil {
+		var fullEvent *campfire.FullEvent
+		if err = json.Unmarshal(dbEvent.RawJSON, &fullEvent); err == nil {
+			return fullEvent, nil
+		}
+	}
+
+	return s.campfire.FetchFullEvent(ctx, event)
 }
 
 func (s *Server) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
