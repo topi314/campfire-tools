@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
@@ -17,7 +19,7 @@ import (
 
 type DoRaffleVars struct {
 	Winners []Member
-	URLs    string
+	Events  string
 	Count   int
 }
 
@@ -28,13 +30,22 @@ func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
 func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	meetupURLs := r.FormValue("urls")
+	if err := r.ParseForm(); err != nil {
+		slog.ErrorContext(ctx, "Failed to parse form data", slog.Any("err", err))
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	events := strings.TrimSpace(r.FormValue("events"))
+	if ids := r.Form["ids"]; len(ids) > 0 {
+		events += "\n" + strings.Join(ids, "\n")
+	}
 	stringCount := r.FormValue("count")
 
-	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("meetup_urls", meetupURLs), slog.String("count", stringCount))
+	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("count", stringCount))
 
-	if meetupURLs == "" {
-		s.renderRaffle(w, r, "Missing 'url' parameter. Please specify the event URL.")
+	if events == "" {
+		s.renderRaffle(w, r, "Missing 'events' parameter")
 		return
 	}
 
@@ -48,34 +59,46 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		count = parsed
 	}
 
-	urls := strings.Split(meetupURLs, "\n")
-	if len(urls) > 50 {
-		s.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
+	allEvents := strings.Split(events, "\n")
+	for _, event := range allEvents {
+		event = strings.TrimSpace(event)
+		if event == "" {
+			continue
+		}
+		allEvents = append(allEvents, event)
+	}
+	if len(allEvents) > 50 {
+		s.renderExport(w, r, fmt.Sprintf("please limit the number of events to 50, got %d.", len(allEvents)))
 		return
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 	var members []Member
+	var eventIDs []string
 	var mu sync.Mutex
-	for _, url := range urls {
-		meetupURL := strings.TrimSpace(url)
-		if meetupURL == "" {
-			continue
-		}
-
+	for _, event := range allEvents {
 		eg.Go(func() error {
-			event, err := s.campfire.FetchEvent(ctx, meetupURL)
+			var (
+				fullEvent *campfire.FullEvent
+				err       error
+			)
+
+			if strings.HasPrefix(event, "https://") {
+				fullEvent, err = s.campfire.FetchEvent(ctx, event)
+			} else {
+				fullEvent, err = s.fetchFullEvent(ctx, event)
+			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch event from URL %s: %w", meetupURL, err)
+				return fmt.Errorf("failed to fetch event %q: %w", event, err)
 			}
 
-			if len(event.Event.RSVPStatuses) == 0 {
+			if len(fullEvent.Event.RSVPStatuses) == 0 {
 				return nil
 			}
 
 			mu.Lock()
 			defer mu.Unlock()
-			for _, rsvpStatus := range event.Event.RSVPStatuses {
+			for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
 				// Only consider checked-in members
 				if rsvpStatus.RSVPStatus != "CHECKED_IN" {
 					continue
@@ -89,7 +112,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// Skip if we don't have the member's information
-				member, ok := campfire.FindMember(rsvpStatus.UserID, *event)
+				member, ok := campfire.FindMember(rsvpStatus.UserID, *fullEvent)
 				if !ok {
 					continue
 				}
@@ -101,6 +124,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 					AvatarURL:   member.AvatarURL,
 				})
 			}
+			eventIDs = append(eventIDs, fullEvent.Event.ID)
 
 			return nil
 		})
@@ -135,11 +159,23 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
 		Winners: winners,
-		URLs:    meetupURLs,
+		Events:  strings.Join(eventIDs, "\n"),
 		Count:   count,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}
+}
+
+func (s *Server) fetchFullEvent(ctx context.Context, event string) (*campfire.FullEvent, error) {
+	dbEvent, err := s.db.GetEvent(ctx, event)
+	if err == nil {
+		var fullEvent *campfire.FullEvent
+		if err = json.Unmarshal(dbEvent.RawJSON, &fullEvent); err == nil {
+			return fullEvent, nil
+		}
+	}
+
+	return s.campfire.FetchFullEvent(ctx, event)
 }
 
 func (s *Server) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {

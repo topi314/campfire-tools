@@ -6,7 +6,13 @@
     </h1>
 
     <div class="section">
-        <h2>Top Members</h2>
+        <div class="section-header">
+            <h2>Top Members</h2>
+            <div class="inline-form-control">
+                <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
+                <a href="/tracker/club/{{ .ClubID }}/raffle" class="button">Raffle</a>
+            </div>
+        </div>
         <details id="top-members-details" {{ if .TopMembersOpen }}open{{ end }}>
             <summary>
                 View Top Members based on check-ins
@@ -21,7 +27,6 @@
                         {{ end }}
                     </select>
                 </label>
-                <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
             </div>
 
             <div class="top-members">
@@ -40,7 +45,13 @@
     </div>
 
     <div class="section">
-        <h2>Top Events</h2>
+        <div class="section-header">
+            <h2>Top Events</h2>
+            <div class="inline-form-control">
+                <a href="/tracker/club/{{ .ClubID }}/events/export" class="button">Export</a>
+            </div>
+        </div>
+
         <details id="top-events-details" {{ if .TopEventsOpen }}open{{ end }}>
             <summary>
                 View top events based on RSVP and check-ins.

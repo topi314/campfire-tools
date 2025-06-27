@@ -71,19 +71,27 @@ func New(cfg Config) (*Server, error) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.NotFound)
+	mux.HandleFunc("GET /{$}", s.Index)
 	mux.HandleFunc("GET /login", s.Login)
 	mux.HandleFunc("GET /login/callback", s.LoginCallback)
-	mux.HandleFunc("GET /{$}", s.Index)
-	mux.HandleFunc("GET /raffle", s.Raffle)
+
+	mux.HandleFunc("GET  /raffle", s.Raffle)
 	mux.HandleFunc("POST /raffle", s.DoRaffle)
-	mux.HandleFunc("GET /export", s.Export)
+
+	mux.HandleFunc("GET  /export", s.Export)
 	mux.HandleFunc("POST /export", s.DoExport)
-	mux.HandleFunc("GET /tracker", s.Tracker)
+
+	mux.HandleFunc("GET  /tracker", s.Tracker)
 	mux.HandleFunc("POST /tracker", s.TrackerAdd)
+
 	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
 	mux.HandleFunc("GET /tracker/club/{club_id}/events/export", s.TrackerClubEventsExport)
-	mux.HandleFunc("GET /tracker/club/{club_id}/export", s.TrackerClubExport)
+
+	mux.HandleFunc("GET  /tracker/club/{club_id}/export", s.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", s.DoTrackerClubExport)
+
+	mux.HandleFunc("GET /tracker/club/{club_id}/raffle", s.TrackerClubRaffle)
+
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", s.TrackerClubMember)
 	mux.HandleFunc("GET /tracker/event/{event_id}", s.TrackerClubEvent)
 	mux.HandleFunc("GET /tracker/event/{event_id}/export", s.TrackerClubEventExport)
