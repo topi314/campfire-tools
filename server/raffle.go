@@ -59,8 +59,8 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		count = parsed
 	}
 
-	allEvents := strings.Split(events, "\n")
-	for _, event := range allEvents {
+	var allEvents []string
+	for _, event := range strings.Split(events, "\n") {
 		event = strings.TrimSpace(event)
 		if event == "" {
 			continue
