@@ -1,0 +1,33 @@
+{{ template "head" "Campfire Club Raffle" }}
+<div class="container">
+    <h1>
+        {{ if .ClubAvatarURL }}
+            <img src="{{ .ClubAvatarURL }}">
+        {{ end }}
+        <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a> Raffle
+    </h1>
+
+    <div class="section">
+        <form action="/tracker/club/{{ .ClubID }}/raffle" method="POST">
+            <label class="form-control" for="events">
+                Events
+                <select class="form-control" id="events" name="events" size="10" required multiple>
+                    {{ range $event := .Events }}
+                        <option value="{{ $event.ID }}" {{ if eq $event.ID $.SelectedEventID }}selected{{ end }}>
+                            {{ $event.Name }}
+                        </option>
+                    {{ end }}
+                </select>
+                {{ if .Error }}
+                    <p class="error" id="error-message">{{ .Error }}</p>
+                {{ end }}
+            </label>
+            <label class="form-control" for="count">
+                Number of Winners
+                <input class="form-control" type="number" id="count" name="count" min="1" value="1" required>
+            </label>
+            <button class="form-control" type="submit">Run</button>
+        </form>
+    </div>
+</div>
+{{ template "footer" }}

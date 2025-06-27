@@ -13,6 +13,7 @@ type TrackerClubEventVars struct {
 	ClubName              string
 	ClubAvatarURL         string
 	ClubID                string
+	ID                    string
 	Name                  string
 	CoverPhotoURL         string
 	Details               string
@@ -31,7 +32,7 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 
 	event, err := s.db.GetEvent(ctx, eventID)
 	if err != nil {
-		if errors.Is(sql.ErrNoRows, err) {
+		if errors.Is(err, sql.ErrNoRows) {
 			s.NotFound(w, r)
 			return
 		}
@@ -78,6 +79,7 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		ClubName:              event.ClubName,
 		ClubAvatarURL:         imageURL(event.ClubAvatarURL),
 		ClubID:                event.ClubID,
+		ID:                    event.ID,
 		Name:                  event.Name,
 		CoverPhotoURL:         imageURL(event.CoverPhotoURL),
 		Details:               event.Details,

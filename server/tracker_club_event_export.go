@@ -14,7 +14,7 @@ func (s *Server) TrackerClubEventExport(w http.ResponseWriter, r *http.Request) 
 
 	event, err := s.db.GetEvent(ctx, eventID)
 	if err != nil {
-		if errors.Is(sql.ErrNoRows, err) {
+		if errors.Is(err, sql.ErrNoRows) {
 			s.NotFound(w, r)
 			return
 		}
