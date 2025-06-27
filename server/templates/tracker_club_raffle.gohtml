@@ -8,10 +8,10 @@
     </h1>
 
     <div class="section">
-        <form action="/tracker/club/{{ .ClubID }}/raffle" method="POST">
-            <label class="form-control" for="events">
+        <form action="/raffle" method="POST">
+            <label class="form-control" for="ids">
                 Events
-                <select class="form-control" id="events" name="events" size="10" required multiple>
+                <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
                         <option value="{{ $event.ID }}" {{ if eq $event.ID $.SelectedEventID }}selected{{ end }}>
                             {{ $event.Name }}

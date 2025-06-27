@@ -2,9 +2,9 @@
 <div class="container">
     <h1>Raffle</h1>
     <form action="/raffle" method="POST">
-        <label class="form-control" for="urls">
+        <label class="form-control" for="events">
             Event Links
-            <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...
+            <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
 https://cmpf.re/..." required autofocus></textarea>
             {{ if .Error }}
                 <p class="error">{{ .Error }}</p>
