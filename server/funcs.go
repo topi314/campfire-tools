@@ -43,16 +43,16 @@ func add(a, b any) (int, error) {
 	return ai + bi, nil
 }
 
-func addStr(a, b any) (string, error) {
-	as, ok := a.(string)
-	if !ok {
-		return "", fmt.Errorf("first argument must be a string: %v", a)
+func addStr(a ...any) (string, error) {
+	var sb strings.Builder
+	for _, v := range a {
+		s, ok := v.(string)
+		if !ok {
+			return "", fmt.Errorf("all arguments must be strings: %v", v)
+		}
+		sb.WriteString(s)
 	}
-	bs, ok := b.(string)
-	if !ok {
-		return "", fmt.Errorf("second argument must be a string: %v", b)
-	}
-	return as + bs, nil
+	return sb.String(), nil
 }
 
 func seq(n int) []int {

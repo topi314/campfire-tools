@@ -1,0 +1,121 @@
+{{ template "head" addStr "Tracker - " .ClubName " - Statistics" }}
+<div class="container">
+    <h1>
+        <img src="{{ .ClubAvatarURL }}">
+        {{ .ClubName }} - Statistics
+    </h1>
+
+    <div class="section">
+        <form id="filterForm" method="GET" action="/tracker/club/{{ .ClubID }}/stats">
+            <div class="inline-form-control">
+            <label class="inline-form-control" for="startDate">
+                Start
+                <input type="date" id="startDate" name="startDate">
+            </label>
+            <label class="inline-form-control" for="endDate">
+                End
+                <input type="date" id="endDate" name="endDate">
+            </label>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Top Members</h2>
+            <div class="inline-form-control">
+                <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
+            </div>
+        </div>
+        <details ontoggle="toggleParam(this, 'members-closed')" {{ if .TopMembersOpen }}open{{ end }}>
+            <summary>
+                View Top Members based on check-ins
+            </summary>
+            <div class="inline-form-control">
+                <label for="top-members">
+                    <select id="top-members" onchange="updateParam(this, 'members');">
+                        {{ range $count := .TopCounts }}
+                            <option value="{{ $count }}" {{ if eq $count $.TopMembersCount }}selected{{ end }}>
+                                {{ $count }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+            </div>
+
+            <div class="top-members">
+                <span>Position</span>
+                <span>Member</span>
+                <span>Check-Ins</span>
+                {{ range $index, $member := .TopMembers }}
+                    <span>{{ add $index 1 }}</span>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
+                    <span>{{ $member.CheckIns }}</span>
+                {{ else }}
+                    <span>No members found.</span>
+                {{ end }}
+            </div>
+        </details>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Top Events</h2>
+            <div class="inline-form-control">
+                <a href="/tracker/club/{{ .ClubID }}/events/export" class="button">Export</a>
+            </div>
+        </div>
+
+        <details ontoggle="toggleParam(this, 'events-closed')" {{ if .TopEventsOpen }}open{{ end }}>
+            <summary>
+                View top events based on RSVP and check-ins.
+            </summary>
+
+            <div class="inline-form-control">
+                <label for="top-events">
+                    <select id="top-events" onchange="updateParam(this, 'events');">
+                        {{ range $count := .TopCounts }}
+                            <option value="{{ $count }}" {{ if eq $count $.TopEventsCount }}selected{{ end }}>
+                                {{ $count }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+            </div>
+
+            <div class="top-events">
+                <span>Position</span>
+                <span>Event</span>
+                <span>Accepted</span>
+                <span>Check-Ins</span>
+                {{ range $index, $event := .TopEvents }}
+                    <span>{{ add $index 1 }}</span>
+                    <a href="{{ $event.URL }}">{{ $event.Name }}</a>
+                    <span>{{ $event.Accepted }}</span>
+                    <span>{{ $event.CheckIns }}</span>
+                {{ else }}
+                    <span>No events found.</span>
+                {{ end }}
+            </div>
+        </details>
+    </div>
+</div>
+<script>
+    function updateParam(select, name) {
+        const url = new URL(window.location);
+        url.searchParams.set(name, select.value);
+        window.location = url.toString();
+    }
+
+    function toggleParam(element, name) {
+        const url = new URL(window.location);
+        if (element.open) {
+            url.searchParams.delete(name);
+        } else {
+            url.searchParams.set(name, 'true');
+        }
+        window.history.replaceState({}, '', url.toString());
+    }
+</script>
+{{ template "footer" }}

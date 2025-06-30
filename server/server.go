@@ -86,6 +86,7 @@ func New(cfg Config) (*Server, error) {
 
 	mux.HandleFunc("GET /tracker/club/{club_id}", s.TrackerClub)
 	mux.HandleFunc("GET /tracker/club/{club_id}/events/export", s.TrackerClubEventsExport)
+	mux.HandleFunc("GET /tracker/club/{club_id}/stats", s.TrackerClubStats)
 
 	mux.HandleFunc("GET  /tracker/club/{club_id}/export", s.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", s.DoTrackerClubExport)
