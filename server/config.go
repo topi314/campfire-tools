@@ -57,17 +57,19 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	Dev      bool            `toml:"dev"`
-	Log      LogConfig       `toml:"log"`
-	Server   ServerConfig    `toml:"server"`
-	Database database.Config `toml:"database"`
-	Campfire campfire.Config `toml:"campfire"`
-	Auth     auth.Config     `toml:"auth"`
+	Dev                        bool            `toml:"dev"`
+	WarnUnknownEventCategories bool            `toml:"warn_unknown_event_categorie"`
+	Log                        LogConfig       `toml:"log"`
+	Server                     ServerConfig    `toml:"server"`
+	Database                   database.Config `toml:"database"`
+	Campfire                   campfire.Config `toml:"campfire"`
+	Auth                       auth.Config     `toml:"auth"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s",
+	return fmt.Sprintf("Dev: %t\nWarnUnknownEventCategories: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s",
 		c.Dev,
+		c.WarnUnknownEventCategories,
 		c.Log,
 		c.Server,
 		c.Database,

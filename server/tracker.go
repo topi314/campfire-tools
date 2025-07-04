@@ -61,54 +61,70 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithoutCancel(r.Context())
 
-	meetupURLs := r.FormValue("urls")
+	events := strings.TrimSpace(r.FormValue("events"))
 
-	slog.InfoContext(ctx, "Received tracker add request", slog.String("url", r.URL.String()), slog.String("urls", meetupURLs))
+	slog.InfoContext(ctx, "Received tracker add request", slog.String("url", r.URL.String()), slog.String("events", events))
 
-	if meetupURLs == "" {
-		s.renderTracker(w, r, "Missing 'urls' parameter")
+	if events == "" {
+		s.renderTracker(w, r, "Missing 'events' parameter")
 		return
 	}
 
+	var allEvents []string
+	for _, event := range strings.Split(events, "\n") {
+		event = strings.TrimSpace(event)
+		if event == "" {
+			continue
+		}
+		allEvents = append(allEvents, event)
+	}
+
 	var errs []error
-	urls := strings.Split(meetupURLs, "\n")
-	if len(urls) > 50 {
-		urls = urls[:50]
-		errs = append(errs, fmt.Errorf("please limit the number of URLs to 50, got %d. Only the first 50 will be processed", len(urls)))
+	if len(allEvents) > 50 {
+		errs = append(errs, fmt.Errorf("please limit the number of events to 50, got %d. Only the first 50 will be processed", len(allEvents)))
+		allEvents = allEvents[:50]
 	}
 
 	now := time.Now()
 	var eg tsync.ErrorGroup
-	for _, url := range urls {
-		meetupURL := strings.TrimSpace(url)
-		if meetupURL == "" {
-			continue
-		}
-
+	for _, event := range allEvents {
 		eg.Go(func() error {
-			event, err := s.campfire.FetchEvent(ctx, meetupURL)
+			var (
+				fullEvent *campfire.FullEvent
+				err       error
+			)
+
+			if strings.HasPrefix(event, "https://") {
+				fullEvent, err = s.campfire.FetchEvent(ctx, event)
+			} else {
+				fullEvent, err = s.fetchFullEvent(ctx, event)
+			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch event from URL %q: %w", meetupURL, err)
+				return fmt.Errorf("failed to fetch event %q: %w", event, err)
 			}
 
-			if event.Event.EventEndTime.After(now) {
-				return fmt.Errorf("event has not ended yet: %s", event.Event.Name)
+			if len(fullEvent.Event.RSVPStatuses) == 0 {
+				return nil
+			}
+
+			if fullEvent.Event.EventEndTime.After(now) {
+				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
 			}
 
 			rawJSON, _ := json.Marshal(event)
 
 			if err = s.db.AddEvent(ctx, database.Event{
-				ID:                    event.Event.ID,
-				Name:                  event.Event.Name,
-				Details:               event.Event.Details,
-				CoverPhotoURL:         event.Event.CoverPhotoURL,
-				EventTime:             event.Event.EventTime,
-				EventEndTime:          event.Event.EventEndTime,
-				CampfireLiveEventID:   event.Event.CampfireLiveEventID,
-				CampfireLiveEventName: event.Event.CampfireLiveEvent.EventName,
-				ClubID:                event.Event.ClubID,
-				ClubName:              event.Event.Club.Name,
-				ClubAvatarURL:         event.Event.Club.AvatarURL,
+				ID:                    fullEvent.Event.ID,
+				Name:                  fullEvent.Event.Name,
+				Details:               fullEvent.Event.Details,
+				CoverPhotoURL:         fullEvent.Event.CoverPhotoURL,
+				EventTime:             fullEvent.Event.EventTime,
+				EventEndTime:          fullEvent.Event.EventEndTime,
+				CampfireLiveEventID:   fullEvent.Event.CampfireLiveEventID,
+				CampfireLiveEventName: fullEvent.Event.CampfireLiveEvent.EventName,
+				ClubID:                fullEvent.Event.ClubID,
+				ClubName:              fullEvent.Event.Club.Name,
+				ClubAvatarURL:         fullEvent.Event.Club.AvatarURL,
 				RawJSON:               rawJSON,
 			}); err != nil {
 				if errors.Is(err, database.ErrDuplicate) {
@@ -117,11 +133,11 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to add event: %s", err.Error())
 			}
 
-			slog.InfoContext(ctx, "Event added", slog.String("name", event.Event.Name), slog.String("id", event.Event.ID))
+			slog.InfoContext(ctx, "Event added", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID))
 
 			var members []database.Member
-			for _, rsvpStatus := range event.Event.RSVPStatuses {
-				member, _ := campfire.FindMember(rsvpStatus.UserID, *event)
+			for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
+				member, _ := campfire.FindMember(rsvpStatus.UserID, *fullEvent)
 
 				members = append(members, database.Member{
 					ClubMember: database.ClubMember{
@@ -131,14 +147,14 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 						AvatarURL:   member.AvatarURL,
 					},
 					Status:  rsvpStatus.RSVPStatus,
-					EventID: event.Event.ID,
+					EventID: fullEvent.Event.ID,
 				})
 			}
 			if err = s.db.AddMembers(ctx, members); err != nil {
 				return fmt.Errorf("failed to add members: %w", err)
 			}
 
-			slog.InfoContext(ctx, "Members added for event", slog.String("name", event.Event.Name), slog.String("id", event.Event.ID), slog.Int("count", len(members)))
+			slog.InfoContext(ctx, "Members added for event", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID), slog.Int("count", len(members)))
 			return nil
 		})
 	}
@@ -155,6 +171,6 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.InfoContext(ctx, "Successfully added events and members", slog.Int("count", len(urls)))
+	slog.InfoContext(ctx, "Successfully added events and members", slog.Int("count", len(allEvents)))
 	http.Redirect(w, r, "/tracker", http.StatusFound)
 }

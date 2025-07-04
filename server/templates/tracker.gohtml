@@ -13,9 +13,9 @@
         </div>
 
         <form action="/tracker" method="POST">
-            <label class="form-control" for="urls">
+            <label class="form-control" for="events">
                 Event Links
-                <textarea class="form-control" id="urls" name="urls" placeholder="https://cmpf.re/...
+                <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
 https://cmpf.re/..." required autofocus></textarea>
                 {{ if .Errors }}
                     <p class="error">
@@ -49,10 +49,10 @@ https://cmpf.re/..." required autofocus></textarea>
     </div>
 </div>
 <script>
-    const urls = document.getElementById('urls')
-    urls.addEventListener('input', function () {
-        urls.style.height = 'auto';
-        urls.style.height = (urls.scrollHeight + 4) + 'px';
+    const events = document.getElementById('events')
+    events.addEventListener('input', function () {
+        events.style.height = 'auto';
+        events.style.height = (events.scrollHeight + 4) + 'px';
     });
 </script>
 {{ template "footer" }}

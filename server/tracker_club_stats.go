@@ -204,7 +204,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCategories := make(map[string]EventCategory)
 	for _, event := range events {
-		category := getEventCategories(event.CampfireLiveEventName)
+		category := s.getEventCategories(event.CampfireLiveEventName)
 
 		eventCategory, ok := eventCategories[category]
 		if !ok {
@@ -260,25 +260,34 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 
 const EventCategoryOther = "Other"
 
-var AllEventCategories = []string{
-	"Raid Day",
-	"Raid Hour",
-	"Max Monday",
-	"Research Day",
-	"Community Day",
-	"Spotlight Hour",
-	"Elite Raids",
-	"Max Battle Weekend",
-	"Gigantamax",
-	"Pokémon GO Tour",
-	"GO Fest",
+var AllEventCategories = map[string][]string{
+	"Raid Day":           {},
+	"Raid Hour":          {},
+	"Max Monday":         {},
+	"Research Day":       {},
+	"Hatch Day":          {},
+	"Community Day":      {},
+	"Spotlight Hour":     {},
+	"Elite Raids":        {},
+	"Max Battle Weekend": {"Max Weekend"},
+	"Gigantamax":         {"GMAX"},
+	"Pokémon GO Tour":    {},
+	"GO Fest":            {},
 }
 
-func getEventCategories(eventName string) string {
-	for _, category := range AllEventCategories {
-		if strings.Contains(eventName, category) {
-			return category
+func (s *Server) getEventCategories(eventName string) string {
+	for name, alias := range AllEventCategories {
+		if strings.Contains(eventName, name) {
+			return name
 		}
+		for _, a := range alias {
+			if strings.Contains(eventName, a) {
+				return name
+			}
+		}
+	}
+	if s.cfg.WarnUnknownEventCategories {
+		slog.Warn("Unknown event category", slog.String("event_name", eventName))
 	}
 	return EventCategoryOther
 }
