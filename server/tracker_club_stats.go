@@ -220,6 +220,14 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		eventCategories[category] = eventCategory
 	}
 
+	categories := slices.Collect(maps.Values(eventCategories))
+	slices.SortFunc(categories, func(a, b EventCategory) int {
+		if a.CheckIns == b.CheckIns {
+			return a.Accepted - b.Accepted
+		}
+		return b.CheckIns - a.CheckIns
+	})
+
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
 		ClubName:      club.ClubName,
 		ClubAvatarURL: imageURL(club.ClubAvatarURL),
@@ -243,7 +251,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		},
 		EventCategories: EventCategories{
 			Open:       !categoriesClosed,
-			Categories: slices.Collect(maps.Values(eventCategories)),
+			Categories: categories,
 		},
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club stats template", slog.String("club_id", clubID), slog.Any("err", err))
