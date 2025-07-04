@@ -229,6 +229,21 @@
                 to = "";
         }
 
+        const now = new Date();
+        if (from) {
+            const fromDate = new Date(from);
+            if (fromDate > now) {
+                from = now.toISOString().split('T')[0];
+            }
+        }
+
+        if (to) {
+            const toDate = new Date(to);
+            if (toDate > now) {
+                to = now.toISOString().split('T')[0];
+            }
+        }
+
         document.getElementById('from').value = from;
         document.getElementById('to').value = to;
     }
