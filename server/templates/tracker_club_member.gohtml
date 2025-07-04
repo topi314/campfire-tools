@@ -1,21 +1,18 @@
 {{ template "head" addStr "Tracker - " .DisplayName }}
 <div class="container">
-    <h1>
-        {{ if .AvatarURL }}
-            <img src="{{ .AvatarURL }}">
-        {{ else }}
-            <img src="/static/default_avatar.png">
-        {{ end }}
-        <span title="{{ .Username }}">{{ .DisplayName }}</span>
-    </h1>
+    <div class="container-header">
+        <a href="/tracker/club/{{ .ClubID }}" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
 
-    <div class="section">
-        <h2>
-            {{ if .ClubAvatarURL }}
-                <img src="{{ .ClubAvatarURL }}">
+        <h1>
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}">
+            {{ else }}
+                <img src="/static/default_avatar.png">
             {{ end }}
-            <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a>
-        </h2>
+            <span title="{{ .Username }}">{{ .DisplayName }}</span>
+        </h1>
     </div>
 
     <div class="section">

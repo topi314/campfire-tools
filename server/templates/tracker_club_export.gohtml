@@ -1,9 +1,14 @@
 {{ template "head" "Campfire Club Export" }}
 <div class="container">
-    <h1>
-        <img src="{{ .ClubAvatarURL }}">
-        <a href="/tracker/club/{{ .ClubID }}">{{ .ClubName }}</a> Export
-    </h1>
+    <div class="container-header">
+        <a href="/tracker/club/{{ .ClubID }}" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>
+            <img src="{{ .ClubAvatarURL }}">
+            {{ .ClubName }} Export
+        </h1>
+    </div>
 
     <div class="section">
         <form action="/tracker/club/{{ .ClubID }}/export" method="POST" id="export-form">

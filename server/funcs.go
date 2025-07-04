@@ -26,6 +26,7 @@ var templateFuncs = template.FuncMap{
 	"safeJS":              safeJS,
 	"safeJSStr":           safeJSStr,
 	"safeSrcset":          safeSrcset,
+	"formatDate":          formatDate,
 	"formatTimeToHour":    formatTimeToHour,
 	"formatTimeToDay":     formatTimeToDay,
 	"formatTimeToRelDay":  formatTimeToRelDay,
@@ -43,16 +44,16 @@ func add(a, b any) (int, error) {
 	return ai + bi, nil
 }
 
-func addStr(a, b any) (string, error) {
-	as, ok := a.(string)
-	if !ok {
-		return "", fmt.Errorf("first argument must be a string: %v", a)
+func addStr(a ...any) (string, error) {
+	var sb strings.Builder
+	for _, v := range a {
+		s, ok := v.(string)
+		if !ok {
+			return "", fmt.Errorf("all arguments must be strings: %v", v)
+		}
+		sb.WriteString(s)
 	}
-	bs, ok := b.(string)
-	if !ok {
-		return "", fmt.Errorf("second argument must be a string: %v", b)
-	}
-	return as + bs, nil
+	return sb.String(), nil
 }
 
 func seq(n int) []int {
@@ -137,6 +138,10 @@ func reverse(l any) (any, error) {
 
 func parseTime(s string) (time.Time, error) {
 	return time.Parse(time.RFC3339, s)
+}
+
+func formatDate(t time.Time) string {
+	return t.Format("2006-01-02")
 }
 
 func formatTimeToHour(t time.Time) string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -73,18 +74,20 @@ func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	return events, nil
 }
 
-func (d *Database) GetTopClubEvents(ctx context.Context, clubID string, limit int) ([]TopEvent, error) {
-	var events []TopEvent
+func (d *Database) GetTopClubEvents(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopEvent, error) {
 	query := `
 		SELECT e.*, COUNT(CASE WHEN m.status != 'DECLINED' THEN 1 END) AS accepted, COUNT(CASE WHEN m.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM events e
 		LEFT JOIN members m ON e.id = m.event_id
 		WHERE e.club_id = $1
+		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
+		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
 		GROUP BY e.id
 		ORDER BY check_ins DESC, accepted DESC
-		LIMIT $2`
-	if err := d.db.SelectContext(ctx, &events, query, clubID, limit); err != nil {
-		return nil, fmt.Errorf("failed to get top club events: %w", err)
+		LIMIT $4`
+	var events []TopEvent
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, limit); err != nil {
+		return nil, fmt.Errorf("failed to get top club events in range: %w", err)
 	}
 
 	return events, nil
