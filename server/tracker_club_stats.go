@@ -258,30 +258,32 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-const EventCategoryOther = "Other"
+const (
+	EventCategoryOther   = "Other"
+	EventCategoryNoEvent = "No Event"
+)
 
 var AllEventCategories = map[string][]string{
-	"Raid Day":           {},
-	"Raid Hour":          {},
-	"Max Monday":         {},
-	"Research Day":       {},
-	"Hatch Day":          {},
-	"Community Day":      {},
-	"Spotlight Hour":     {},
-	"Elite Raids":        {},
-	"Max Battle Weekend": {"Max Weekend"},
-	"Gigantamax":         {"GMAX"},
-	"Pokémon GO Tour":    {},
-	"GO Fest":            {},
+	"Raid Day":       {"Raid Day"},
+	"Raid Hour":      {"Raid Hour"},
+	"Max Monday":     {"Max Monday"},
+	"Research Day":   {"Research Day"},
+	"Hatch Day":      {"Hatch Day"},
+	"Community Day":  {"Community Day"},
+	"Spotlight Hour": {"Spotlight Hour"},
+	"Max Battle":     {"Max Battle Weekend", "Max Weekend", "Gigantamax", "GMAX"},
+	"GO Tour":        {"GO Tour"},
+	"GO Fest":        {"GO Fest"},
 }
 
 func (s *Server) getEventCategories(eventName string) string {
-	for name, alias := range AllEventCategories {
-		if strings.Contains(eventName, name) {
-			return name
-		}
-		for _, a := range alias {
-			if strings.Contains(eventName, a) {
+	eventName = strings.ToLower(eventName)
+	if eventName == "" {
+		return EventCategoryNoEvent
+	}
+	for name, names := range AllEventCategories {
+		for _, n := range names {
+			if strings.Contains(eventName, strings.ToLower(n)) {
 				return name
 			}
 		}
