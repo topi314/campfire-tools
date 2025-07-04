@@ -6,8 +6,14 @@ import (
 )
 
 func (d *Database) GetClubs(ctx context.Context) ([]Club, error) {
+	query := `
+		SELECT club_id, MAX(club_name) AS club_name, MAX(club_avatar_url) AS club_avatar_url
+        FROM events
+        GROUP BY club_id
+        `
+
 	var clubs []Club
-	if err := d.db.SelectContext(ctx, &clubs, "SELECT club_id, club_name, club_avatar_url FROM events GROUP BY club_id, club_name, club_avatar_url ORDER BY club_name"); err != nil {
+	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
 		return nil, fmt.Errorf("failed to get clubs: %w", err)
 	}
 	return clubs, nil

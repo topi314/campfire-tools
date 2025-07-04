@@ -26,6 +26,7 @@ var templateFuncs = template.FuncMap{
 	"safeJS":              safeJS,
 	"safeJSStr":           safeJSStr,
 	"safeSrcset":          safeSrcset,
+	"formatDate":          formatDate,
 	"formatTimeToHour":    formatTimeToHour,
 	"formatTimeToDay":     formatTimeToDay,
 	"formatTimeToRelDay":  formatTimeToRelDay,
@@ -137,6 +138,10 @@ func reverse(l any) (any, error) {
 
 func parseTime(s string) (time.Time, error) {
 	return time.Parse(time.RFC3339, s)
+}
+
+func formatDate(t time.Time) string {
+	return t.Format("2006-01-02")
 }
 
 func formatTimeToHour(t time.Time) string {

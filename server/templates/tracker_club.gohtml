@@ -1,12 +1,25 @@
 {{ template "head" addStr "Tracker - " .ClubName }}
 <div class="container">
-    <h1>
-        <img src="{{ .ClubAvatarURL }}">
-        {{ .ClubName }}
-    </h1>
+    <div class="container-header">
+        <a href="/tracker" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>
+            <img src="{{ .ClubAvatarURL }}">
+            {{ .ClubName }}
+        </h1>
+    </div>
+
+    <div class="section buttons">
+        <a href="/tracker/club/{{ .ClubID }}/stats" class="button">Statistics</a>
+        <a href="/tracker/club/{{ .ClubID }}/raffle" class="button">Raffle</a>
+        <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
+    </div>
 
     <div class="section">
-        <h2>Events ({{ len .Events }})</h2>
+        <div class="section-header">
+            <h2>Events ({{ len .Events }})</h2>
+        </div>
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">

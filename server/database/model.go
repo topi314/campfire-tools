@@ -23,6 +23,13 @@ type Event struct {
 	RawJSON json.RawMessage `db:"raw_json"`
 }
 
+type EventNumbers struct {
+	CampfireLiveEventID   string `db:"campfire_live_event_id"`
+	CampfireLiveEventName string `db:"campfire_live_event_name"`
+	CheckIns              int    `db:"check_ins"`
+	Accepted              int    `db:"accepted"`
+}
+
 type TopEvent struct {
 	Event
 	Accepted int `db:"accepted"`

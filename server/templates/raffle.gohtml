@@ -1,6 +1,12 @@
 {{ template "head" "Campfire Raffle" }}
 <div class="container">
-    <h1>Raffle</h1>
+    <div class="container-header">
+        <a href="/" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>Raffle</h1>
+    </div>
+
     <form action="/raffle" method="POST">
         <label class="form-control" for="events">
             Event Links

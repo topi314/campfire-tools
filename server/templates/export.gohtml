@@ -1,6 +1,12 @@
 {{ template "head" "Campfire Check-in Export" }}
 <div class="container">
-    <h1>Check-in Export</h1>
+    <div class="container-header">
+        <a href="/" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>Check-in Export</h1>
+    </div>
+
     <form action="/export" method="POST" id="export-form">
         <label class="form-control" for="urls">
             Event Links

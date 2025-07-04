@@ -1,22 +1,46 @@
 {{ template "head" addStr "Tracker - " .ClubName " - Statistics" }}
 <div class="container">
-    <h1>
-        <img src="{{ .ClubAvatarURL }}">
-        {{ .ClubName }} - Statistics
-    </h1>
+    <div class="container-header">
+        <a href="/tracker/club/{{ .ClubID }}" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>
+            <img src="{{ .ClubAvatarURL }}">
+            {{ .ClubName }} Statistics
+        </h1>
+    </div>
 
     <div class="section">
         <form id="filterForm" method="GET" action="/tracker/club/{{ .ClubID }}/stats">
             <div class="inline-form-control">
-            <label class="inline-form-control" for="startDate">
-                Start
-                <input type="date" id="startDate" name="startDate">
-            </label>
-            <label class="inline-form-control" for="endDate">
-                End
-                <input type="date" id="endDate" name="endDate">
-            </label>
-            <button type="submit" class="btn btn-primary">Filter</button>
+                <div class="stacked-form-control">
+                    <label class="inline-form-control" for="from">
+                        From
+                        <input type="date" id="from" name="from" {{ if not .From.IsZero }}value="{{ formatDate .From }}"{{ end }} max="{{ formatDate now }}">
+                    </label>
+                    <label class="inline-form-control" for="to">
+                        To
+                        <input type="date" id="to" name="to" {{ if not .To.IsZero }}value="{{ formatDate .To }}"{{ end }} max="{{ formatDate now }}">
+                    </label>
+                </div>
+                <label for="date-preset">
+                    <select id="date-preset" onchange="updateDate(this)">
+                        <option value="">Select a quarter</option>
+                        <option value="q2-2025">Q2 2025</option>
+                        <option value="q1-2025">Q1 2025</option>
+                        <option value="q4-2024">Q4 2024</option>
+                        <option value="q3-2024">Q3 2024</option>
+                        <option value="q2-2024">Q2 2024</option>
+                        <option value="q1-2024">Q1 2024</option>
+                    </select>
+                </label>
+
+                <input type="hidden" name="members" value="{{ .TopMembers.Count }}">
+                <input type="hidden" name="events" value="{{ .TopEvents.Count }}">
+                <input id="field-members-closed" type="hidden" name="members-closed" value="{{ if .TopMembers.Open }}false{{ else }}true{{ end }}">
+                <input id="field-events-closed" type="hidden" name="events-closed" value="{{ if .TopEvents.Open }}false{{ else }}true{{ end }}">
+                <input id="field-event-categories-closed" type="hidden" name="event-categories-closed" value="{{ if .EventCategories.Open }}false{{ else }}true{{ end }}">
+                <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </form>
     </div>
@@ -24,11 +48,8 @@
     <div class="section">
         <div class="section-header">
             <h2>Top Members</h2>
-            <div class="inline-form-control">
-                <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
-            </div>
         </div>
-        <details ontoggle="toggleParam(this, 'members-closed')" {{ if .TopMembersOpen }}open{{ end }}>
+        <details ontoggle="toggleParam(this, 'members-closed')" {{ if .TopMembers.Open }}open{{ end }}>
             <summary>
                 View Top Members based on check-ins
             </summary>
@@ -36,7 +57,7 @@
                 <label for="top-members">
                     <select id="top-members" onchange="updateParam(this, 'members');">
                         {{ range $count := .TopCounts }}
-                            <option value="{{ $count }}" {{ if eq $count $.TopMembersCount }}selected{{ end }}>
+                            <option value="{{ $count }}" {{ if eq $count $.TopMembers.Count }}selected{{ end }}>
                                 {{ $count }}
                             </option>
                         {{ end }}
@@ -48,7 +69,7 @@
                 <span>Position</span>
                 <span>Member</span>
                 <span>Check-Ins</span>
-                {{ range $index, $member := .TopMembers }}
+                {{ range $index, $member := .TopMembers.Members }}
                     <span>{{ add $index 1 }}</span>
                     <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
                     <span>{{ $member.CheckIns }}</span>
@@ -62,12 +83,9 @@
     <div class="section">
         <div class="section-header">
             <h2>Top Events</h2>
-            <div class="inline-form-control">
-                <a href="/tracker/club/{{ .ClubID }}/events/export" class="button">Export</a>
-            </div>
         </div>
 
-        <details ontoggle="toggleParam(this, 'events-closed')" {{ if .TopEventsOpen }}open{{ end }}>
+        <details ontoggle="toggleParam(this, 'events-closed')" {{ if .TopEvents.Open }}open{{ end }}>
             <summary>
                 View top events based on RSVP and check-ins.
             </summary>
@@ -76,7 +94,7 @@
                 <label for="top-events">
                     <select id="top-events" onchange="updateParam(this, 'events');">
                         {{ range $count := .TopCounts }}
-                            <option value="{{ $count }}" {{ if eq $count $.TopEventsCount }}selected{{ end }}>
+                            <option value="{{ $count }}" {{ if eq $count $.TopEvents.Count }}selected{{ end }}>
                                 {{ $count }}
                             </option>
                         {{ end }}
@@ -89,11 +107,42 @@
                 <span>Event</span>
                 <span>Accepted</span>
                 <span>Check-Ins</span>
-                {{ range $index, $event := .TopEvents }}
+                {{ range $index, $event := .TopEvents.Events }}
                     <span>{{ add $index 1 }}</span>
                     <a href="{{ $event.URL }}">{{ $event.Name }}</a>
                     <span>{{ $event.Accepted }}</span>
                     <span>{{ $event.CheckIns }}</span>
+                {{ else }}
+                    <span>No events found.</span>
+                {{ end }}
+                {{ if gt .TopEvents.TotalAccepted 0 }}
+                    <span></span>
+                    <span></span>
+                    <span>{{ .TopEvents.TotalAccepted }}</span>
+                    <span>{{ .TopEvents.TotalCheckIns }}</span>
+                {{ end }}
+            </div>
+        </details>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Event Categories</h2>
+        </div>
+
+        <details ontoggle="toggleParam(this, 'event-categories-closed')" {{ if .EventCategories.Open }}open{{ end }}>
+            <summary>
+                View event categories with their accepted and check-in counts.
+            </summary>
+
+            <div class="event-categories">
+                <span>Category</span>
+                <span>Accepted</span>
+                <span>Check-Ins</span>
+                {{ range $category := .EventCategories.Categories }}
+                    <span>{{ $category.Name }}</span>
+                    <span>{{ $category.Accepted }}</span>
+                    <span>{{ $category.CheckIns }}</span>
                 {{ else }}
                     <span>No events found.</span>
                 {{ end }}
@@ -115,7 +164,68 @@
         } else {
             url.searchParams.set(name, 'true');
         }
+
+        const field = document.getElementById('field-' + name);
+        if (field) {
+            field.value = element.open ? 'false' : 'true';
+        }
+
         window.history.replaceState({}, '', url.toString());
+    }
+
+    const fromDate = document.getElementById('from');
+    const toDate = document.getElementById('to');
+
+    fromDate.addEventListener('change', () => {
+        if (toDate.value && fromDate.value > toDate.value) {
+            toDate.value = fromDate.value; // Adjust "to" date if it's earlier than "from" date
+        }
+        toDate.min = fromDate.value; // Set the minimum value for "to" date
+    });
+
+    toDate.addEventListener('change', () => {
+        if (fromDate.value && toDate.value < fromDate.value) {
+            fromDate.value = toDate.value; // Adjust "from" date if it's later than "to" date
+        }
+        fromDate.max = toDate.value; // Set the maximum value for "from" date
+    });
+
+    function updateDate(select) {
+        let from;
+        let to;
+
+        switch (select.value) {
+            case 'q2-2025':
+                from = "2025-04-01";
+                to = "2025-06-30";
+                break;
+            case 'q1-2025':
+                from = "2025-01-01";
+                to = "2025-03-31";
+                break;
+            case 'q4-2024':
+                from = "2024-10-01";
+                to = "2024-12-31";
+                break;
+            case 'q3-2024':
+                from = "2024-07-01";
+                to = "2024-09-30";
+                break;
+            case 'q2-2024':
+                from = "2024-04-01";
+                to = "2024-06-30";
+                break;
+            case 'q1-2024':
+                from = "2024-01-01";
+                to = "2024-03-31";
+                break;
+            default:
+                from = "";
+                to = "";
+        }
+
+        document.getElementById('from').value = from;
+        document.getElementById('to').value = to;
     }
 </script>
 {{ template "footer" }}

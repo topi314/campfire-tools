@@ -1,8 +1,17 @@
 {{ template "head" "Campfire Event Tracker" }}
 <div class="container">
-    <h1>Event Tracker</h1>
+    <div class="container-header">
+        <a href="/" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>Tracker</h1>
+    </div>
+
     <div class="section">
-        <h2>Add Events</h2>
+        <div class="section-header">
+            <h2>Add Events</h2>
+        </div>
+
         <form action="/tracker" method="POST">
             <label class="form-control" for="urls">
                 Event Links
