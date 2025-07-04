@@ -26,6 +26,7 @@
                 <label for="date-preset">
                     <select id="date-preset" onchange="updateDate(this)">
                         <option value="">Select a quarter</option>
+                        <option value="q3-2025">Q3 2025</option>
                         <option value="q2-2025">Q2 2025</option>
                         <option value="q1-2025">Q1 2025</option>
                         <option value="q4-2024">Q4 2024</option>
@@ -195,6 +196,10 @@
         let to;
 
         switch (select.value) {
+            case 'q3-2025':
+                from = "2025-07-01";
+                to = "2025-09-30";
+                break;
             case 'q2-2025':
                 from = "2025-04-01";
                 to = "2025-06-30";
