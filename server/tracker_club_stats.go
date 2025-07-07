@@ -16,9 +16,7 @@ import (
 )
 
 type TrackerClubStatsVars struct {
-	ClubName      string
-	ClubAvatarURL string
-	ClubID        string
+	Club
 
 	From time.Time
 	To   time.Time
@@ -28,50 +26,6 @@ type TrackerClubStatsVars struct {
 	TopMembers      TopMembers
 	TopEvents       TopEvents
 	EventCategories EventCategories
-}
-
-type TopMembers struct {
-	Count   int
-	Open    bool
-	Members []TopMember
-}
-
-type TopEvents struct {
-	Count         int
-	Open          bool
-	Events        []TopEvent
-	TotalCheckIns int
-	TotalAccepted int
-}
-
-type EventCategories struct {
-	Open       bool
-	Categories []EventCategory
-}
-
-type EventCategory struct {
-	Name     string
-	CheckIns int
-	Accepted int
-}
-
-type Member struct {
-	ID          string
-	Username    string
-	DisplayName string
-	AvatarURL   string
-	URL         string
-}
-
-type TopMember struct {
-	Member
-	CheckIns int
-}
-
-type TopEvent struct {
-	Event
-	Accepted int
-	CheckIns int
 }
 
 func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +107,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topMembers, err := s.db.GetTopClubMembers(ctx, clubID, from, to, membersCount)
+	topMembers, err := s.db.GetTopMembersByClub(ctx, clubID, from, to, membersCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -172,7 +126,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	totalCheckIns, totalAccepted, err := s.db.GetGlubTotalCheckInsAccepted(ctx, clubID, from, to)
+	totalCheckIns, totalAccepted, err := s.db.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -197,7 +151,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	events, err := s.db.GetGlubCheckInsAccepted(ctx, clubID, from, to)
+	events, err := s.db.GetEventCheckInAccepted(ctx, clubID, from, to)
 	if err != nil {
 		http.Error(w, "Failed to fetch check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -229,9 +183,11 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
-		ClubName:      club.ClubName,
-		ClubAvatarURL: imageURL(club.ClubAvatarURL),
-		ClubID:        club.ClubID,
+		Club: Club{
+			ClubID:        club.ID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
 
 		From: from,
 		To:   to,

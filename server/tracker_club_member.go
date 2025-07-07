@@ -1,15 +1,15 @@
 package server
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 )
 
 type TrackerClubMemberVars struct {
-	ClubName       string
-	ClubAvatarURL  string
-	ClubID         string
+	Club
 	ID             string
 	Username       string
 	DisplayName    string
@@ -24,17 +24,22 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	clubID := r.PathValue("club_id")
 	memberID := r.PathValue("member_id")
 
-	member, err := s.db.GetClubMember(ctx, clubID, memberID)
+	club, err := s.db.GetClub(ctx, clubID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch club member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch club member: "+err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, sql.ErrNoRows) {
+			slog.ErrorContext(ctx, "Club not found", slog.String("club_id", clubID))
+			http.Error(w, "Club not found", http.StatusNotFound)
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to fetch club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	club, err := s.db.GetClub(ctx, clubID)
+	member, err := s.db.GetMember(ctx, memberID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch club", slog.String("club_id", clubID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to fetch club member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch club member: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -71,9 +76,11 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
-		ClubName:       club.ClubName,
-		ClubAvatarURL:  imageURL(club.ClubAvatarURL),
-		ClubID:         club.ClubID,
+		Club: Club{
+			ClubID:        club.ID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
 		ID:             member.ID,
 		Username:       member.Username,
 		DisplayName:    member.DisplayName,

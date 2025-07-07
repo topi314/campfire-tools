@@ -11,11 +11,9 @@ import (
 )
 
 type TrackerClubExportVars struct {
-	ClubName      string
-	ClubAvatarURL string
-	ClubID        string
-	Events        []Event
-	Error         string
+	Club
+	Events []Event
+	Error  string
 }
 
 func (s *Server) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +50,13 @@ func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request,
 	}
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
-		ClubName:      club.ClubName,
-		ClubAvatarURL: imageURL(club.ClubAvatarURL),
-		ClubID:        club.ClubID,
-		Events:        trackerEvents,
-		Error:         errorMessage,
+		Club: Club{
+			ClubID:        club.ID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
+		Events: trackerEvents,
+		Error:  errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club export template", slog.Any("err", err))
 	}
@@ -109,7 +109,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		members, err := s.db.GetCheckedInMembersByEvent(ctx, eventID)
+		members, err := s.db.GetEventMembers(ctx, eventID)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
 			continue
@@ -141,11 +141,11 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 				}
 
 				records = append(records, []string{
-					member.ID,
-					member.DisplayName,
-					member.Status,
-					member.EventID,
-					member.EventName,
+					member.Member.ID,
+					member.Member.Username,
+					member.EventRSVP.Status,
+					member.Event.ID,
+					member.Event.Name,
 				})
 			}
 		}
@@ -161,9 +161,9 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 				}
 
 				records = append(records, []string{
-					member.ID,
-					member.DisplayName,
-					member.Status,
+					member.Member.ID,
+					member.Member.Username,
+					member.EventRSVP.Status,
 				})
 			}
 			allRecords = append(allRecords, records)

@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/tsync"
 	"github.com/topi314/campfire-tools/server/campfire"
-	"github.com/topi314/campfire-tools/server/database"
 )
 
 type TrackerVars struct {
@@ -43,10 +40,10 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 	trackerClubs := make([]TrackerClub, len(clubs))
 	for i, club := range clubs {
 		trackerClubs[i] = TrackerClub{
-			ID:        club.ClubID,
-			Name:      club.ClubName,
-			AvatarURL: imageURL(club.ClubAvatarURL),
-			URL:       fmt.Sprintf("/tracker/club/%s", club.ClubID),
+			ID:        club.ID,
+			Name:      club.Name,
+			AvatarURL: imageURL(club.AvatarURL),
+			URL:       fmt.Sprintf("/tracker/club/%s", club.ID),
 		}
 	}
 
@@ -111,50 +108,10 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
 			}
 
-			rawJSON, _ := json.Marshal(fullEvent)
-
-			if err = s.db.AddEvent(ctx, database.Event{
-				ID:                    fullEvent.Event.ID,
-				Name:                  fullEvent.Event.Name,
-				Details:               fullEvent.Event.Details,
-				CoverPhotoURL:         fullEvent.Event.CoverPhotoURL,
-				EventTime:             fullEvent.Event.EventTime,
-				EventEndTime:          fullEvent.Event.EventEndTime,
-				CampfireLiveEventID:   fullEvent.Event.CampfireLiveEventID,
-				CampfireLiveEventName: fullEvent.Event.CampfireLiveEvent.EventName,
-				ClubID:                fullEvent.Event.ClubID,
-				ClubName:              fullEvent.Event.Club.Name,
-				ClubAvatarURL:         fullEvent.Event.Club.AvatarURL,
-				RawJSON:               rawJSON,
-			}); err != nil {
-				if errors.Is(err, database.ErrDuplicate) {
-					return nil
-				}
-				return fmt.Errorf("failed to add event: %s", err.Error())
+			if err = s.processEvent(ctx, fullEvent); err != nil {
+				return fmt.Errorf("failed to process event %q: %w", event, err)
 			}
 
-			slog.InfoContext(ctx, "Event added", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID))
-
-			var members []database.Member
-			for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
-				member, _ := campfire.FindMember(rsvpStatus.UserID, *fullEvent)
-
-				members = append(members, database.Member{
-					ClubMember: database.ClubMember{
-						ID:          rsvpStatus.UserID,
-						Username:    member.Username,
-						DisplayName: member.DisplayName,
-						AvatarURL:   member.AvatarURL,
-					},
-					Status:  rsvpStatus.RSVPStatus,
-					EventID: fullEvent.Event.ID,
-				})
-			}
-			if err = s.db.AddMembers(ctx, members); err != nil {
-				return fmt.Errorf("failed to add members: %w", err)
-			}
-
-			slog.InfoContext(ctx, "Members added for event", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID), slog.Int("count", len(members)))
 			return nil
 		})
 	}

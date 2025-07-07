@@ -7,9 +7,7 @@ import (
 )
 
 type TrackerClubRaffleVars struct {
-	ClubName        string
-	ClubAvatarURL   string
-	ClubID          string
+	Club
 	Events          []Event
 	SelectedEventID string
 	Error           string
@@ -51,9 +49,11 @@ func (s *Server) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request,
 	}
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
-		ClubName:        club.ClubName,
-		ClubAvatarURL:   imageURL(club.ClubAvatarURL),
-		ClubID:          club.ClubID,
+		Club: Club{
+			ClubID:        club.ID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
 		Events:          trackerEvents,
 		SelectedEventID: eventID,
 		Error:           errorMessage,
