@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,6 +33,10 @@ func (s *Server) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(ctx, "Successfully retrieved all events", slog.Int("count", len(events)))
 	var failed int
 	for i, event := range events {
+		// Skip events that already have a valid json raw representation
+		if bytes.HasPrefix(event.RawJSON, []byte("{")) && bytes.HasSuffix(event.RawJSON, []byte("}")) {
+			continue
+		}
 		if err = s.refreshEvent(ctx, event); err != nil {
 			slog.ErrorContext(ctx, "Failed to refresh event", slog.String("event_id", event.ID), slog.Int("index", i+1), slog.Int("total", len(events)), slog.Any("err", err))
 			failed++
