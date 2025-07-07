@@ -61,6 +61,7 @@ func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID strin
 		FROM members u
 		JOIN event_rsvps er ON u.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'CHECKED_IN'
+		ORDER BY u.display_name, u.username, u.id
 	`
 
 	var members []Member
@@ -77,6 +78,7 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 		FROM members u
 		JOIN event_rsvps er ON u.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'ACCEPTED'
+		ORDER BY u.display_name, u.username, u.id
 	`
 
 	var members []Member
@@ -99,7 +101,7 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
 		GROUP BY u.id, u.username, u.display_name, u.avatar_url
-		ORDER BY check_ins DESC, accepted DESC
+		ORDER BY check_ins DESC, accepted DESC, u.display_name, u.username, u.id
 		LIMIT $4
 	`
 

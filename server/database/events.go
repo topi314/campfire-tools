@@ -89,8 +89,8 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         WHERE e.club_id = $1
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-        GROUP BY e.id
-        ORDER BY check_ins DESC, accepted DESC
+        GROUP BY e.id, e.event_time
+        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC
         LIMIT $4
 	`
 

@@ -9,6 +9,7 @@ func (d *Database) GetClubs(ctx context.Context) ([]Club, error) {
 	query := `
 		SELECT id, name, avatar_url, creator_id, created_by_community_ambassador
         FROM clubs
+		ORDER BY name
         `
 
 	var clubs []Club

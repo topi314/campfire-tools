@@ -63,18 +63,30 @@ func (s *Server) refreshEvent(ctx context.Context, oldEvent database.Event) erro
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	return s.processEvent(ctx, fullEvent)
+	return s.processEvent(ctx, *fullEvent)
 }
 
-func (s *Server) processEvent(ctx context.Context, fullEvent *campfire.FullEvent) error {
-	if err := s.db.InsertMembers(ctx, []database.Member{
+func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent) error {
+	members := []database.Member{
 		{
 			ID:          fullEvent.Event.Creator.ID,
 			Username:    fullEvent.Event.Creator.Username,
 			DisplayName: fullEvent.Event.Creator.DisplayName,
 			AvatarURL:   fullEvent.Event.Creator.AvatarURL,
 		},
-	}); err != nil {
+	}
+	if !slices.ContainsFunc(members, func(item database.Member) bool {
+		return item.ID == fullEvent.Event.Club.Creator.ID
+	}) {
+		members = append(members, database.Member{
+			ID:          fullEvent.Event.Club.Creator.ID,
+			Username:    "",
+			DisplayName: "",
+			AvatarURL:   "",
+		})
+	}
+
+	if err := s.db.InsertMembers(ctx, members); err != nil {
 		return fmt.Errorf("failed to insert creator member: %w", err)
 	}
 
@@ -115,9 +127,9 @@ func (s *Server) processEvent(ctx context.Context, fullEvent *campfire.FullEvent
 
 	slog.InfoContext(ctx, "Event added", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID))
 
-	var members []database.Member
+	var eventMembers []database.Member
 	for _, member := range fullEvent.Event.Members.Edges {
-		members = append(members, database.Member{
+		eventMembers = append(eventMembers, database.Member{
 			ID:          member.Node.ID,
 			Username:    member.Node.Username,
 			DisplayName: member.Node.DisplayName,
@@ -126,10 +138,10 @@ func (s *Server) processEvent(ctx context.Context, fullEvent *campfire.FullEvent
 	}
 	var rsvps []database.EventRSVP
 	for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
-		if i := slices.IndexFunc(members, func(member database.Member) bool {
+		if i := slices.IndexFunc(eventMembers, func(member database.Member) bool {
 			return member.ID == rsvpStatus.UserID
 		}); i == -1 {
-			members = append(members, database.Member{
+			eventMembers = append(eventMembers, database.Member{
 				ID:          rsvpStatus.UserID,
 				Username:    "",
 				DisplayName: "",
@@ -143,7 +155,7 @@ func (s *Server) processEvent(ctx context.Context, fullEvent *campfire.FullEvent
 		})
 	}
 
-	if err := s.db.InsertMembers(ctx, members); err != nil {
+	if err := s.db.InsertMembers(ctx, eventMembers); err != nil {
 		return fmt.Errorf("failed to add members: %w", err)
 	}
 

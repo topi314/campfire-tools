@@ -108,7 +108,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
 			}
 
-			if err = s.processEvent(ctx, fullEvent); err != nil {
+			if err = s.processEvent(ctx, *fullEvent); err != nil {
 				return fmt.Errorf("failed to process event %q: %w", event, err)
 			}
 
