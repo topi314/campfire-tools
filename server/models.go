@@ -34,6 +34,7 @@ type EventCategories struct {
 
 type EventCategory struct {
 	Name     string
+	Events   int
 	CheckIns int
 	Accepted int
 }
@@ -48,6 +49,7 @@ type Member struct {
 
 type TopMember struct {
 	Member
+	Accepted int
 	CheckIns int
 }
 

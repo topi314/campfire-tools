@@ -78,15 +78,17 @@ func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	return events, nil
 }
 
-func (d *Database) GetTopClubEvents(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopEvent, error) {
+func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopEvent, error) {
 	query := `
         SELECT
             e.*, 
-            COUNT(er.member_id) FILTER (WHERE er.status = 'ACCEPTED') AS accepted,
+            COUNT(er.member_id) FILTER (WHERE er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN') AS accepted,
             COUNT(er.member_id) FILTER (WHERE er.status = 'CHECKED_IN') AS check_ins
         FROM events e
         LEFT JOIN event_rsvps er ON e.id = er.event_id
-        WHERE e.club_id = $1 AND e.event_time BETWEEN $2 AND $3
+        WHERE e.club_id = $1
+        AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
+		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
         GROUP BY e.id
         ORDER BY check_ins DESC, accepted DESC
         LIMIT $4

@@ -122,17 +122,12 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   imageURL(member.AvatarURL),
 				URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
 			},
+			Accepted: member.Accepted,
 			CheckIns: member.CheckIns,
 		}
 	}
 
-	totalCheckIns, totalAccepted, err := s.db.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
-	if err != nil {
-		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	topEvents, err := s.db.GetTopClubEvents(ctx, clubID, from, to, eventsCount)
+	topEvents, err := s.db.GetTopEventsByClub(ctx, clubID, from, to, eventsCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -151,9 +146,15 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	events, err := s.db.GetEventCheckInAccepted(ctx, clubID, from, to)
+	totalAccepted, totalCheckIns, err := s.db.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
 	if err != nil {
-		http.Error(w, "Failed to fetch check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	events, err := s.db.GetEventCheckInAcceptedCounts(ctx, clubID, from, to)
+	if err != nil {
+		http.Error(w, "Failed to fetch event check-in and accepted counts: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	eventCategories := make(map[string]EventCategory)
@@ -164,11 +165,13 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			eventCategory = EventCategory{
 				Name:     category,
+				Events:   0,
 				CheckIns: 0,
 				Accepted: 0,
 			}
 		}
 
+		eventCategory.Events++
 		eventCategory.CheckIns += event.CheckIns
 		eventCategory.Accepted += event.Accepted
 		eventCategories[category] = eventCategory

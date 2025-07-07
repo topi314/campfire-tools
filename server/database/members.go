@@ -90,7 +90,7 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopMember, error) {
 	query := `
 		SELECT u.id, u.username, u.display_name, u.avatar_url,
-			COUNT(CASE WHEN er.status = 'ACCEPTED' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.status = 'ACCEPTED' or er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
 			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
 		JOIN events e ON er.event_id = e.id
@@ -113,8 +113,9 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 
 func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID string, from time.Time, to time.Time) (int, int, error) {
 	query := `
-		SELECT COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins,
-			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted
+		SELECT
+			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
 		JOIN events e ON er.event_id = e.id
 		WHERE e.club_id = $1
@@ -122,29 +123,30 @@ func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID stri
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
 	`
 
-	var checkIns, accepted int
-	if err := d.db.QueryRowContext(ctx, query, clubID, from, to).Scan(&checkIns, &accepted); err != nil {
+	var accepted, checkIns int
+	if err := d.db.QueryRowContext(ctx, query, clubID, from, to).Scan(&accepted, &checkIns); err != nil {
 		return 0, 0, fmt.Errorf("failed to get total check-ins and accepted members: %w", err)
 	}
 
-	return checkIns, accepted, nil
+	return accepted, checkIns, nil
 }
 
-func (d *Database) GetEventCheckInAccepted(ctx context.Context, eventID string, from time.Time, to time.Time) ([]EventNumbers, error) {
+func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID string, from time.Time, to time.Time) ([]EventNumbers, error) {
 	query := `
 		SELECT e.campfire_live_event_id, e.campfire_live_event_name,
-			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins,
-			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted
+            COUNT(e.id) AS events,
+			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM events e
 		JOIN event_rsvps er ON e.id = er.event_id
-		WHERE e.id = $1
+		WHERE e.club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		GROUP BY e.campfire_live_event_id, e.campfire_live_event_name
+		GROUP BY e.id
 	`
 
 	var numbers []EventNumbers
-	if err := d.db.SelectContext(ctx, &numbers, query, eventID, from, to); err != nil {
+	if err := d.db.SelectContext(ctx, &numbers, query, clubID, from, to); err != nil {
 		return nil, fmt.Errorf("failed to get event check-ins and accepted members: %w", err)
 	}
 

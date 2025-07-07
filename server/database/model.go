@@ -70,6 +70,7 @@ type EventMember struct {
 type EventNumbers struct {
 	CampfireLiveEventID   string `db:"campfire_live_event_id"`
 	CampfireLiveEventName string `db:"campfire_live_event_name"`
+	Events                int    `db:"events"`
 	CheckIns              int    `db:"check_ins"`
 	Accepted              int    `db:"accepted"`
 }
