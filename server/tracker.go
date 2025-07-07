@@ -111,7 +111,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
 			}
 
-			rawJSON, _ := json.Marshal(event)
+			rawJSON, _ := json.Marshal(fullEvent)
 
 			if err = s.db.AddEvent(ctx, database.Event{
 				ID:                    fullEvent.Event.ID,
