@@ -61,8 +61,14 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*Event, error)
 }
 
 func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error) {
+	query := `
+		SELECT * FROM events
+		WHERE club_id = $1
+		ORDER BY event_time DESC, name DESC
+	`
+
 	var events []Event
-	if err := d.db.SelectContext(ctx, &events, "SELECT * FROM events WHERE club_id = $1 ORDER BY event_time DESC", clubID); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query, clubID); err != nil {
 		return nil, fmt.Errorf("failed to get events: %w", err)
 	}
 
@@ -70,8 +76,13 @@ func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error
 }
 
 func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
+	query := `
+		SELECT * FROM events
+		ORDER BY event_time DESC, name DESC
+	`
+
 	var events []Event
-	if err := d.db.SelectContext(ctx, &events, "SELECT * FROM events ORDER BY event_time DESC"); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query); err != nil {
 		return nil, fmt.Errorf("failed to get all events: %w", err)
 	}
 
@@ -89,8 +100,8 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         WHERE e.club_id = $1
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-        GROUP BY e.id, e.event_time
-        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC
+        GROUP BY e.id, e.event_time, e.name
+        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.name DESC 
         LIMIT $4
 	`
 
@@ -109,6 +120,7 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 		FROM events e
 		JOIN event_rsvps re ON e.id = re.event_id
 		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'CHECKED_IN'
+		ORDER BY e.event_time DESC, e.name
     `
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
@@ -125,6 +137,7 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 		FROM events e
 		JOIN event_rsvps re ON e.id = re.event_id
 		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'ACCEPTED'
+		ORDER BY e.event_time DESC, e.name
 	`
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {

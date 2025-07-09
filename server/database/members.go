@@ -41,10 +41,12 @@ func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 
 func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]EventMember, error) {
 	query := `
-		SELECT e.id, e.campfire_live_event_id, e.campfire_live_event_name, er.status
+		SELECT e.*, er.*, m.*
 		FROM events e
 		JOIN event_rsvps er ON e.id = er.event_id
+		JOIN members m ON er.member_id = m.id
 		WHERE e.id = $1
+		ORDER BY m.display_name, m.username, m.id
 	`
 
 	var members []EventMember
@@ -57,11 +59,11 @@ func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]Event
 
 func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
 	query := `
-		SELECT u.id, u.username, u.display_name, u.avatar_url
-		FROM members u
-		JOIN event_rsvps er ON u.id = er.member_id
+		SELECT m.id, m.username, m.display_name, m.avatar_url
+		FROM members m
+		JOIN event_rsvps er ON m.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'CHECKED_IN'
-		ORDER BY u.display_name, u.username, u.id
+		ORDER BY m.display_name, m.username, m.id
 	`
 
 	var members []Member
@@ -74,11 +76,11 @@ func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID strin
 
 func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
 	query := `
-		SELECT u.id, u.username, u.display_name, u.avatar_url
-		FROM members u
-		JOIN event_rsvps er ON u.id = er.member_id
+		SELECT m.id, m.username, m.display_name, m.avatar_url
+		FROM members m
+		JOIN event_rsvps er ON m.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'ACCEPTED'
-		ORDER BY u.display_name, u.username, u.id
+		ORDER BY m.display_name, m.username, m.id
 	`
 
 	var members []Member
@@ -91,17 +93,17 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 
 func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopMember, error) {
 	query := `
-		SELECT u.id, u.username, u.display_name, u.avatar_url,
+		SELECT m.id, m.username, m.display_name, m.avatar_url,
 			COUNT(CASE WHEN er.status = 'ACCEPTED' or er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
 			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
 		JOIN events e ON er.event_id = e.id
-		JOIN members u ON er.member_id = u.id
+		JOIN members m ON er.member_id = m.id
 		WHERE e.club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		GROUP BY u.id, u.username, u.display_name, u.avatar_url
-		ORDER BY check_ins DESC, accepted DESC, u.display_name, u.username, u.id
+		GROUP BY m.id, m.username, m.display_name, m.avatar_url
+		ORDER BY check_ins DESC, accepted DESC, m.display_name, m.username, m.id
 		LIMIT $4
 	`
 
