@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"database/sql"
@@ -18,13 +18,13 @@ type TrackerClubMemberVars struct {
 	AcceptedEvents []Event
 }
 
-func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	clubID := r.PathValue("club_id")
 	memberID := r.PathValue("member_id")
 
-	club, err := s.db.GetClub(ctx, clubID)
+	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			slog.ErrorContext(ctx, "Club not found", slog.String("club_id", clubID))
@@ -36,14 +36,14 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	member, err := s.db.GetMember(ctx, memberID)
+	member, err := h.DB.GetMember(ctx, memberID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch club member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club member: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.db.GetCheckedInClubEventsByMember(ctx, clubID, memberID)
+	events, err := h.DB.GetCheckedInClubEventsByMember(ctx, clubID, memberID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club events by member: "+err.Error(), http.StatusInternalServerError)
@@ -59,7 +59,7 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	acceptedEvents, err := s.db.GetAcceptedClubEventsByMember(ctx, clubID, memberID)
+	acceptedEvents, err := h.DB.GetAcceptedClubEventsByMember(ctx, clubID, memberID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch RSVP club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch RSVP club events by member: "+err.Error(), http.StatusInternalServerError)
@@ -75,7 +75,7 @@ func (s *Server) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = s.templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,

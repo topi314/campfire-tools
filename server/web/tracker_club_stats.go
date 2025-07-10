@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"database/sql"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"math"
 	"net/http"
 	"slices"
 	"strconv"
@@ -28,7 +29,7 @@ type TrackerClubStatsVars struct {
 	EventCategories EventCategories
 }
 
-func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	clubID := r.PathValue("club_id")
@@ -97,17 +98,17 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	club, err := s.db.GetClub(ctx, clubID)
+	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.NotFound(w, r)
+			h.NotFound(w, r)
 			return
 		}
 		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	topMembers, err := s.db.GetTopMembersByClub(ctx, clubID, from, to, membersCount)
+	topMembers, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, membersCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -122,12 +123,13 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   imageURL(member.AvatarURL),
 				URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
 			},
-			Accepted: member.Accepted,
-			CheckIns: member.CheckIns,
+			Accepted:    member.Accepted,
+			CheckIns:    member.CheckIns,
+			CheckInRate: calcCheckInRate(member.Accepted, member.CheckIns),
 		}
 	}
 
-	topEvents, err := s.db.GetTopEventsByClub(ctx, clubID, from, to, eventsCount)
+	topEvents, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, eventsCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -141,25 +143,28 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 				URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
 				CoverPhotoURL: imageURL(event.CoverPhotoURL),
 			},
-			Accepted: event.Accepted,
-			CheckIns: event.CheckIns,
+			Accepted:    event.Accepted,
+			CheckIns:    event.CheckIns,
+			CheckInRate: calcCheckInRate(event.Accepted, event.CheckIns),
 		}
 	}
 
-	totalAccepted, totalCheckIns, err := s.db.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.db.GetEventCheckInAcceptedCounts(ctx, clubID, from, to)
+	totalCheckInRate := calcCheckInRate(totalAccepted, totalCheckIns)
+
+	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to)
 	if err != nil {
 		http.Error(w, "Failed to fetch event check-in and accepted counts: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	eventCategories := make(map[string]EventCategory)
 	for _, event := range events {
-		category := s.getEventCategories(event.CampfireLiveEventName)
+		category := h.getEventCategories(event.CampfireLiveEventName)
 
 		eventCategory, ok := eventCategories[category]
 		if !ok {
@@ -172,8 +177,10 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 
 		eventCategory.Events++
-		eventCategory.CheckIns += event.CheckIns
 		eventCategory.Accepted += event.Accepted
+		eventCategory.CheckIns += event.CheckIns
+		eventCategory.CheckInRate = calcCheckInRate(eventCategory.Accepted, eventCategory.CheckIns)
+		eventCategory.TotalCheckInRate = calcCheckInRate(totalCheckIns, eventCategory.CheckIns)
 		eventCategories[category] = eventCategory
 	}
 
@@ -185,7 +192,7 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return b.CheckIns - a.CheckIns
 	})
 
-	if err = s.templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
@@ -202,11 +209,12 @@ func (s *Server) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			Members: trackerTopMembers,
 		},
 		TopEvents: TopEvents{
-			Count:         eventsCount,
-			Open:          !topEventsClosed,
-			Events:        trackerTopEvents,
-			TotalCheckIns: totalCheckIns,
-			TotalAccepted: totalAccepted,
+			Count:            eventsCount,
+			Open:             !topEventsClosed,
+			Events:           trackerTopEvents,
+			TotalCheckIns:    totalCheckIns,
+			TotalAccepted:    totalAccepted,
+			TotalCheckInRate: totalCheckInRate,
 		},
 		EventCategories: EventCategories{
 			Open:       !categoriesClosed,
@@ -235,7 +243,7 @@ var AllEventCategories = map[string][]string{
 	"GO Fest":        {"GO Fest"},
 }
 
-func (s *Server) getEventCategories(eventName string) string {
+func (h *handler) getEventCategories(eventName string) string {
 	eventName = strings.ToLower(eventName)
 	if eventName == "" {
 		return EventCategoryNoEvent
@@ -247,8 +255,15 @@ func (s *Server) getEventCategories(eventName string) string {
 			}
 		}
 	}
-	if s.cfg.WarnUnknownEventCategories {
+	if h.Cfg.WarnUnknownEventCategories {
 		slog.Warn("Unknown event category", slog.String("event_name", eventName))
 	}
 	return EventCategoryOther
+}
+
+func calcCheckInRate(accepted int, checkIns int) float64 {
+	if checkIns == 0 {
+		return 0
+	}
+	return math.RoundToEven(float64(checkIns) / float64(accepted) * 100)
 }

@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
-func (s *Server) TrackerMigrate(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerMigrate(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithoutCancel(r.Context())
 
 	slog.InfoContext(ctx, "Received migrate request", slog.String("url", r.URL.String()))
 	query := r.URL.Query()
-	if query.Get("password") != s.cfg.Auth.RefreshPassword {
+	if query.Get("password") != h.Cfg.Auth.RefreshPassword {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	slog.InfoContext(ctx, "Starting migration process")
-	events, err := s.db.GetOldEvents(ctx)
+	events, err := h.DB.GetOldEvents(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get old events", slog.Any("err", err))
 		http.Error(w, "Failed to get old events", http.StatusInternalServerError)
@@ -36,7 +36,7 @@ func (s *Server) TrackerMigrate(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to unmarshal event", http.StatusInternalServerError)
 			return
 		}
-		if err = s.processEvent(ctx, fullEvent); err != nil {
+		if err = h.processEvent(ctx, fullEvent); err != nil {
 			slog.ErrorContext(ctx, "Failed to process event", slog.Any("err", err), slog.String("event_id", event.ID))
 			http.Error(w, "Failed to process event", http.StatusInternalServerError)
 			return

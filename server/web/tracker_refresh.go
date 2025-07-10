@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"bytes"
@@ -15,17 +15,17 @@ import (
 	"github.com/topi314/campfire-tools/server/database"
 )
 
-func (s *Server) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithoutCancel(r.Context())
 
 	slog.InfoContext(ctx, "Received refresh request", slog.String("url", r.URL.String()))
 	query := r.URL.Query()
-	if query.Get("password") != s.cfg.Auth.RefreshPassword {
+	if query.Get("password") != h.Cfg.Auth.RefreshPassword {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	events, err := s.db.GetAllEvents(ctx)
+	events, err := h.DB.GetAllEvents(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get all events", slog.Any("err", err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -39,7 +39,7 @@ func (s *Server) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 		if bytes.HasPrefix(event.RawJSON, []byte("{")) && bytes.HasSuffix(event.RawJSON, []byte("}")) {
 			continue
 		}
-		if err = s.refreshEvent(ctx, event); err != nil {
+		if err = h.refreshEvent(ctx, event); err != nil {
 			slog.ErrorContext(ctx, "Failed to refresh event", slog.String("event_id", event.ID), slog.Int("index", i+1), slog.Int("total", len(events)), slog.Any("err", err))
 			failed++
 			continue
@@ -57,16 +57,16 @@ func (s *Server) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) refreshEvent(ctx context.Context, oldEvent database.Event) error {
-	fullEvent, err := s.campfire.FetchFullEvent(ctx, oldEvent.ID)
+func (h *handler) refreshEvent(ctx context.Context, oldEvent database.Event) error {
+	fullEvent, err := h.Campfire.FetchFullEvent(ctx, oldEvent.ID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	return s.processEvent(ctx, *fullEvent)
+	return h.processEvent(ctx, *fullEvent)
 }
 
-func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent) error {
+func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent) error {
 	members := []database.Member{
 		{
 			ID:          fullEvent.Event.Creator.ID,
@@ -86,11 +86,11 @@ func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent)
 		})
 	}
 
-	if err := s.db.InsertMembers(ctx, members); err != nil {
+	if err := h.DB.InsertMembers(ctx, members); err != nil {
 		return fmt.Errorf("failed to insert creator member: %w", err)
 	}
 
-	if err := s.db.InsertClub(ctx, database.Club{
+	if err := h.DB.InsertClub(ctx, database.Club{
 		ID:                           fullEvent.Event.Club.ID,
 		Name:                         fullEvent.Event.Club.Name,
 		AvatarURL:                    fullEvent.Event.Club.AvatarURL,
@@ -102,7 +102,7 @@ func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent)
 
 	rawJSON, _ := json.Marshal(fullEvent)
 
-	if err := s.db.CreateEvent(ctx, database.Event{
+	if err := h.DB.CreateEvent(ctx, database.Event{
 		ID:                           fullEvent.Event.ID,
 		Name:                         fullEvent.Event.Name,
 		Details:                      fullEvent.Event.Details,
@@ -155,11 +155,11 @@ func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent)
 		})
 	}
 
-	if err := s.db.InsertMembers(ctx, eventMembers); err != nil {
+	if err := h.DB.InsertMembers(ctx, eventMembers); err != nil {
 		return fmt.Errorf("failed to add members: %w", err)
 	}
 
-	if err := s.db.InsertEventRSVPs(ctx, rsvps); err != nil {
+	if err := h.DB.InsertEventRSVPs(ctx, rsvps); err != nil {
 		return fmt.Errorf("failed to add event RSVPs: %w", err)
 	}
 

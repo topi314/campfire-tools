@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"path"
 )
 
-func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
+func (h *handler) Image(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	imageID := r.PathValue("image_id")
@@ -20,7 +20,7 @@ func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rs, err := s.httpClient.Do(rq)
+	rs, err := h.HttpClient.Do(rq)
 	if err != nil {
 		http.Error(w, "Failed to fetch image: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -34,10 +34,10 @@ func (s *Server) Image(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set the appropriate content type based on the file extension
-	h := w.Header()
-	h.Set("Content-Type", rs.Header.Get("Content-Type"))
-	h.Set("Content-Length", rs.Header.Get("Content-Length"))
-	h.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
+	header := w.Header()
+	header.Set("Content-Type", rs.Header.Get("Content-Type"))
+	header.Set("Content-Length", rs.Header.Get("Content-Length"))
+	header.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 
 	if _, err = io.Copy(w, rs.Body); err != nil {
 		slog.ErrorContext(ctx, "Failed to write image to response", slog.Any("err", err))

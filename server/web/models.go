@@ -1,4 +1,4 @@
-package server
+package web
 
 type Club struct {
 	ClubID        string
@@ -20,11 +20,12 @@ type TopMembers struct {
 }
 
 type TopEvents struct {
-	Count         int
-	Open          bool
-	Events        []TopEvent
-	TotalCheckIns int
-	TotalAccepted int
+	Count            int
+	Open             bool
+	Events           []TopEvent
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
 }
 
 type EventCategories struct {
@@ -33,10 +34,12 @@ type EventCategories struct {
 }
 
 type EventCategory struct {
-	Name     string
-	Events   int
-	CheckIns int
-	Accepted int
+	Name             string
+	Events           int
+	Accepted         int
+	CheckIns         int
+	CheckInRate      float64
+	TotalCheckInRate float64
 }
 
 type Member struct {
@@ -49,12 +52,14 @@ type Member struct {
 
 type TopMember struct {
 	Member
-	Accepted int
-	CheckIns int
+	Accepted    int
+	CheckIns    int
+	CheckInRate float64
 }
 
 type TopEvent struct {
 	Event
-	Accepted int
-	CheckIns int
+	Accepted    int
+	CheckIns    int
+	CheckInRate float64
 }

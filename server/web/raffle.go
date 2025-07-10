@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"context"
@@ -23,11 +23,11 @@ type DoRaffleVars struct {
 	Count   int
 }
 
-func (s *Server) Raffle(w http.ResponseWriter, r *http.Request) {
-	s.renderRaffle(w, r, "")
+func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
+	h.renderRaffle(w, r, "")
 }
 
-func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
+func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {
@@ -45,7 +45,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("count", stringCount))
 
 	if events == "" {
-		s.renderRaffle(w, r, "Missing 'events' parameter")
+		h.renderRaffle(w, r, "Missing 'events' parameter")
 		return
 	}
 
@@ -53,7 +53,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	if stringCount != "" {
 		parsed, err := strconv.Atoi(stringCount)
 		if err != nil || parsed <= 0 {
-			s.renderRaffle(w, r, "Invalid 'count' parameter. It must be a positive number.")
+			h.renderRaffle(w, r, "Invalid 'count' parameter. It must be a positive number.")
 			return
 		}
 		count = parsed
@@ -68,7 +68,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		allEvents = append(allEvents, event)
 	}
 	if len(allEvents) > 50 {
-		s.renderExport(w, r, fmt.Sprintf("please limit the number of events to 50, got %d.", len(allEvents)))
+		h.renderExport(w, r, fmt.Sprintf("please limit the number of events to 50, got %d.", len(allEvents)))
 		return
 	}
 
@@ -84,9 +84,9 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 			)
 
 			if strings.HasPrefix(event, "https://") {
-				fullEvent, err = s.campfire.FetchEvent(ctx, event)
+				fullEvent, err = h.Campfire.FetchEvent(ctx, event)
 			} else {
-				fullEvent, err = s.fetchFullEvent(ctx, event)
+				fullEvent, err = h.fetchFullEvent(ctx, event)
 			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", event, err)
@@ -131,7 +131,7 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := eg.Wait(); err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for raffle", slog.Any("err", err))
-		s.renderRaffle(w, r, "Failed to fetch events: "+err.Error())
+		h.renderRaffle(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
@@ -153,11 +153,11 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(winners) == 0 {
-		s.renderRaffle(w, r, "No winners found. Please check the event URL and ensure there are checked-in members.")
+		h.renderRaffle(w, r, "No winners found. Please check the event URL and ensure there are checked-in members.")
 		return
 	}
 
-	if err := s.templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
+	if err := h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
 		Winners: winners,
 		Events:  strings.Join(eventIDs, "\n"),
 		Count:   count,
@@ -166,8 +166,8 @@ func (s *Server) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) fetchFullEvent(ctx context.Context, event string) (*campfire.FullEvent, error) {
-	dbEvent, err := s.db.GetEvent(ctx, event)
+func (h *handler) fetchFullEvent(ctx context.Context, event string) (*campfire.FullEvent, error) {
+	dbEvent, err := h.DB.GetEvent(ctx, event)
 	if err == nil {
 		var fullEvent *campfire.FullEvent
 		if err = json.Unmarshal(dbEvent.RawJSON, &fullEvent); err == nil {
@@ -175,13 +175,13 @@ func (s *Server) fetchFullEvent(ctx context.Context, event string) (*campfire.Fu
 		}
 	}
 
-	return s.campfire.FetchFullEvent(ctx, event)
+	return h.Campfire.FetchFullEvent(ctx, event)
 }
 
-func (s *Server) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
 
-	if err := s.templates().ExecuteTemplate(w, "raffle.gohtml", map[string]any{
+	if err := h.Templates().ExecuteTemplate(w, "raffle.gohtml", map[string]any{
 		"Error": errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle template", slog.Any("err", err))

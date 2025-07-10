@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"database/sql"
@@ -7,15 +7,15 @@ import (
 	"net/http"
 )
 
-func (s *Server) TrackerClubEventExport(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerClubEventExport(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	eventID := r.PathValue("event_id")
 
-	event, err := s.db.GetEvent(ctx, eventID)
+	event, err := h.DB.GetEvent(ctx, eventID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.NotFound(w, r)
+			h.NotFound(w, r)
 			return
 		}
 		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event_id", eventID), slog.Any("err", err))

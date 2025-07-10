@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"fmt"
@@ -16,23 +16,23 @@ type TrackerClubExportVars struct {
 	Error  string
 }
 
-func (s *Server) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
-	s.renderTrackerClubExport(w, r, "")
+func (h *handler) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
+	h.renderTrackerClubExport(w, r, "")
 }
 
-func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
 
 	clubID := r.PathValue("club_id")
 
-	club, err := s.db.GetClub(ctx, clubID)
+	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to get club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.db.GetEvents(ctx, clubID)
+	events, err := h.DB.GetEvents(ctx, clubID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -49,7 +49,7 @@ func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	if err = s.templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
@@ -62,7 +62,7 @@ func (s *Server) renderTrackerClubExport(w http.ResponseWriter, r *http.Request,
 	}
 }
 
-func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
+func (h *handler) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {
@@ -78,7 +78,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Received Tracker Club export request", slog.String("url", r.URL.String()), slog.Any("event_ids", events), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
 
 	if len(events) == 0 {
-		s.renderTrackerClubExport(w, r, "Missing 'events' parameter")
+		h.renderTrackerClubExport(w, r, "Missing 'events' parameter")
 		return
 	}
 
@@ -86,7 +86,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	if includeMissingMembersStr != "" {
 		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
-			s.renderTrackerClubExport(w, r, "Invalid 'include_missing_members' parameter")
+			h.renderTrackerClubExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
 		}
 		includeMissingMembers = parsed
@@ -96,7 +96,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	if combineCSVsStr != "" {
 		parsed, err := xstrconv.ParseBool(combineCSVsStr)
 		if err != nil {
-			s.renderTrackerClubExport(w, r, "Invalid 'combine_csv' parameter")
+			h.renderTrackerClubExport(w, r, "Invalid 'combine_csv' parameter")
 			return
 		}
 		combineCSVs = parsed
@@ -109,7 +109,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		members, err := s.db.GetEventMembers(ctx, eventID)
+		members, err := h.DB.GetEventMembers(ctx, eventID)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
 			continue
@@ -123,7 +123,7 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(allMembers) == 0 {
-		s.renderTrackerClubExport(w, r, "No events found for the provided IDs")
+		h.renderTrackerClubExport(w, r, "No events found for the provided IDs")
 		return
 	}
 
@@ -170,5 +170,5 @@ func (s *Server) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.exportRecords(ctx, w, allRecords, true)
+	h.exportRecords(ctx, w, allRecords, true)
 }

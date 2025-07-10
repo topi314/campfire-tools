@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"archive/zip"
@@ -17,11 +17,11 @@ import (
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
-func (s *Server) Export(w http.ResponseWriter, r *http.Request) {
-	s.renderExport(w, r, "")
+func (h *handler) Export(w http.ResponseWriter, r *http.Request) {
+	h.renderExport(w, r, "")
 }
 
-func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
+func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	meetupURLs := r.FormValue("urls")
@@ -31,7 +31,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Received export request", slog.String("url", r.URL.String()), slog.String("meetup_urls", meetupURLs), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
 
 	if meetupURLs == "" {
-		s.renderExport(w, r, "Missing 'urls' parameter")
+		h.renderExport(w, r, "Missing 'urls' parameter")
 		return
 	}
 
@@ -39,7 +39,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	if includeMissingMembersStr != "" {
 		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
 		if err != nil {
-			s.renderExport(w, r, "Invalid 'include_missing_members' parameter")
+			h.renderExport(w, r, "Invalid 'include_missing_members' parameter")
 			return
 		}
 		includeMissingMembers = parsed
@@ -49,7 +49,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	if combineCSVsStr != "" {
 		parsed, err := xstrconv.ParseBool(combineCSVsStr)
 		if err != nil {
-			s.renderExport(w, r, "Invalid 'combine_csv' parameter")
+			h.renderExport(w, r, "Invalid 'combine_csv' parameter")
 			return
 		}
 		combineCSVs = parsed
@@ -57,7 +57,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 
 	urls := strings.Split(meetupURLs, "\n")
 	if len(urls) > 50 {
-		s.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
+		h.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(urls)))
 		return
 	}
 
@@ -71,7 +71,7 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		}
 
 		eg.Go(func() error {
-			event, err := s.campfire.FetchEvent(ctx, meetupURL)
+			event, err := h.Campfire.FetchEvent(ctx, meetupURL)
 			if err != nil {
 				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
 					return nil
@@ -94,13 +94,13 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := eg.Wait(); err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events", slog.Any("err", err))
-		s.renderExport(w, r, "Failed to fetch events: "+err.Error())
+		h.renderExport(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	if len(events) == 0 {
 		slog.ErrorContext(ctx, "No events found for the provided URLs")
-		s.renderExport(w, r, "No events found for the provided URLs")
+		h.renderExport(w, r, "No events found for the provided URLs")
 		return
 	}
 
@@ -151,20 +151,20 @@ func (s *Server) DoExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.exportRecords(ctx, w, allRecords, combineCSVs)
+	h.exportRecords(ctx, w, allRecords, combineCSVs)
 }
 
-func (s *Server) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (h *handler) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
 
-	if err := s.templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
+	if err := h.Templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
 		"Error": errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render export template", slog.Any("err", err))
 	}
 }
 
-func (s *Server) exportRecords(ctx context.Context, w http.ResponseWriter, allRecords [][][]string, combineCSVs bool) {
+func (h *handler) exportRecords(ctx context.Context, w http.ResponseWriter, allRecords [][][]string, combineCSVs bool) {
 	if combineCSVs {
 		records := allRecords[0]
 		slog.InfoContext(ctx, "Combined CSV records", slog.Int("records", len(records)))
