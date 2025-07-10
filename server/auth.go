@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,11 +40,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		cookie, err := r.Cookie("session")
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
-				u := url.URL{
-					Path:     "/login",
-					RawQuery: url.Values{"rd": {r.URL.Path}}.Encode(),
-				}
-				http.Redirect(w, r, u.String(), http.StatusFound)
+				s.forceLogin(w, r)
 				return
 			}
 			slog.Error("failed to get session cookie", "error", err)
@@ -54,6 +51,10 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		ctx := r.Context()
 		session, err := s.db.GetSession(ctx, cookie.Value)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				s.forceLogin(w, r)
+				return
+			}
 			slog.Error("failed to get session", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -62,6 +63,14 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		r = r.WithContext(auth.SetSession(ctx, *session))
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) forceLogin(w http.ResponseWriter, r *http.Request) {
+	u := url.URL{
+		Path:     "/login",
+		RawQuery: url.Values{"rd": {r.URL.Path}}.Encode(),
+	}
+	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {

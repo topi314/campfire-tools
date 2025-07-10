@@ -5,29 +5,30 @@ import (
 	"time"
 )
 
-type Event struct {
-	ID            string    `db:"id"`
-	Name          string    `db:"name"`
-	Details       string    `db:"details"`
-	CoverPhotoURL string    `db:"cover_photo_url"`
-	EventTime     time.Time `db:"event_time"`
-	EventEndTime  time.Time `db:"event_end_time"`
-
-	CampfireLiveEventID   string `db:"campfire_live_event_id"`
-	CampfireLiveEventName string `db:"campfire_live_event_name"`
-
-	ClubID        string `db:"club_id"`
-	ClubName      string `db:"club_name"`
-	ClubAvatarURL string `db:"club_avatar_url"`
-
-	RawJSON json.RawMessage `db:"raw_json"`
+type Club struct {
+	ID                           string `db:"id"`
+	Name                         string `db:"name"`
+	AvatarURL                    string `db:"avatar_url"`
+	CreatorID                    string `db:"creator_id"`
+	CreatedByCommunityAmbassador bool   `db:"created_by_community_ambassador"`
 }
 
-type EventNumbers struct {
-	CampfireLiveEventID   string `db:"campfire_live_event_id"`
-	CampfireLiveEventName string `db:"campfire_live_event_name"`
-	CheckIns              int    `db:"check_ins"`
-	Accepted              int    `db:"accepted"`
+type Event struct {
+	ID                           string          `db:"id"`
+	Name                         string          `db:"name"`
+	Details                      string          `db:"details"`
+	Address                      string          `db:"address"`
+	Location                     string          `db:"location"`
+	CreatorID                    string          `db:"creator_id"`
+	CoverPhotoURL                string          `db:"cover_photo_url"`
+	EventTime                    time.Time       `db:"event_time"`
+	EventEndTime                 time.Time       `db:"event_end_time"`
+	DiscordInterested            int             `db:"discord_interested"`
+	CreatedByCommunityAmbassador bool            `db:"created_by_community_ambassador"`
+	CampfireLiveEventID          string          `db:"campfire_live_event_id"`
+	CampfireLiveEventName        string          `db:"campfire_live_event_name"`
+	ClubID                       string          `db:"club_id"`
+	RawJSON                      json.RawMessage `db:"raw_json"`
 }
 
 type TopEvent struct {
@@ -36,25 +37,14 @@ type TopEvent struct {
 	CheckIns int `db:"check_ins"`
 }
 
-type MemberEvent struct {
-	Event
-	Status string `db:"status"`
-}
-
-type Club struct {
-	ClubID        string `db:"club_id"`
-	ClubName      string `db:"club_name"`
-	ClubAvatarURL string `db:"club_avatar_url"`
-}
-
-type ClubMember struct {
+type Member struct {
 	ID          string `db:"id"`
 	Username    string `db:"username"`
 	DisplayName string `db:"display_name"`
 	AvatarURL   string `db:"avatar_url"`
 }
 
-func (m ClubMember) GetDisplayName() string {
+func (m Member) GetDisplayName() string {
 	displayName := m.DisplayName
 	if displayName == "" {
 		displayName = m.Username
@@ -65,20 +55,30 @@ func (m ClubMember) GetDisplayName() string {
 	return displayName
 }
 
-type Member struct {
-	ClubMember
-	Status  string `db:"status"`
-	EventID string `db:"event_id"`
+type TopMember struct {
+	Member
+	Accepted int `db:"accepted"`
+	CheckIns int `db:"check_ins"`
 }
 
 type EventMember struct {
+	Event
 	Member
-	EventName string `db:"event_name"`
+	EventRSVP
 }
 
-type TopMember struct {
-	Member
-	CheckIns int `db:"check_ins"`
+type EventNumbers struct {
+	CampfireLiveEventID   string `db:"campfire_live_event_id"`
+	CampfireLiveEventName string `db:"campfire_live_event_name"`
+	Events                int    `db:"events"`
+	CheckIns              int    `db:"check_ins"`
+	Accepted              int    `db:"accepted"`
+}
+
+type EventRSVP struct {
+	EventID  string `db:"event_id"`
+	MemberID string `db:"member_id"`
+	Status   string `db:"status"`
 }
 
 type Session struct {

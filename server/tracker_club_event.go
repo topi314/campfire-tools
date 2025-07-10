@@ -10,9 +10,7 @@ import (
 )
 
 type TrackerClubEventVars struct {
-	ClubName              string
-	ClubAvatarURL         string
-	ClubID                string
+	Club
 	ID                    string
 	Name                  string
 	CoverPhotoURL         string
@@ -21,7 +19,7 @@ type TrackerClubEventVars struct {
 	EndTime               time.Time
 	CampfireLiveEventID   string
 	CampfireLiveEventName string
-	Members               []Member
+	CheckedInMembers      []Member
 	AcceptedMembers       []Member
 }
 
@@ -41,15 +39,26 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := s.db.GetCheckedInMembersByEvent(ctx, eventID)
+	club, err := s.db.GetClub(ctx, event.ClubID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.NotFound(w, r)
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to fetch club", slog.String("club_id", event.ClubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	checkedInMembers, err := s.db.GetCheckedInMembersByEvent(ctx, eventID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch checked-in members", slog.String("event_id", eventID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	trackerMembers := make([]Member, len(members))
-	for i, member := range members {
-		trackerMembers[i] = Member{
+	checkedInTrackerMembers := make([]Member, len(checkedInMembers))
+	for i, member := range checkedInMembers {
+		checkedInTrackerMembers[i] = Member{
 			ID:          member.ID,
 			Username:    member.Username,
 			DisplayName: member.GetDisplayName(),
@@ -60,8 +69,8 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 
 	acceptedMembers, err := s.db.GetAcceptedMembersByEvent(ctx, eventID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch RSVP members", slog.String("event_id", eventID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch RSVP members: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to fetch accepted members", slog.String("event_id", eventID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch accpeted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	acceptedTrackerMembers := make([]Member, len(acceptedMembers))
@@ -76,9 +85,11 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
-		ClubName:              event.ClubName,
-		ClubAvatarURL:         imageURL(event.ClubAvatarURL),
-		ClubID:                event.ClubID,
+		Club: Club{
+			ClubID:        event.ClubID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
 		ID:                    event.ID,
 		Name:                  event.Name,
 		CoverPhotoURL:         imageURL(event.CoverPhotoURL),
@@ -87,7 +98,7 @@ func (s *Server) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		EndTime:               event.EventEndTime,
 		CampfireLiveEventID:   event.CampfireLiveEventID,
 		CampfireLiveEventName: event.CampfireLiveEventName,
-		Members:               trackerMembers,
+		CheckedInMembers:      checkedInTrackerMembers,
 		AcceptedMembers:       acceptedTrackerMembers,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club event template", slog.String("event_id", eventID), slog.Any("err", err))

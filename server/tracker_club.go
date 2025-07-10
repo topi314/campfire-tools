@@ -10,17 +10,8 @@ import (
 )
 
 type TrackerClubVars struct {
-	ClubName      string
-	ClubAvatarURL string
-	ClubID        string
-	Events        []Event
-}
-
-type Event struct {
-	ID            string
-	Name          string
-	URL           string
-	CoverPhotoURL string
+	Club
+	Events []Event
 }
 
 func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
@@ -56,10 +47,12 @@ func (s *Server) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = s.templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
-		ClubName:      club.ClubName,
-		ClubAvatarURL: imageURL(club.ClubAvatarURL),
-		ClubID:        club.ClubID,
-		Events:        trackerEvents,
+		Club: Club{
+			ClubID:        club.ID,
+			ClubName:      club.Name,
+			ClubAvatarURL: imageURL(club.AvatarURL),
+		},
+		Events: trackerEvents,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

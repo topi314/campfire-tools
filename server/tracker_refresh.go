@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -56,47 +58,111 @@ func (s *Server) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) refreshEvent(ctx context.Context, oldEvent database.Event) error {
-	event, err := s.campfire.FetchFullEvent(ctx, oldEvent.ID)
+	fullEvent, err := s.campfire.FetchFullEvent(ctx, oldEvent.ID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	rawJson, _ := json.Marshal(event)
-	if err = s.db.UpdateEvent(ctx, database.Event{
-		ID:                    event.Event.ID,
-		Name:                  event.Event.Name,
-		Details:               event.Event.Details,
-		CoverPhotoURL:         event.Event.CoverPhotoURL,
-		EventTime:             event.Event.EventTime,
-		EventEndTime:          event.Event.EventEndTime,
-		CampfireLiveEventID:   event.Event.CampfireLiveEventID,
-		CampfireLiveEventName: event.Event.CampfireLiveEvent.EventName,
-		ClubID:                event.Event.ClubID,
-		ClubName:              event.Event.Club.Name,
-		ClubAvatarURL:         event.Event.Club.AvatarURL,
-		RawJSON:               rawJson,
-	}); err != nil {
-		return fmt.Errorf("failed to update event in database: %w", err)
+	return s.processEvent(ctx, *fullEvent)
+}
+
+func (s *Server) processEvent(ctx context.Context, fullEvent campfire.FullEvent) error {
+	members := []database.Member{
+		{
+			ID:          fullEvent.Event.Creator.ID,
+			Username:    fullEvent.Event.Creator.Username,
+			DisplayName: fullEvent.Event.Creator.DisplayName,
+			AvatarURL:   fullEvent.Event.Creator.AvatarURL,
+		},
 	}
-
-	var members []database.Member
-	for _, rsvpStatus := range event.Event.RSVPStatuses {
-		member, _ := campfire.FindMember(rsvpStatus.UserID, *event)
-
+	if !slices.ContainsFunc(members, func(item database.Member) bool {
+		return item.ID == fullEvent.Event.Club.Creator.ID
+	}) {
 		members = append(members, database.Member{
-			ClubMember: database.ClubMember{
-				ID:          rsvpStatus.UserID,
-				Username:    member.Username,
-				DisplayName: member.DisplayName,
-				AvatarURL:   member.AvatarURL,
-			},
-			Status:  rsvpStatus.RSVPStatus,
-			EventID: oldEvent.ID,
+			ID:          fullEvent.Event.Club.Creator.ID,
+			Username:    "",
+			DisplayName: "",
+			AvatarURL:   "",
 		})
 	}
-	if err = s.db.AddMembers(ctx, members); err != nil {
-		return fmt.Errorf("failed to add members to database: %w", err)
+
+	if err := s.db.InsertMembers(ctx, members); err != nil {
+		return fmt.Errorf("failed to insert creator member: %w", err)
 	}
 
+	if err := s.db.InsertClub(ctx, database.Club{
+		ID:                           fullEvent.Event.Club.ID,
+		Name:                         fullEvent.Event.Club.Name,
+		AvatarURL:                    fullEvent.Event.Club.AvatarURL,
+		CreatorID:                    fullEvent.Event.Club.Creator.ID,
+		CreatedByCommunityAmbassador: fullEvent.Event.Club.CreatedByCommunityAmbassador,
+	}); err != nil {
+		return fmt.Errorf("failed to insert club: %w", err)
+	}
+
+	rawJSON, _ := json.Marshal(fullEvent)
+
+	if err := s.db.CreateEvent(ctx, database.Event{
+		ID:                           fullEvent.Event.ID,
+		Name:                         fullEvent.Event.Name,
+		Details:                      fullEvent.Event.Details,
+		Address:                      fullEvent.Event.Address,
+		Location:                     fullEvent.Event.Location,
+		CreatorID:                    fullEvent.Event.Creator.ID,
+		CoverPhotoURL:                fullEvent.Event.CoverPhotoURL,
+		EventTime:                    fullEvent.Event.EventTime,
+		EventEndTime:                 fullEvent.Event.EventEndTime,
+		DiscordInterested:            fullEvent.Event.DiscordInterested,
+		CreatedByCommunityAmbassador: fullEvent.Event.CreatedByCommunityAmbassador,
+		CampfireLiveEventID:          fullEvent.Event.CampfireLiveEventID,
+		CampfireLiveEventName:        fullEvent.Event.CampfireLiveEvent.EventName,
+		ClubID:                       fullEvent.Event.ClubID,
+		RawJSON:                      rawJSON,
+	}); err != nil {
+		if errors.Is(err, database.ErrDuplicate) {
+			return nil
+		}
+		return fmt.Errorf("failed to create event: %w", err)
+	}
+
+	slog.InfoContext(ctx, "Event added", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID))
+
+	var eventMembers []database.Member
+	for _, member := range fullEvent.Event.Members.Edges {
+		eventMembers = append(eventMembers, database.Member{
+			ID:          member.Node.ID,
+			Username:    member.Node.Username,
+			DisplayName: member.Node.DisplayName,
+			AvatarURL:   member.Node.AvatarURL,
+		})
+	}
+	var rsvps []database.EventRSVP
+	for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
+		if i := slices.IndexFunc(eventMembers, func(member database.Member) bool {
+			return member.ID == rsvpStatus.UserID
+		}); i == -1 {
+			eventMembers = append(eventMembers, database.Member{
+				ID:          rsvpStatus.UserID,
+				Username:    "",
+				DisplayName: "",
+				AvatarURL:   "",
+			})
+		}
+		rsvps = append(rsvps, database.EventRSVP{
+			EventID:  fullEvent.Event.ID,
+			MemberID: rsvpStatus.UserID,
+			Status:   rsvpStatus.RSVPStatus,
+		})
+	}
+
+	if err := s.db.InsertMembers(ctx, eventMembers); err != nil {
+		return fmt.Errorf("failed to add members: %w", err)
+	}
+
+	if err := s.db.InsertEventRSVPs(ctx, rsvps); err != nil {
+		return fmt.Errorf("failed to add event RSVPs: %w", err)
+	}
+
+	slog.InfoContext(ctx, "Members added for event", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID), slog.Int("members", len(members)), slog.Int("rsvps", len(rsvps)))
 	return nil
 }

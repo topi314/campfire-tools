@@ -33,9 +33,9 @@
     </div>
 
     <div class="section">
-        <h2>Check-Ins ({{ len .Members }})</h2>
+        <h2>Check-Ins ({{ len .CheckedInMembers }})</h2>
         <ul class="list">
-            {{ range $member := .Members }}
+            {{ range $member := .CheckedInMembers }}
                 <li class="list-item">
                     {{ if $member.AvatarURL }}
                         <img src="{{ $member.AvatarURL }}">

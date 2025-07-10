@@ -97,6 +97,7 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /tracker/event/{event_id}", s.TrackerClubEvent)
 	mux.HandleFunc("GET /tracker/event/{event_id}/export", s.TrackerClubEventExport)
 	mux.HandleFunc("GET /tracker/refresh", s.TrackerRefresh)
+	mux.HandleFunc("GET /tracker/migrate", s.TrackerMigrate)
 
 	mux.HandleFunc("GET /images/{image_id}", s.Image)
 	mux.Handle("GET /static/", fs)
