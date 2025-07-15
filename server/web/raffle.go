@@ -76,29 +76,29 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	var members []Member
 	var eventIDs []string
 	var mu sync.Mutex
-	for _, event := range allEvents {
+	for _, eventID := range allEvents {
 		eg.Go(func() error {
 			var (
-				fullEvent *campfire.FullEvent
-				err       error
+				event *campfire.Event
+				err   error
 			)
 
-			if strings.HasPrefix(event, "https://") {
-				fullEvent, err = h.Campfire.FetchEvent(ctx, event)
+			if strings.HasPrefix(eventID, "https://") {
+				event, err = h.Campfire.ResolveEvent(ctx, eventID)
 			} else {
-				fullEvent, err = h.fetchFullEvent(ctx, event)
+				event, err = h.fetchFullEvent(ctx, eventID)
 			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch event %q: %w", event, err)
+				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}
 
-			if len(fullEvent.Event.RSVPStatuses) == 0 {
+			if len(event.RSVPStatuses) == 0 {
 				return nil
 			}
 
 			mu.Lock()
 			defer mu.Unlock()
-			for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
+			for _, rsvpStatus := range event.RSVPStatuses {
 				// Only consider checked-in members
 				if rsvpStatus.RSVPStatus != "CHECKED_IN" {
 					continue
@@ -112,7 +112,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// Skip if we don't have the member's information
-				member, ok := campfire.FindMember(rsvpStatus.UserID, *fullEvent)
+				member, ok := campfire.FindMember(rsvpStatus.UserID, *event)
 				if !ok {
 					continue
 				}
@@ -124,7 +124,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 					AvatarURL:   member.AvatarURL,
 				})
 			}
-			eventIDs = append(eventIDs, fullEvent.Event.ID)
+			eventIDs = append(eventIDs, event.ID)
 
 			return nil
 		})
@@ -166,16 +166,16 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handler) fetchFullEvent(ctx context.Context, event string) (*campfire.FullEvent, error) {
+func (h *handler) fetchFullEvent(ctx context.Context, event string) (*campfire.Event, error) {
 	dbEvent, err := h.DB.GetEvent(ctx, event)
 	if err == nil {
-		var fullEvent *campfire.FullEvent
+		var fullEvent *campfire.Event
 		if err = json.Unmarshal(dbEvent.RawJSON, &fullEvent); err == nil {
 			return fullEvent, nil
 		}
 	}
 
-	return h.Campfire.FetchFullEvent(ctx, event)
+	return h.Campfire.GetEvent(ctx, event)
 }
 
 func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {

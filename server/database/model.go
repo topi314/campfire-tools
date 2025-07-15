@@ -6,11 +6,13 @@ import (
 )
 
 type Club struct {
-	ID                           string `db:"id"`
-	Name                         string `db:"name"`
-	AvatarURL                    string `db:"avatar_url"`
-	CreatorID                    string `db:"creator_id"`
-	CreatedByCommunityAmbassador bool   `db:"created_by_community_ambassador"`
+	ID                           string          `db:"id"`
+	Name                         string          `db:"name"`
+	AvatarURL                    string          `db:"avatar_url"`
+	CreatorID                    string          `db:"creator_id"`
+	CreatedByCommunityAmbassador bool            `db:"created_by_community_ambassador"`
+	ImportedAt                   time.Time       `db:"imported_at"`
+	RawJSON                      json.RawMessage `db:"raw_json"`
 }
 
 type Event struct {
@@ -28,20 +30,17 @@ type Event struct {
 	CampfireLiveEventID          string          `db:"campfire_live_event_id"`
 	CampfireLiveEventName        string          `db:"campfire_live_event_name"`
 	ClubID                       string          `db:"club_id"`
+	ImportedAt                   time.Time       `db:"imported_at"`
 	RawJSON                      json.RawMessage `db:"raw_json"`
 }
 
-type TopEvent struct {
-	Event
-	Accepted int `db:"accepted"`
-	CheckIns int `db:"check_ins"`
-}
-
 type Member struct {
-	ID          string `db:"id"`
-	Username    string `db:"username"`
-	DisplayName string `db:"display_name"`
-	AvatarURL   string `db:"avatar_url"`
+	ID          string          `db:"id"`
+	Username    string          `db:"username"`
+	DisplayName string          `db:"display_name"`
+	AvatarURL   string          `db:"avatar_url"`
+	ImportedAt  time.Time       `db:"imported_at"`
+	RawJSON     json.RawMessage `db:"raw_json"`
 }
 
 func (m Member) GetDisplayName() string {
@@ -53,6 +52,12 @@ func (m Member) GetDisplayName() string {
 		displayName = "<unknown>"
 	}
 	return displayName
+}
+
+type TopEvent struct {
+	Event
+	Accepted int `db:"accepted"`
+	CheckIns int `db:"check_ins"`
 }
 
 type TopMember struct {
@@ -76,9 +81,10 @@ type EventNumbers struct {
 }
 
 type EventRSVP struct {
-	EventID  string `db:"event_id"`
-	MemberID string `db:"member_id"`
-	Status   string `db:"status"`
+	EventID    string    `db:"event_id"`
+	MemberID   string    `db:"member_id"`
+	Status     string    `db:"status"`
+	ImportedAt time.Time `db:"imported_at"`
 }
 
 type Session struct {

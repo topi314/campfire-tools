@@ -62,7 +62,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	var events []campfire.FullEvent
+	var events []campfire.Event
 	var mu sync.Mutex
 	for _, url := range urls {
 		meetupURL := strings.TrimSpace(url)
@@ -71,7 +71,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 		}
 
 		eg.Go(func() error {
-			event, err := h.Campfire.FetchEvent(ctx, meetupURL)
+			event, err := h.Campfire.ResolveEvent(ctx, meetupURL)
 			if err != nil {
 				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
 					return nil
@@ -81,7 +81,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// ignore events without RSVP statuses
-			if len(event.Event.RSVPStatuses) == 0 {
+			if len(event.RSVPStatuses) == 0 {
 				return nil
 			}
 
@@ -112,7 +112,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 			{"id", "username", "display_name", "status", "event_id", "event_name"},
 		}
 		for _, event := range events {
-			for _, rsvpStatus := range event.Event.RSVPStatuses {
+			for _, rsvpStatus := range event.RSVPStatuses {
 				member, ok := campfire.FindMember(rsvpStatus.UserID, event)
 				if !ok && !includeMissingMembers {
 					continue
@@ -123,8 +123,8 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 					member.Username,
 					member.DisplayName,
 					rsvpStatus.RSVPStatus,
-					event.Event.ID,
-					event.Event.Name,
+					event.ID,
+					event.Name,
 				})
 			}
 		}
@@ -134,7 +134,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 			records := [][]string{
 				{"id", "username", "display_name", "status"},
 			}
-			for _, rsvpStatus := range event.Event.RSVPStatuses {
+			for _, rsvpStatus := range event.RSVPStatuses {
 				member, ok := campfire.FindMember(rsvpStatus.UserID, event)
 				if !ok && !includeMissingMembers {
 					continue

@@ -42,6 +42,7 @@ query MeetupDetailsWrapperQR_Query(
       createdByCommunityAmbassador
       creator {
         id
+        username
         displayName
         avatarUrl
         badges {

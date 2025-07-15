@@ -37,7 +37,7 @@ func (d *Database) UpdateEvent(ctx context.Context, event Event) error {
 		    creator_id = :creator_id, cover_photo_url = :cover_photo_url, event_time = :event_time, 
 		    event_end_time = :event_end_time, discord_interested = :discord_interested, 
 		    created_by_community_ambassador = :created_by_community_ambassador, campfire_live_event_id = :campfire_live_event_id, 
-		    campfire_live_event_name = :campfire_live_event_name, club_id = :club_id, raw_json = :raw_json
+		    campfire_live_event_name = :campfire_live_event_name, club_id = :club_id, imported_at = NOW(), raw_json = :raw_json
 		WHERE id = :id
 	`
 
@@ -101,7 +101,7 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
         GROUP BY e.id, e.event_time, e.name
-        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.name DESC 
+        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.name DESC, e.id
         LIMIT $4
 	`
 
@@ -120,7 +120,7 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 		FROM events e
 		JOIN event_rsvps re ON e.id = re.event_id
 		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'CHECKED_IN'
-		ORDER BY e.event_time DESC, e.name
+		ORDER BY e.event_time DESC, e.name, e.id
     `
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
@@ -137,7 +137,7 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 		FROM events e
 		JOIN event_rsvps re ON e.id = re.event_id
 		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'ACCEPTED'
-		ORDER BY e.event_time DESC, e.name
+		ORDER BY e.event_time DESC, e.name, e.id
 	`
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {

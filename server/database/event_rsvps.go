@@ -10,7 +10,8 @@ func (d *Database) InsertEventRSVPs(ctx context.Context, rsvps []EventRSVP) erro
 		INSERT INTO event_rsvps (event_id, member_id, status)
 		VALUES (:event_id, :member_id, :status)
 		ON CONFLICT (event_id, member_id) DO UPDATE SET
-			status = EXCLUDED.status
+			status = EXCLUDED.status,
+			imported_at = NOW()
 	`
 
 	_, err := d.db.NamedExecContext(ctx, query, rsvps)

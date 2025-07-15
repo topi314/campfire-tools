@@ -1,6 +1,7 @@
 package campfire
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -36,90 +37,117 @@ type Events struct {
 	} `json:"publicMapObjectsById"`
 }
 
-type FullEvent struct {
-	Event struct {
-		ID                           string    `json:"id"`
-		Name                         string    `json:"name"`
-		Address                      string    `json:"address"`
-		CoverPhotoURL                string    `json:"coverPhotoUrl"`
-		Details                      string    `json:"details"`
-		EventTime                    time.Time `json:"eventTime"`
-		EventEndTime                 time.Time `json:"eventEndTime"`
-		RsvpStatus                   string    `json:"rsvpStatus"`
-		CreatedByCommunityAmbassador bool      `json:"createdByCommunityAmbassador"`
-		BadgeGrants                  []string  `json:"badgeGrants"`
-		TopicID                      string    `json:"topicId"`
-		CommentCount                 int       `json:"commentCount"`
-		DiscordInterested            int       `json:"discordInterested"`
-		Creator                      struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"displayName"`
-			AvatarURL   string `json:"avatarUrl"`
-			Badges      []struct {
-				BadgeType string `json:"badgeType"`
-				Alias     string `json:"alias"`
-			} `json:"badges"`
-			Username string `json:"username"`
-		} `json:"creator"`
-		Club struct {
-			ID                           string   `json:"id"`
-			Name                         string   `json:"name"`
-			AvatarURL                    string   `json:"avatarUrl"`
-			Visibility                   string   `json:"visibility"`
-			MyPermissions                []string `json:"myPermissions"`
-			BadgeGrants                  []string `json:"badgeGrants"`
-			CreatedByCommunityAmbassador bool     `json:"createdByCommunityAmbassador"`
-			Game                         string   `json:"game"`
-			AmIMember                    bool     `json:"amIMember"`
-			Creator                      struct {
-				ID string `json:"id"`
-			} `json:"creator"`
-		} `json:"club"`
-		Members struct {
-			TotalCount int          `json:"totalCount"`
-			Edges      []MemberEdge `json:"edges"`
-		}
-		IsPasscodeRewardEligible bool          `json:"isPasscodeRewardEligible"`
-		CommentsPermissions      string        `json:"commentsPermissions"`
-		CommentsPreview          []interface{} `json:"commentsPreview"`
-		IsSubscribed             bool          `json:"isSubscribed"`
-		CampfireLiveEventID      string        `json:"campfireLiveEventId"`
-		CampfireLiveEvent        struct {
-			EventName            string `json:"eventName"`
-			ModalHeadingImageURL string `json:"modalHeadingImageUrl"`
-			ID                   string `json:"id"`
-			CheckInRadiusMeters  int    `json:"checkInRadiusMeters"`
-		} `json:"campfireLiveEvent"`
-		MapPreviewURL string `json:"mapPreviewUrl"`
-		Location      string `json:"location"`
-		Passcode      string `json:"passcode"`
-		RSVPStatuses  []struct {
-			UserID     string `json:"userId"`
-			RSVPStatus string `json:"rsvpStatus"`
-		} `json:"rsvpStatuses"`
-		Game                  string `json:"game"`
-		ClubID                string `json:"clubId"`
-		CheckedInMembersCount int    `json:"checkedInMembersCount"`
-		Visibility            string `json:"visibility"`
-	} `json:"event"`
+type fullEvent struct {
+	Event Event `json:"event"`
 }
 
-type MemberEdge struct {
-	Node MemberNode `json:"node"`
+type Event struct {
+	ID                           string    `json:"id"`
+	Name                         string    `json:"name"`
+	Address                      string    `json:"address"`
+	CoverPhotoURL                string    `json:"coverPhotoUrl"`
+	Details                      string    `json:"details"`
+	EventTime                    time.Time `json:"eventTime"`
+	EventEndTime                 time.Time `json:"eventEndTime"`
+	RsvpStatus                   string    `json:"rsvpStatus"`
+	CreatedByCommunityAmbassador bool      `json:"createdByCommunityAmbassador"`
+	BadgeGrants                  []string  `json:"badgeGrants"`
+	TopicID                      string    `json:"topicId"`
+	CommentCount                 int       `json:"commentCount"`
+	DiscordInterested            int       `json:"discordInterested"`
+	Creator                      Member    `json:"creator"`
+	Club                         Club      `json:"club"`
+	Members                      struct {
+		TotalCount int `json:"totalCount"`
+		Edges      []struct {
+			Node Member `json:"node"`
+		} `json:"edges"`
+	}
+	IsPasscodeRewardEligible bool   `json:"isPasscodeRewardEligible"`
+	CommentsPermissions      string `json:"commentsPermissions"`
+	CommentsPreview          []any  `json:"commentsPreview"`
+	IsSubscribed             bool   `json:"isSubscribed"`
+	CampfireLiveEventID      string `json:"campfireLiveEventId"`
+	CampfireLiveEvent        struct {
+		EventName            string `json:"eventName"`
+		ModalHeadingImageURL string `json:"modalHeadingImageUrl"`
+		ID                   string `json:"id"`
+		CheckInRadiusMeters  int    `json:"checkInRadiusMeters"`
+	} `json:"campfireLiveEvent"`
+	MapPreviewURL string `json:"mapPreviewUrl"`
+	Location      string `json:"location"`
+	Passcode      string `json:"passcode"`
+	RSVPStatuses  []struct {
+		UserID     string `json:"userId"`
+		RSVPStatus string `json:"rsvpStatus"`
+	} `json:"rsvpStatuses"`
+	Game                  string `json:"game"`
+	ClubID                string `json:"clubId"`
+	CheckedInMembersCount int    `json:"checkedInMembersCount"`
+	Visibility            string `json:"visibility"`
+	Raw                   []byte `json:"-"`
 }
 
-type MemberNode struct {
+func (e *Event) UnmarshalJSON(data []byte) error {
+	type Alias Event
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*e = Event(a)
+	e.Raw = data
+	return nil
+}
+
+type Club struct {
+	ID                           string   `json:"id"`
+	Name                         string   `json:"name"`
+	AvatarURL                    string   `json:"avatarUrl"`
+	Visibility                   string   `json:"visibility"`
+	MyPermissions                []string `json:"myPermissions"`
+	BadgeGrants                  []string `json:"badgeGrants"`
+	CreatedByCommunityAmbassador bool     `json:"createdByCommunityAmbassador"`
+	Game                         string   `json:"game"`
+	AmIMember                    bool     `json:"amIMember"`
+	Creator                      Member   `json:"creator"`
+	Raw                          []byte   `json:"-"`
+}
+
+func (c *Club) UnmarshalJSON(data []byte) error {
+	type Alias Club
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*c = Club(a)
+	c.Raw = data
+	return nil
+}
+
+type Member struct {
 	ID          string `json:"id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 	AvatarURL   string `json:"avatarUrl"`
+	Raw         []byte `json:"-"`
 }
 
-func FindMember(id string, event FullEvent) (MemberNode, bool) {
-	for _, edge := range event.Event.Members.Edges {
+func (m *Member) UnmarshalJSON(data []byte) error {
+	type Alias Member
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*m = Member(a)
+	m.Raw = data
+	return nil
+}
+
+func FindMember(id string, event Event) (Member, bool) {
+	for _, edge := range event.Members.Edges {
 		if edge.Node.ID == id {
 			return edge.Node, true
 		}
 	}
-	return MemberNode{}, false
+	return Member{}, false
 }

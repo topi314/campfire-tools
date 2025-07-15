@@ -1,9 +1,7 @@
 package web
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -35,10 +33,6 @@ func (h *handler) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(ctx, "Successfully retrieved all events", slog.Int("count", len(events)))
 	var failed int
 	for i, event := range events {
-		// Skip events that already have a valid json raw representation
-		if bytes.HasPrefix(event.RawJSON, []byte("{")) && bytes.HasSuffix(event.RawJSON, []byte("}")) {
-			continue
-		}
 		if err = h.refreshEvent(ctx, event); err != nil {
 			slog.ErrorContext(ctx, "Failed to refresh event", slog.String("event_id", event.ID), slog.Int("index", i+1), slog.Int("total", len(events)), slog.Any("err", err))
 			failed++
@@ -58,31 +52,33 @@ func (h *handler) TrackerRefresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) refreshEvent(ctx context.Context, oldEvent database.Event) error {
-	fullEvent, err := h.Campfire.FetchFullEvent(ctx, oldEvent.ID)
+	event, err := h.Campfire.GetEvent(ctx, oldEvent.ID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	return h.processEvent(ctx, *fullEvent)
+	return h.processEvent(ctx, *event)
 }
 
-func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent) error {
+func (h *handler) processEvent(ctx context.Context, event campfire.Event) error {
 	members := []database.Member{
 		{
-			ID:          fullEvent.Event.Creator.ID,
-			Username:    fullEvent.Event.Creator.Username,
-			DisplayName: fullEvent.Event.Creator.DisplayName,
-			AvatarURL:   fullEvent.Event.Creator.AvatarURL,
+			ID:          event.Creator.ID,
+			Username:    event.Creator.Username,
+			DisplayName: event.Creator.DisplayName,
+			AvatarURL:   event.Creator.AvatarURL,
+			RawJSON:     event.Creator.Raw,
 		},
 	}
 	if !slices.ContainsFunc(members, func(item database.Member) bool {
-		return item.ID == fullEvent.Event.Club.Creator.ID
+		return item.ID == event.Club.Creator.ID
 	}) {
 		members = append(members, database.Member{
-			ID:          fullEvent.Event.Club.Creator.ID,
-			Username:    "",
-			DisplayName: "",
-			AvatarURL:   "",
+			ID:          event.Club.Creator.ID,
+			Username:    event.Club.Creator.Username,
+			DisplayName: event.Club.Creator.DisplayName,
+			AvatarURL:   event.Club.Creator.AvatarURL,
+			RawJSON:     event.Club.Creator.Raw,
 		})
 	}
 
@@ -91,33 +87,32 @@ func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent
 	}
 
 	if err := h.DB.InsertClub(ctx, database.Club{
-		ID:                           fullEvent.Event.Club.ID,
-		Name:                         fullEvent.Event.Club.Name,
-		AvatarURL:                    fullEvent.Event.Club.AvatarURL,
-		CreatorID:                    fullEvent.Event.Club.Creator.ID,
-		CreatedByCommunityAmbassador: fullEvent.Event.Club.CreatedByCommunityAmbassador,
+		ID:                           event.Club.ID,
+		Name:                         event.Club.Name,
+		AvatarURL:                    event.Club.AvatarURL,
+		CreatorID:                    event.Club.Creator.ID,
+		CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
+		RawJSON:                      event.Club.Raw,
 	}); err != nil {
 		return fmt.Errorf("failed to insert club: %w", err)
 	}
 
-	rawJSON, _ := json.Marshal(fullEvent)
-
 	if err := h.DB.CreateEvent(ctx, database.Event{
-		ID:                           fullEvent.Event.ID,
-		Name:                         fullEvent.Event.Name,
-		Details:                      fullEvent.Event.Details,
-		Address:                      fullEvent.Event.Address,
-		Location:                     fullEvent.Event.Location,
-		CreatorID:                    fullEvent.Event.Creator.ID,
-		CoverPhotoURL:                fullEvent.Event.CoverPhotoURL,
-		EventTime:                    fullEvent.Event.EventTime,
-		EventEndTime:                 fullEvent.Event.EventEndTime,
-		DiscordInterested:            fullEvent.Event.DiscordInterested,
-		CreatedByCommunityAmbassador: fullEvent.Event.CreatedByCommunityAmbassador,
-		CampfireLiveEventID:          fullEvent.Event.CampfireLiveEventID,
-		CampfireLiveEventName:        fullEvent.Event.CampfireLiveEvent.EventName,
-		ClubID:                       fullEvent.Event.ClubID,
-		RawJSON:                      rawJSON,
+		ID:                           event.ID,
+		Name:                         event.Name,
+		Details:                      event.Details,
+		Address:                      event.Address,
+		Location:                     event.Location,
+		CreatorID:                    event.Creator.ID,
+		CoverPhotoURL:                event.CoverPhotoURL,
+		EventTime:                    event.EventTime,
+		EventEndTime:                 event.EventEndTime,
+		DiscordInterested:            event.DiscordInterested,
+		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+		CampfireLiveEventID:          event.CampfireLiveEventID,
+		CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
+		ClubID:                       event.ClubID,
+		RawJSON:                      event.Raw,
 	}); err != nil {
 		if errors.Is(err, database.ErrDuplicate) {
 			return nil
@@ -125,19 +120,20 @@ func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent
 		return fmt.Errorf("failed to create event: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Event added", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID))
+	slog.InfoContext(ctx, "Event added", slog.String("name", event.Name), slog.String("id", event.ID))
 
 	var eventMembers []database.Member
-	for _, member := range fullEvent.Event.Members.Edges {
+	for _, member := range event.Members.Edges {
 		eventMembers = append(eventMembers, database.Member{
 			ID:          member.Node.ID,
 			Username:    member.Node.Username,
 			DisplayName: member.Node.DisplayName,
 			AvatarURL:   member.Node.AvatarURL,
+			RawJSON:     member.Node.Raw,
 		})
 	}
 	var rsvps []database.EventRSVP
-	for _, rsvpStatus := range fullEvent.Event.RSVPStatuses {
+	for _, rsvpStatus := range event.RSVPStatuses {
 		if i := slices.IndexFunc(eventMembers, func(member database.Member) bool {
 			return member.ID == rsvpStatus.UserID
 		}); i == -1 {
@@ -146,10 +142,11 @@ func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent
 				Username:    "",
 				DisplayName: "",
 				AvatarURL:   "",
+				RawJSON:     []byte("{}"),
 			})
 		}
 		rsvps = append(rsvps, database.EventRSVP{
-			EventID:  fullEvent.Event.ID,
+			EventID:  event.ID,
 			MemberID: rsvpStatus.UserID,
 			Status:   rsvpStatus.RSVPStatus,
 		})
@@ -163,6 +160,6 @@ func (h *handler) processEvent(ctx context.Context, fullEvent campfire.FullEvent
 		return fmt.Errorf("failed to add event RSVPs: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Members added for event", slog.String("name", fullEvent.Event.Name), slog.String("id", fullEvent.Event.ID), slog.Int("members", len(members)), slog.Int("rsvps", len(rsvps)))
+	slog.InfoContext(ctx, "Members added for event", slog.String("name", event.Name), slog.String("id", event.ID), slog.Int("members", len(members)), slog.Int("rsvps", len(rsvps)))
 	return nil
 }

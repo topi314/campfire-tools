@@ -84,32 +84,32 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	var eg tsync.ErrorGroup
-	for _, event := range allEvents {
+	for _, eventID := range allEvents {
 		eg.Go(func() error {
 			var (
-				fullEvent *campfire.FullEvent
-				err       error
+				event *campfire.Event
+				err   error
 			)
 
-			if strings.HasPrefix(event, "https://") {
-				fullEvent, err = h.Campfire.FetchEvent(ctx, event)
+			if strings.HasPrefix(eventID, "https://") {
+				event, err = h.Campfire.ResolveEvent(ctx, eventID)
 			} else {
-				fullEvent, err = h.fetchFullEvent(ctx, event)
+				event, err = h.fetchFullEvent(ctx, eventID)
 			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch event %q: %w", event, err)
+				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}
 
-			if len(fullEvent.Event.RSVPStatuses) == 0 {
+			if len(event.RSVPStatuses) == 0 {
 				return nil
 			}
 
-			if fullEvent.Event.EventEndTime.After(now) {
-				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
+			if event.EventEndTime.After(now) {
+				return fmt.Errorf("event has not ended yet: %s", event.Name)
 			}
 
-			if err = h.processEvent(ctx, *fullEvent); err != nil {
-				return fmt.Errorf("failed to process event %q: %w", event, err)
+			if err = h.processEvent(ctx, *event); err != nil {
+				return fmt.Errorf("failed to process event %q: %w", eventID, err)
 			}
 
 			return nil
