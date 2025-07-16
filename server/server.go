@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,7 +41,11 @@ func New(cfg Config) (*Server, error) {
 				ParseFS(root.FS(), "templates/*.gohtml"))
 		}
 	} else {
-		staticFS = http.FS(static)
+		subStaticFS, err := fs.Sub(static, "web")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sub FS for static files: %w", err)
+		}
+		staticFS = http.FS(subStaticFS)
 
 		st := template.Must(template.New("templates").
 			Funcs(templateFuncs).
