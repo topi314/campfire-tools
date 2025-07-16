@@ -2,6 +2,8 @@ package campfire
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -11,7 +13,17 @@ type Req struct {
 }
 
 type Resp[T any] struct {
-	Data T `json:"data"`
+	Errors []Error `json:"errors"`
+	Data   T       `json:"data"`
+}
+
+type Error struct {
+	Message string   `json:"message"`
+	Path    []string `json:"path"`
+}
+
+func (e Error) String() string {
+	return fmt.Sprintf("Error: %s, Path: %v", e.Message, strings.Join(e.Path, "."))
 }
 
 type Events struct {

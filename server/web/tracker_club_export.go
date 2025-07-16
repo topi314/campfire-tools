@@ -4,10 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
-
-	"github.com/topi314/campfire-tools/internal/xstrconv"
-	"github.com/topi314/campfire-tools/server/database"
 )
 
 type TrackerClubExportVars struct {
@@ -45,7 +41,7 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL),
+			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
 		}
 	}
 
@@ -53,122 +49,11 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL),
+			ClubAvatarURL: imageURL(club.AvatarURL, 48),
 		},
 		Events: trackerEvents,
 		Error:  errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club export template", slog.Any("err", err))
 	}
-}
-
-func (h *handler) DoTrackerClubExport(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	if err := r.ParseForm(); err != nil {
-		slog.ErrorContext(ctx, "Failed to parse form", slog.Any("err", err))
-		http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	events := r.Form["events"]
-	includeMissingMembersStr := r.FormValue("include_missing_members")
-	combineCSVsStr := r.FormValue("combine_csv")
-
-	slog.Info("Received Tracker Club export request", slog.String("url", r.URL.String()), slog.Any("event_ids", events), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
-
-	if len(events) == 0 {
-		h.renderTrackerClubExport(w, r, "Missing 'events' parameter")
-		return
-	}
-
-	var includeMissingMembers bool
-	if includeMissingMembersStr != "" {
-		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
-		if err != nil {
-			h.renderTrackerClubExport(w, r, "Invalid 'include_missing_members' parameter")
-			return
-		}
-		includeMissingMembers = parsed
-	}
-
-	var combineCSVs bool
-	if combineCSVsStr != "" {
-		parsed, err := xstrconv.ParseBool(combineCSVsStr)
-		if err != nil {
-			h.renderTrackerClubExport(w, r, "Invalid 'combine_csv' parameter")
-			return
-		}
-		combineCSVs = parsed
-	}
-
-	var allMembers [][]database.EventMember
-	for _, eventID := range events {
-		eventID = strings.TrimSpace(eventID)
-		if eventID == "" {
-			continue
-		}
-
-		members, err := h.DB.GetEventMembers(ctx, eventID)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to get event members", slog.String("id", eventID), slog.Any("err", err))
-			continue
-		}
-
-		if len(members) == 0 {
-			continue
-		}
-
-		allMembers = append(allMembers, members)
-	}
-
-	if len(allMembers) == 0 {
-		h.renderTrackerClubExport(w, r, "No events found for the provided IDs")
-		return
-	}
-
-	slog.InfoContext(ctx, "Fetched events", slog.Int("events", len(allMembers)))
-
-	var allRecords [][][]string
-	if combineCSVs {
-		records := [][]string{
-			{"id", "name", "status", "event_id", "event_name"},
-		}
-		for _, members := range allMembers {
-			for _, member := range members {
-				if member.DisplayName == "" && !includeMissingMembers {
-					continue
-				}
-
-				records = append(records, []string{
-					member.Member.ID,
-					member.Member.Username,
-					member.EventRSVP.Status,
-					member.Event.ID,
-					member.Event.Name,
-				})
-			}
-		}
-		allRecords = append(allRecords, records)
-	} else {
-		for _, members := range allMembers {
-			records := [][]string{
-				{"id", "name", "status"},
-			}
-			for _, member := range members {
-				if member.DisplayName == "" && !includeMissingMembers {
-					continue
-				}
-
-				records = append(records, []string{
-					member.Member.ID,
-					member.Member.Username,
-					member.EventRSVP.Status,
-				})
-			}
-			allRecords = append(allRecords, records)
-		}
-	}
-
-	h.exportRecords(ctx, w, allRecords, true)
 }

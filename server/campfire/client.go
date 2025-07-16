@@ -50,9 +50,9 @@ type Client struct {
 	limiter    *rate.Limiter
 }
 
-func (c *Client) ResolveEvent(ctx context.Context, meetupURL string) (*Event, error) {
+func (c *Client) ResolveEventID(ctx context.Context, meetupURL string) (string, error) {
 	if err := c.limiter.Wait(ctx); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var campfireEventID string
@@ -61,42 +61,52 @@ func (c *Client) ResolveEvent(ctx context.Context, meetupURL string) (*Event, er
 			var err error
 			meetupURL, err = c.ResolveShortURL(ctx, meetupURL)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve short URL: %w", err)
+				return "", fmt.Errorf("failed to resolve short URL: %w", err)
 			}
 		}
 
 		if strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup-without-location/") {
-			return nil, ErrUnsupportedMeetup
+			return "", ErrUnsupportedMeetup
 		}
 
 		if !strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
-			return nil, errors.New("invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
+			return "", errors.New("invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
 		}
 		eventID := path.Base(meetupURL)
 		if eventID == "" {
-			return nil, errors.New("could not extract event ID from URL")
+			return "", errors.New("could not extract event ID from URL")
 		}
 
 		events, err := c.GetEvents(ctx, []string{eventID})
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch events: %w", err)
+			return "", fmt.Errorf("failed to fetch events: %w", err)
 		}
 
 		if len(events.PublicMapObjectsByID) == 0 {
-			return nil, errors.New("event not found")
+			return "", errors.New("event not found")
 		}
 
 		firstEvent := events.PublicMapObjectsByID[0]
 
 		if firstEvent.ID != eventID {
-			return nil, fmt.Errorf("event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID)
+			return "", fmt.Errorf("event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID)
 		}
 		campfireEventID = firstEvent.Event.ID
 	} else {
 		campfireEventID = path.Base(meetupURL)
 	}
+
 	if campfireEventID == "" {
-		return nil, fmt.Errorf("invalid URL: %s", meetupURL)
+		return "", fmt.Errorf("invalid URL: %s", meetupURL)
+	}
+
+	return campfireEventID, nil
+}
+
+func (c *Client) ResolveEvent(ctx context.Context, meetupURL string) (*Event, error) {
+	campfireEventID, err := c.ResolveEventID(ctx, meetupURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve event ID: %w", err)
 	}
 
 	event, err := c.GetEvent(ctx, campfireEventID)
@@ -218,6 +228,13 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	slog.DebugContext(ctx, "Fetched full event", slog.String("event_id", resp.Data.Event.ID), slog.String("response", logBuf.String()))
+	if len(resp.Errors) > 0 {
+		var errs []any
+		for _, e := range resp.Errors {
+			errs = append(errs, slog.String("message", e.String()))
+		}
+		slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errs...)...)
+	}
 
 	return &resp.Data.Event, nil
 }

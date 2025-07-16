@@ -43,17 +43,6 @@ type Member struct {
 	RawJSON     json.RawMessage `db:"raw_json"`
 }
 
-func (m Member) GetDisplayName() string {
-	displayName := m.DisplayName
-	if displayName == "" {
-		displayName = m.Username
-	}
-	if displayName == "" {
-		displayName = "<unknown>"
-	}
-	return displayName
-}
-
 type TopEvent struct {
 	Event
 	Accepted int `db:"accepted"`

@@ -74,7 +74,7 @@
                 <span>Member</span>
                 <span>Accepted</span>
                 <span>Check-Ins</span>
-                <span>Check-In Rate</span>
+                <span>Rate</span>
                 {{ range $index, $member := .TopMembers.Members }}
                     <span>{{ add $index 1 }}</span>
                     <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
@@ -119,7 +119,7 @@
                 <span>Event</span>
                 <span>Accepted</span>
                 <span>Check-Ins</span>
-                <span>Check-In Rate</span>
+                <span>Rate</span>
                 {{ range $index, $event := .TopEvents.Events }}
                     <span>{{ add $index 1 }}</span>
                     <a href="{{ $event.URL }}">{{ $event.Name }}</a>
@@ -160,8 +160,8 @@
                 <span>Events</span>
                 <span>Accepted</span>
                 <span>Check-Ins</span>
-                <span>Check-In Rate</span>
-                <span>Total Check-In Rate</span>
+                <span>Rate</span>
+                <span>Total Rate</span>
                 {{ range $index, $category := .EventCategories.Categories }}
                     <span>{{ add $index 1 }}</span>
                     <span>{{ $category.Name }}</span>

@@ -14,13 +14,15 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/topi314/campfire-tools/internal/xstrconv"
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
 type DoRaffleVars struct {
-	Winners []Member
-	Events  string
-	Count   int
+	Winners       []Member
+	Events        string
+	Count         int
+	OnlyCheckedIn string
 }
 
 func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
@@ -40,9 +42,10 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	if ids := r.Form["ids"]; len(ids) > 0 {
 		events += "\n" + strings.Join(ids, "\n")
 	}
-	stringCount := r.FormValue("count")
+	countStr := r.FormValue("count")
+	onlyCheckedInStr := r.FormValue("only_checked_in")
 
-	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("count", stringCount))
+	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("count", countStr))
 
 	if events == "" {
 		h.renderRaffle(w, r, "Missing 'events' parameter")
@@ -50,13 +53,23 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count := 1
-	if stringCount != "" {
-		parsed, err := strconv.Atoi(stringCount)
+	if countStr != "" {
+		parsed, err := strconv.Atoi(countStr)
 		if err != nil || parsed <= 0 {
 			h.renderRaffle(w, r, "Invalid 'count' parameter. It must be a positive number.")
 			return
 		}
 		count = parsed
+	}
+
+	var onlyCheckedIn bool
+	if onlyCheckedInStr != "" {
+		parsed, err := xstrconv.ParseBool(onlyCheckedInStr)
+		if err != nil {
+			h.renderRaffle(w, r, "Invalid 'only_checked_in' parameter. It must be 'true' or 'false'.")
+			return
+		}
+		onlyCheckedIn = parsed
 	}
 
 	var allEvents []string
@@ -78,16 +91,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	var mu sync.Mutex
 	for _, eventID := range allEvents {
 		eg.Go(func() error {
-			var (
-				event *campfire.Event
-				err   error
-			)
-
-			if strings.HasPrefix(eventID, "https://") {
-				event, err = h.Campfire.ResolveEvent(ctx, eventID)
-			} else {
-				event, err = h.fetchFullEvent(ctx, eventID)
-			}
+			event, err := h.fetchEvent(ctx, eventID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}
@@ -99,8 +103,8 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			defer mu.Unlock()
 			for _, rsvpStatus := range event.RSVPStatuses {
-				// Only consider checked-in members
-				if rsvpStatus.RSVPStatus != "CHECKED_IN" {
+				// Only consider checked-in members if `onlyCheckedIn` is true
+				if rsvpStatus.RSVPStatus == "DECLINED" || (onlyCheckedIn && rsvpStatus.RSVPStatus != "CHECKED_IN") {
 					continue
 				}
 
@@ -120,8 +124,8 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 				members = append(members, Member{
 					ID:          rsvpStatus.UserID,
 					Username:    member.Username,
-					DisplayName: member.DisplayName,
-					AvatarURL:   member.AvatarURL,
+					DisplayName: getDisplayName(member.DisplayName, member.Username),
+					AvatarURL:   imageURL(member.AvatarURL, 32),
 				})
 			}
 			eventIDs = append(eventIDs, event.ID)
@@ -144,12 +148,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		member := members[num]
 		members = slices.Delete(members, num, num+1) // Remove selected member to avoid duplicates
 
-		winners = append(winners, Member{
-			ID:          member.ID,
-			Username:    member.Username,
-			DisplayName: member.DisplayName,
-			AvatarURL:   imageURL(member.AvatarURL),
-		})
+		winners = append(winners, member)
 	}
 
 	if len(winners) == 0 {
@@ -158,15 +157,24 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
-		Winners: winners,
-		Events:  strings.Join(eventIDs, "\n"),
-		Count:   count,
+		Winners:       winners,
+		Events:        strings.Join(eventIDs, "\n"),
+		Count:         count,
+		OnlyCheckedIn: onlyCheckedInStr,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}
 }
 
-func (h *handler) fetchFullEvent(ctx context.Context, event string) (*campfire.Event, error) {
+func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event, error) {
+	if strings.HasPrefix(event, "https://") {
+		eventID, err := h.Campfire.ResolveEventID(ctx, event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve event ID from URL %q: %w", event, err)
+		}
+		event = eventID
+	}
+
 	dbEvent, err := h.DB.GetEvent(ctx, event)
 	if err == nil {
 		var fullEvent *campfire.Event
@@ -186,4 +194,14 @@ func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, errorMess
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle template", slog.Any("err", err))
 	}
+}
+
+func getDisplayName(displayName string, username string) string {
+	if displayName == "" {
+		displayName = username
+	}
+	if displayName == "" {
+		displayName = "<unknown>"
+	}
+	return displayName
 }

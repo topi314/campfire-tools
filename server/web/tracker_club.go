@@ -42,7 +42,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL),
+			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
 		}
 	}
 
@@ -50,7 +50,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL),
+			ClubAvatarURL: imageURL(club.AvatarURL, 48),
 		},
 		Events: trackerEvents,
 	}); err != nil {

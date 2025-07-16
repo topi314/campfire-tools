@@ -11,10 +11,10 @@
     </div>
 
     <div class="section">
-        <form action="/tracker/club/{{ .ClubID }}/export" method="POST" id="export-form">
-            <label class="form-control" for="events">
+        <form action="/export" method="POST" id="export-form">
+            <label class="form-control" for="ids">
                 Events
-                <select class="form-control" id="events" name="events" size="10" required multiple>
+                <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
                         <option value="{{ $event.ID }}">{{ $event.Name }}</option>
                     {{ end }}
@@ -31,6 +31,7 @@
                 Combine CSVs
                 <input class="form-control" type="checkbox" id="combine-csv" name="combine_csv" checked>
             </label>
+            {{ template "export_included_fields" }}
             <button class="form-control" type="submit">Export</button>
         </form>
     </div>

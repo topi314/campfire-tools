@@ -114,10 +114,10 @@ func (h *handler) processEvent(ctx context.Context, event campfire.Event) error 
 		ClubID:                       event.ClubID,
 		RawJSON:                      event.Raw,
 	}); err != nil {
-		if errors.Is(err, database.ErrDuplicate) {
-			return nil
+		if !errors.Is(err, database.ErrDuplicate) {
+			return fmt.Errorf("failed to create event: %w", err)
 		}
-		return fmt.Errorf("failed to create event: %w", err)
+		// return fmt.Errorf("failed to create event: %w", err)
 	}
 
 	slog.InfoContext(ctx, "Event added", slog.String("name", event.Name), slog.String("id", event.ID))

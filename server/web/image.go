@@ -14,6 +14,10 @@ func (h *handler) Image(w http.ResponseWriter, r *http.Request) {
 	imageID := r.PathValue("image_id")
 
 	remoteImageURL := fmt.Sprintf("https://niantic-social-api.nianticlabs.com/images/%s", imageID)
+	if query := r.URL.RawQuery; query != "" {
+		remoteImageURL += "?" + query
+	}
+
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, remoteImageURL, nil)
 	if err != nil {
 		http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
@@ -45,10 +49,15 @@ func (h *handler) Image(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func imageURL(imageURL string) string {
+func imageURL(imageURL string, size int) string {
 	if imageURL == "" {
 		return ""
 	}
 
-	return path.Join("/images", path.Base(imageURL))
+	imageURL = path.Join("/images", path.Base(imageURL))
+	if size > 0 {
+		imageURL = fmt.Sprintf("%s?size=%d", imageURL, size)
+	}
+
+	return imageURL
 }

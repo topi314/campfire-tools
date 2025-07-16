@@ -119,8 +119,8 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			Member: Member{
 				ID:          member.ID,
 				Username:    member.Username,
-				DisplayName: member.GetDisplayName(),
-				AvatarURL:   imageURL(member.AvatarURL),
+				DisplayName: getDisplayName(member.DisplayName, member.Username),
+				AvatarURL:   imageURL(member.AvatarURL, 60),
 				URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
 			},
 			Accepted:    member.Accepted,
@@ -141,7 +141,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 				ID:            event.ID,
 				Name:          event.Name,
 				URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-				CoverPhotoURL: imageURL(event.CoverPhotoURL),
+				CoverPhotoURL: imageURL(event.CoverPhotoURL, 60),
 			},
 			Accepted:    event.Accepted,
 			CheckIns:    event.CheckIns,
@@ -196,7 +196,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL),
+			ClubAvatarURL: imageURL(club.AvatarURL, 60),
 		},
 
 		From: from,

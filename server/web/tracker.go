@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/tsync"
-	"github.com/topi314/campfire-tools/server/campfire"
 )
 
 type TrackerVars struct {
@@ -42,7 +41,7 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 		trackerClubs[i] = TrackerClub{
 			ID:        club.ID,
 			Name:      club.Name,
-			AvatarURL: imageURL(club.AvatarURL),
+			AvatarURL: imageURL(club.AvatarURL, 32),
 			URL:       fmt.Sprintf("/tracker/club/%s", club.ID),
 		}
 	}
@@ -86,16 +85,7 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	var eg tsync.ErrorGroup
 	for _, eventID := range allEvents {
 		eg.Go(func() error {
-			var (
-				event *campfire.Event
-				err   error
-			)
-
-			if strings.HasPrefix(eventID, "https://") {
-				event, err = h.Campfire.ResolveEvent(ctx, eventID)
-			} else {
-				event, err = h.fetchFullEvent(ctx, eventID)
-			}
+			event, err := h.fetchEvent(ctx, eventID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}

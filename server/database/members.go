@@ -31,6 +31,7 @@ func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 			username = COALESCE(NULLIF(EXCLUDED.username, ''), members.username),
 			display_name = COALESCE(NULLIF(EXCLUDED.display_name, ''), members.display_name),
 			avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), members.avatar_url),
+			imported_at = NOW(),
 			raw_json = COALESCE(NULLIF(EXCLUDED.raw_json, '{}'), members.raw_json)
 	`
 
