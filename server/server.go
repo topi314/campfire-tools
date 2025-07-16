@@ -44,7 +44,7 @@ func New(cfg Config) (*Server, error) {
 
 		st := template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			ParseFS(templates, "templates/*.gohtml"),
+			ParseFS(templates, "web/templates/*.gohtml"),
 		)
 
 		t = func() *template.Template {
