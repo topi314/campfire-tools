@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"fmt"
@@ -13,25 +13,25 @@ type TrackerClubRaffleVars struct {
 	Error           string
 }
 
-func (s *Server) TrackerClubRaffle(w http.ResponseWriter, r *http.Request) {
-	s.renderTrackerClubRaffle(w, r, "")
+func (h *handler) TrackerClubRaffle(w http.ResponseWriter, r *http.Request) {
+	h.renderTrackerClubRaffle(w, r, "")
 }
 
-func (s *Server) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
 	query := r.URL.Query()
 
 	clubID := r.PathValue("club_id")
 	eventID := query.Get("event")
 
-	club, err := s.db.GetClub(ctx, clubID)
+	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to get club: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := s.db.GetEvents(ctx, clubID)
+	events, err := h.DB.GetEvents(ctx, clubID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -44,15 +44,15 @@ func (s *Server) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request,
 			ID:            event.ID,
 			Name:          event.Name,
 			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL),
+			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
 		}
 	}
 
-	if err = s.templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
 		Club: Club{
 			ClubID:        club.ID,
 			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL),
+			ClubAvatarURL: imageURL(club.AvatarURL, 48),
 		},
 		Events:          trackerEvents,
 		SelectedEventID: eventID,

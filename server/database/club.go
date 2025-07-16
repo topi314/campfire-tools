@@ -7,10 +7,10 @@ import (
 
 func (d *Database) GetClubs(ctx context.Context) ([]Club, error) {
 	query := `
-		SELECT id, name, avatar_url, creator_id, created_by_community_ambassador
-        FROM clubs
+		SELECT *
+		FROM clubs
 		ORDER BY name
-        `
+	`
 
 	var clubs []Club
 	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
@@ -22,7 +22,7 @@ func (d *Database) GetClubs(ctx context.Context) ([]Club, error) {
 
 func (d *Database) GetClub(ctx context.Context, clubID string) (*Club, error) {
 	query := `
-		SELECT id, name, avatar_url, creator_id, created_by_community_ambassador
+		SELECT *
 		FROM clubs
 		WHERE id = $1
 	`
@@ -37,13 +37,15 @@ func (d *Database) GetClub(ctx context.Context, clubID string) (*Club, error) {
 
 func (d *Database) InsertClub(ctx context.Context, club Club) error {
 	query := `
-		INSERT INTO clubs (id, name, avatar_url, creator_id, created_by_community_ambassador)
-		VALUES (:id, :name, :avatar_url, :creator_id, :created_by_community_ambassador)
+		INSERT INTO clubs (id, name, avatar_url, creator_id, created_by_community_ambassador, raw_json)
+		VALUES (:id, :name, :avatar_url, :creator_id, :created_by_community_ambassador, :raw_json)
 		ON CONFLICT (id) DO UPDATE SET
 		name = EXCLUDED.name,
 		avatar_url = EXCLUDED.avatar_url,
 		creator_id = EXCLUDED.creator_id,
-		created_by_community_ambassador = EXCLUDED.created_by_community_ambassador
+		created_by_community_ambassador = EXCLUDED.created_by_community_ambassador,
+		imported_at = NOW(),
+		raw_json = EXCLUDED.raw_json
 	`
 
 	if _, err := d.db.NamedExecContext(ctx, query, club); err != nil {

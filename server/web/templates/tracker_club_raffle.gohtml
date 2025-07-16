@@ -14,7 +14,7 @@
 
     <div class="section">
         <form action="/raffle" method="POST">
-            <label class="form-control" for="ids">
+            <label class="form-control" for="ids" title="Select events for the raffle. You can select multiple events.">
                 Events
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
@@ -27,9 +27,13 @@
                     <p class="error" id="error-message">{{ .Error }}</p>
                 {{ end }}
             </label>
-            <label class="form-control" for="count">
+            <label class="form-control" for="count" title="Number of winners to select from the raffle">
                 Number of Winners
                 <input class="form-control" type="number" id="count" name="count" min="1" value="1" required>
+            </label>
+            <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
+                Only Checked-in Members
+                <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" checked>
             </label>
             <button class="form-control" type="submit">Run</button>
         </form>

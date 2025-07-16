@@ -8,7 +8,7 @@ import (
 
 func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, error) {
 	query := `
-		SELECT id, username, display_name, avatar_url
+		SELECT *
 		FROM members
 		WHERE id = $1
 	`
@@ -21,14 +21,18 @@ func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, err
 	return &member, nil
 }
 
+// InsertMembers inserts or updates multiple members in the database.
+// Fields which are an empty string will not be updated.
 func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 	query := `
-		INSERT INTO members (id, username, display_name, avatar_url)
-		VALUES (:id, :username, :display_name, :avatar_url)
+		INSERT INTO members (id, username, display_name, avatar_url, raw_json)
+		VALUES (:id, :username, :display_name, :avatar_url, :raw_json)
 		ON CONFLICT (id) DO UPDATE SET
-			username = EXCLUDED.username,
-			display_name = EXCLUDED.display_name,
-			avatar_url = EXCLUDED.avatar_url
+			username = COALESCE(NULLIF(EXCLUDED.username, ''), members.username),
+			display_name = COALESCE(NULLIF(EXCLUDED.display_name, ''), members.display_name),
+			avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), members.avatar_url),
+			imported_at = NOW(),
+			raw_json = COALESCE(NULLIF(EXCLUDED.raw_json, '{}'), members.raw_json)
 	`
 
 	_, err := d.db.NamedExecContext(ctx, query, members)
@@ -59,7 +63,7 @@ func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]Event
 
 func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
 	query := `
-		SELECT m.id, m.username, m.display_name, m.avatar_url
+		SELECT m.*
 		FROM members m
 		JOIN event_rsvps er ON m.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'CHECKED_IN'
@@ -76,7 +80,7 @@ func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID strin
 
 func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
 	query := `
-		SELECT m.id, m.username, m.display_name, m.avatar_url
+		SELECT m.*
 		FROM members m
 		JOIN event_rsvps er ON m.id = er.member_id
 		WHERE er.event_id = $1 AND er.status = 'ACCEPTED'
@@ -93,7 +97,7 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 
 func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopMember, error) {
 	query := `
-		SELECT m.id, m.username, m.display_name, m.avatar_url,
+		SELECT m.*,
 			COUNT(CASE WHEN er.status = 'ACCEPTED' or er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
 			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er

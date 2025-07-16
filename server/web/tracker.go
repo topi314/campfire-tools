@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/tsync"
-	"github.com/topi314/campfire-tools/server/campfire"
 )
 
 type TrackerVars struct {
@@ -24,14 +23,14 @@ type TrackerClub struct {
 	URL       string
 }
 
-func (s *Server) Tracker(w http.ResponseWriter, r *http.Request) {
-	s.renderTracker(w, r)
+func (h *handler) Tracker(w http.ResponseWriter, r *http.Request) {
+	h.renderTracker(w, r)
 }
 
-func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
+func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
 	ctx := r.Context()
 
-	clubs, err := s.db.GetClubs(ctx)
+	clubs, err := h.DB.GetClubs(ctx)
 	if err != nil {
 		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -42,12 +41,12 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 		trackerClubs[i] = TrackerClub{
 			ID:        club.ID,
 			Name:      club.Name,
-			AvatarURL: imageURL(club.AvatarURL),
+			AvatarURL: imageURL(club.AvatarURL, 32),
 			URL:       fmt.Sprintf("/tracker/club/%s", club.ID),
 		}
 	}
 
-	if err = s.templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
 		Clubs:  trackerClubs,
 		Errors: errorMessages,
 	}); err != nil {
@@ -55,7 +54,7 @@ func (s *Server) renderTracker(w http.ResponseWriter, r *http.Request, errorMess
 	}
 }
 
-func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithoutCancel(r.Context())
 
 	events := strings.TrimSpace(r.FormValue("events"))
@@ -63,7 +62,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(ctx, "Received tracker add request", slog.String("url", r.URL.String()), slog.String("events", events))
 
 	if events == "" {
-		s.renderTracker(w, r, "Missing 'events' parameter")
+		h.renderTracker(w, r, "Missing 'events' parameter")
 		return
 	}
 
@@ -84,32 +83,23 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	var eg tsync.ErrorGroup
-	for _, event := range allEvents {
+	for _, eventID := range allEvents {
 		eg.Go(func() error {
-			var (
-				fullEvent *campfire.FullEvent
-				err       error
-			)
-
-			if strings.HasPrefix(event, "https://") {
-				fullEvent, err = s.campfire.FetchEvent(ctx, event)
-			} else {
-				fullEvent, err = s.fetchFullEvent(ctx, event)
-			}
+			event, err := h.fetchEvent(ctx, eventID)
 			if err != nil {
-				return fmt.Errorf("failed to fetch event %q: %w", event, err)
+				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}
 
-			if len(fullEvent.Event.RSVPStatuses) == 0 {
+			if len(event.RSVPStatuses) == 0 {
 				return nil
 			}
 
-			if fullEvent.Event.EventEndTime.After(now) {
-				return fmt.Errorf("event has not ended yet: %s", fullEvent.Event.Name)
+			if event.EventEndTime.After(now) {
+				return fmt.Errorf("event has not ended yet: %s", event.Name)
 			}
 
-			if err = s.processEvent(ctx, *fullEvent); err != nil {
-				return fmt.Errorf("failed to process event %q: %w", event, err)
+			if err = h.processEvent(ctx, *event); err != nil {
+				return fmt.Errorf("failed to process event %q: %w", eventID, err)
 			}
 
 			return nil
@@ -124,7 +114,7 @@ func (s *Server) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				slog.ErrorContext(ctx, "Failed to add event or members", "err", err)
 			}
 		}
-		s.renderTracker(w, r, errorMessages...)
+		h.renderTracker(w, r, errorMessages...)
 		return
 	}
 

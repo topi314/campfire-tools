@@ -13,6 +13,7 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/xslog"
 	"github.com/topi314/campfire-tools/server"
+	"github.com/topi314/campfire-tools/server/web"
 )
 
 func main() {
@@ -42,7 +43,8 @@ func main() {
 		slog.Error("Error while creating server", slog.Any("err", err))
 		return
 	}
-	go srv.Start()
+
+	go srv.Start(web.Routes(srv))
 	defer srv.Stop()
 
 	slog.Info("Server started", slog.String("addr", cfg.Server.Addr))
