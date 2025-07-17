@@ -110,6 +110,10 @@ select option:hover {
     color: #ffffff;
 }
 
+details > *:not(:last-child) {
+    margin-bottom: 10px;
+}
+
 details summary {
     cursor: pointer;
     font-weight: bold;
@@ -167,10 +171,6 @@ details summary {
     padding: 10px;
     text-align: left;
     margin: 0;
-}
-
-.section:last-child {
-    border-bottom: none;
 }
 
 .section-header {
@@ -434,4 +434,24 @@ h2 > img {
 .table-7 > span:first-child, .table-7 > span:nth-child(2), .table-7 > span:nth-child(3), .table-7 > span:nth-child(4), .table-7 > span:nth-child(5), .table-7 > span:nth-child(6), .table-7 > span:nth-child(7) {
     font-weight: bold;
     background-color: var(--background-color);
+}
+
+#league-goals {
+    grid-template-columns: 1fr auto auto auto;
+}
+
+.progress-green {
+    background-color: var(--progress-green);
+}
+
+.progress-yellow {
+    background-color: var(--progress-yellow);
+}
+
+.progress-orange {
+    background-color: var(--progress-orange);
+}
+
+.progress-red {
+    background-color: var(--progress-red);
 }

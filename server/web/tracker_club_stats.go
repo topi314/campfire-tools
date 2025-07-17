@@ -8,6 +8,7 @@ import (
 	"maps"
 	"math"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,17 +17,49 @@ import (
 	"github.com/topi314/campfire-tools/internal/xstrconv"
 )
 
+const (
+	OriginLeagueGoal    = 1
+	GreatLeagueGoal     = 61
+	UltraLeagueGoal     = 250
+	MasterLeagueGoal    = 750
+	LegendaryLeagueGoal = 1500
+)
+
 type TrackerClubStatsVars struct {
 	Club
 
-	From time.Time
-	To   time.Time
+	From         time.Time
+	To           time.Time
+	OnlyCAEvents bool
 
 	TopCounts []int
+	Quarters  []Quarter
 
 	TopMembers      TopMembers
 	TopEvents       TopEvents
 	EventCategories EventCategories
+	LeagueGoals     LeagueGoals
+}
+
+type LeagueGoals struct {
+	Open              bool
+	Goals             []LeagueGoal
+	Quarter           string
+	TotalCheckIns     int
+	ProjectedCheckIns int
+	BiggestEvent      *TopEvent
+}
+
+type Quarter struct {
+	Name  string
+	Value string
+}
+
+type LeagueGoal struct {
+	Name       string
+	Goal       int
+	Progress   float64
+	Projection bool
 }
 
 func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
@@ -34,69 +67,21 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 
 	clubID := r.PathValue("club_id")
 	query := r.URL.Query()
-	fromDate := query.Get("from")
-	toDate := query.Get("to")
-	membersStr := query.Get("members")
-	eventsStr := query.Get("events")
-	topMembersClosedStr := query.Get("members-closed")
-	topEventsClosedStr := query.Get("events-closed")
-	categoriesClosedStr := query.Get("event-categories-closed")
 
-	var from time.Time
-	if fromDate != "" {
-		fromParsed, err := time.Parse("2006-01-02", fromDate)
-		if err == nil {
-			from = fromParsed
-		}
+	from := parseTimeQuery(query, "from", time.Time{})
+	to := parseTimeQuery(query, "to", time.Time{})
+	if !to.IsZero() {
+		to = to.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
 	}
 
-	var to time.Time
-	if toDate != "" {
-		toParsed, err := time.Parse("2006-01-02", toDate)
-		if err == nil {
-			to = toParsed.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
-		}
-	}
-
-	membersCount := 10
-	if membersStr != "" {
-		parsedMembersCount, err := strconv.Atoi(membersStr)
-		if err == nil {
-			membersCount = parsedMembersCount
-		}
-	}
-
-	eventsCount := 10
-	if eventsStr != "" {
-		parsedEventsCount, err := strconv.Atoi(eventsStr)
-		if err == nil {
-			eventsCount = parsedEventsCount
-		}
-	}
-
-	var topMembersClosed bool
-	if topMembersClosedStr != "" {
-		parsedTopMembersClosed, err := xstrconv.ParseBool(topMembersClosedStr)
-		if err == nil {
-			topMembersClosed = parsedTopMembersClosed
-		}
-	}
-
-	var topEventsClosed bool
-	if topEventsClosedStr != "" {
-		parsedTopEventsClosed, err := xstrconv.ParseBool(topEventsClosedStr)
-		if err == nil {
-			topEventsClosed = parsedTopEventsClosed
-		}
-	}
-
-	var categoriesClosed bool
-	if categoriesClosedStr != "" {
-		parsedCategoriesClosed, err := xstrconv.ParseBool(categoriesClosedStr)
-		if err == nil {
-			categoriesClosed = parsedCategoriesClosed
-		}
-	}
+	membersCount := parseIntQuery(query, "members", 10)
+	eventsCount := parseIntQuery(query, "events", 10)
+	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
+	topMembersClosed := parseBoolQuery(query, "members-closed", false)
+	topEventsClosed := parseBoolQuery(query, "events-closed", false)
+	categoriesClosed := parseBoolQuery(query, "event-categories-closed", false)
+	leagueGoalsClosed := parseBoolQuery(query, "league-goals-closed", false)
+	leagueGoalQuarter := query.Get("league-goal-quarter")
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -108,7 +93,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topMembers, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, membersCount)
+	topMembers, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, membersCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -129,7 +114,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	topEvents, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, eventsCount)
+	topEvents, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, onlyCAEvents, eventsCount)
 	if err != nil {
 		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -149,7 +134,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to)
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -157,7 +142,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 
 	totalCheckInRate := calcCheckInRate(totalAccepted, totalCheckIns)
 
-	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to)
+	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
 		http.Error(w, "Failed to fetch event check-in and accepted counts: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -192,6 +177,69 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return b.CheckIns - a.CheckIns
 	})
 
+	quarterFrom, quarterTo := getRangeFromQuarter(leagueGoalQuarter)
+
+	_, totalCACheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, quarterFrom, quarterTo, true)
+	if err != nil {
+		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	biggestEvent, err := h.DB.GetBiggestCheckInEvent(ctx, clubID, quarterFrom, quarterTo, true)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		http.Error(w, "Failed to fetch biggest check-in event: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var trackerBiggestEvent *TopEvent
+	if biggestEvent != nil {
+		trackerBiggestEvent = &TopEvent{
+			Event: Event{
+				ID:            biggestEvent.ID,
+				Name:          biggestEvent.Name,
+				URL:           fmt.Sprintf("/tracker/event/%s", biggestEvent.ID),
+				CoverPhotoURL: imageURL(biggestEvent.CoverPhotoURL, 60),
+			},
+			Accepted:    biggestEvent.Accepted,
+			CheckIns:    biggestEvent.CheckIns,
+			CheckInRate: calcCheckInRate(biggestEvent.Accepted, biggestEvent.CheckIns),
+		}
+	}
+
+	totalCAProjectedCheckIns := calcCAProjectedCheckIns(quarterFrom, quarterTo, totalCACheckIns)
+
+	leagueGoals := []LeagueGoal{
+		{
+			Name:       "Origin League",
+			Goal:       OriginLeagueGoal,
+			Progress:   calcCheckInProgress(OriginLeagueGoal, totalCACheckIns),
+			Projection: OriginLeagueGoal <= totalCAProjectedCheckIns,
+		},
+		{
+			Name:       "Great League",
+			Goal:       GreatLeagueGoal,
+			Progress:   calcCheckInProgress(GreatLeagueGoal, totalCACheckIns),
+			Projection: GreatLeagueGoal <= totalCAProjectedCheckIns,
+		},
+		{
+			Name:       "Ultra League",
+			Goal:       UltraLeagueGoal,
+			Progress:   calcCheckInProgress(UltraLeagueGoal, totalCACheckIns),
+			Projection: UltraLeagueGoal <= totalCAProjectedCheckIns,
+		},
+		{
+			Name:       "Master League",
+			Goal:       MasterLeagueGoal,
+			Progress:   calcCheckInProgress(MasterLeagueGoal, totalCACheckIns),
+			Projection: MasterLeagueGoal <= totalCAProjectedCheckIns,
+		},
+		{
+			Name:       "Legendary League",
+			Goal:       LegendaryLeagueGoal,
+			Progress:   calcCheckInProgress(LegendaryLeagueGoal, totalCACheckIns),
+			Projection: LegendaryLeagueGoal <= totalCAProjectedCheckIns,
+		},
+	}
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
 		Club: Club{
 			ClubID:        club.ID,
@@ -199,10 +247,40 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			ClubAvatarURL: imageURL(club.AvatarURL, 60),
 		},
 
-		From: from,
-		To:   to,
-
-		TopCounts: []int{10, 25, 50, 75, 100},
+		From:         from,
+		To:           to,
+		OnlyCAEvents: onlyCAEvents,
+		TopCounts:    []int{10, 25, 50, 75, 100},
+		Quarters: []Quarter{
+			{
+				Name:  "Q3 2025",
+				Value: "q3-2025",
+			},
+			{
+				Name:  "Q2 2025",
+				Value: "q2-2025",
+			},
+			{
+				Name:  "Q1 2025",
+				Value: "q1-2025",
+			},
+			{
+				Name:  "Q4 2024",
+				Value: "q4-2024",
+			},
+			{
+				Name:  "Q3 2024",
+				Value: "q3-2024",
+			},
+			{
+				Name:  "Q2 2024",
+				Value: "q2-2024",
+			},
+			{
+				Name:  "Q1 2024",
+				Value: "q1-2024",
+			},
+		},
 		TopMembers: TopMembers{
 			Count:   membersCount,
 			Open:    !topMembersClosed,
@@ -219,6 +297,14 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		EventCategories: EventCategories{
 			Open:       !categoriesClosed,
 			Categories: categories,
+		},
+		LeagueGoals: LeagueGoals{
+			Open:              !leagueGoalsClosed,
+			Goals:             leagueGoals,
+			Quarter:           leagueGoalQuarter,
+			TotalCheckIns:     totalCACheckIns,
+			ProjectedCheckIns: totalCAProjectedCheckIns,
+			BiggestEvent:      trackerBiggestEvent,
 		},
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club stats template", slog.String("club_id", clubID), slog.Any("err", err))
@@ -266,4 +352,134 @@ func calcCheckInRate(accepted int, checkIns int) float64 {
 		return 0
 	}
 	return math.RoundToEven(float64(checkIns) / float64(accepted) * 100)
+}
+
+func calcCheckInProgress(goal int, checkIns int) float64 {
+	if goal == 0 {
+		return 0
+	}
+	if checkIns >= goal {
+		return 100
+	}
+	return math.RoundToEven(float64(checkIns) / float64(goal) * 100)
+}
+
+func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) int {
+	duration := to.Sub(from)
+	if duration <= 0 {
+		return 0
+	}
+
+	days := int(duration.Hours() / 24)
+	if days == 0 {
+		return totalCheckIns // No projection if the duration is less than a day
+	}
+
+	projectedCheckIns := float64(totalCheckIns) / float64(days) * 365 // Project for a year
+	return int(math.Round(projectedCheckIns))
+}
+
+func parseTimeQuery(query url.Values, name string, defaultValue time.Time) time.Time {
+	value := query.Get(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func parseBoolQuery(query url.Values, name string, defaultValue bool) bool {
+	value := query.Get(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := xstrconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func parseIntQuery(query url.Values, name string, defaultValue int) int {
+	value := query.Get(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+
+	return parsed
+}
+
+func parseStringQuery(query url.Values, name string, defaultValue string) string {
+	value := query.Get(name)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+func getRangeFromQuarter(value string) (time.Time, time.Time) {
+	value = strings.ToLower(value)
+
+	parts := strings.SplitN(value, "-", 2)
+	if len(parts) != 2 {
+		return getCurrentQuarter()
+	}
+
+	quarter := parts[0]
+	yearStr := parts[1]
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return getCurrentQuarter()
+	}
+
+	var startMonth time.Month
+	switch quarter {
+	case "q1":
+		startMonth = time.January
+	case "q2":
+		startMonth = time.April
+	case "q3":
+		startMonth = time.July
+	case "q4":
+		startMonth = time.October
+	default:
+		return getCurrentQuarter()
+	}
+	start := time.Date(year, startMonth, 1, 0, 0, 0, 0, time.UTC)
+	end := start.AddDate(0, 3, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the quarter
+
+	return start, end
+}
+
+func getCurrentQuarter() (time.Time, time.Time) {
+	now := time.Now()
+	year := now.Year()
+	month := now.Month()
+
+	var startMonth time.Month
+	switch month {
+	case time.January, time.February, time.March:
+		startMonth = time.January
+	case time.April, time.May, time.June:
+		startMonth = time.April
+	case time.July, time.August, time.September:
+		startMonth = time.July
+	default:
+		startMonth = time.October
+	}
+
+	start := time.Date(year, startMonth, 1, 0, 0, 0, 0, now.Location())
+	end := start.AddDate(0, 3, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the quarter
+
+	return start, end
 }

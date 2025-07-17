@@ -1,3 +1,9 @@
+{{ define "league_progress" }}
+    <span class="progress-{{ if gt .Progress 75.0 }}green{{ else if gt .Progress 50.0 }}yellow{{ else if gt .Progress 25.0 }}orange{{ else }}red{{ end }}">
+        {{ .Progress }}%
+    </span>
+{{ end }}
+
 {{ template "head" addStr "Tracker - " .ClubName " - Statistics" }}
 <div class="container">
     <div class="container-header">
@@ -23,6 +29,12 @@
                         <input type="date" id="to" name="to" {{ if not .To.IsZero }}value="{{ formatDate .To }}"{{ end }} max="{{ formatDate now }}">
                     </label>
                 </div>
+                <div class="stacked-form-control">
+                    <label class="form-control">
+                        Only CA Events
+                        <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
+                    </label>
+                </div>
 
                 <input type="hidden" name="members" value="{{ .TopMembers.Count }}">
                 <input type="hidden" name="events" value="{{ .TopEvents.Count }}">
@@ -33,14 +45,12 @@
                 <div class="stacked-form-control">
                     <label for="date-preset">
                         <select id="date-preset" onchange="updateDate(this)">
-                            <option value="">Select a quarter</option>
-                            <option value="q3-2025">Q3 2025</option>
-                            <option value="q2-2025">Q2 2025</option>
-                            <option value="q1-2025">Q1 2025</option>
-                            <option value="q4-2024">Q4 2024</option>
-                            <option value="q3-2024">Q3 2024</option>
-                            <option value="q2-2024">Q2 2024</option>
-                            <option value="q1-2024">Q1 2024</option>
+                            <option value="">Select Quarter</option>
+                            {{ range $quarter := .Quarters }}
+                                <option value="{{ $quarter.Value }}">
+                                    {{ $quarter.Name }}
+                                </option>
+                            {{ end }}
                         </select>
                     </label>
                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -179,6 +189,60 @@
                     <span></span>
                     <span></span>
                 {{ end }}
+            </div>
+        </details>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>League Goals</h2>
+        </div>
+
+        <details ontoggle="toggleParam(this, 'league-goals-closed')" {{ if .LeagueGoals.Open }}open{{ end }}>
+            <summary>
+                View league goals and their completion status.
+            </summary>
+
+            {{ if .LeagueGoals.BiggestEvent }}
+                <p>
+                    Your biggest event was <a href="{{ .LeagueGoals.BiggestEvent.URL }}"><strong>{{ .LeagueGoals.BiggestEvent.Name }}</strong></a> with
+                    <strong>{{ .LeagueGoals.BiggestEvent.CheckIns }}</strong> check-ins.
+                </p>
+
+                {{ if lt .LeagueGoals.BiggestEvent.CheckIns 20 }}
+                    <p class="error">
+                        This event does not meet the minimum requirement of <strong>20</strong> check-ins for Great League and above.
+                    </p>
+                {{ end }}
+            {{ end }}
+
+            <div class="inline-form-control">
+                <label for="league-goal-quarter">
+                    <select id="league-goal-quarter" onchange="updateParam(this, 'league-goal-quarter');">
+                        {{ range $quarter := .Quarters }}
+                            <option value="{{ $quarter.Value }}" {{ if eq $quarter.Value $.LeagueGoals.Quarter }}selected{{ end }}>
+                                {{ $quarter.Name }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+            </div>
+
+            <div id="league-goals" class="table-4">
+                <span>League</span>
+                <span>Goal</span>
+                <span>Progress</span>
+                <span>Projection</span>
+                {{ range $league := .LeagueGoals.Goals }}
+                    <span>{{ $league.Name }}</span>
+                    <span>{{ $league.Goal }}</span>
+                    {{ template "league_progress" $league }}
+                    <span>{{ if and $league.Projection }}✅️{{ else }}❌{{ end }}</span>
+                {{ end }}
+                <span></span>
+                <span></span>
+                <span>{{ .LeagueGoals.TotalCheckIns }}</span>
+                <span>{{ .LeagueGoals.ProjectedCheckIns }}</span>
             </div>
         </details>
     </div>

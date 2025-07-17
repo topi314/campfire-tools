@@ -95,7 +95,7 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 	return members, nil
 }
 
-func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, limit int) ([]TopMember, error) {
+func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]TopMember, error) {
 	query := `
 		SELECT m.*,
 			COUNT(CASE WHEN er.status = 'ACCEPTED' or er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
@@ -106,20 +106,21 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 		WHERE e.club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
+		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
 		GROUP BY m.id, m.username, m.display_name, m.avatar_url
 		ORDER BY check_ins DESC, accepted DESC, m.display_name, m.username, m.id
-		LIMIT $4
+		LIMIT $5
 	`
 
 	var members []TopMember
-	if err := d.db.SelectContext(ctx, &members, query, clubID, from, to, limit); err != nil {
+	if err := d.db.SelectContext(ctx, &members, query, clubID, from, to, caOnly, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top members by club: %w", err)
 	}
 
 	return members, nil
 }
 
-func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID string, from time.Time, to time.Time) (int, int, error) {
+func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (int, int, error) {
 	query := `
 		SELECT
 			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
@@ -129,17 +130,18 @@ func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID stri
 		WHERE e.club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
+		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
 	`
 
 	var accepted, checkIns int
-	if err := d.db.QueryRowContext(ctx, query, clubID, from, to).Scan(&accepted, &checkIns); err != nil {
+	if err := d.db.QueryRowContext(ctx, query, clubID, from, to, caOnly).Scan(&accepted, &checkIns); err != nil {
 		return 0, 0, fmt.Errorf("failed to get total check-ins and accepted members: %w", err)
 	}
 
 	return accepted, checkIns, nil
 }
 
-func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID string, from time.Time, to time.Time) ([]EventNumbers, error) {
+func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]EventNumbers, error) {
 	query := `
 		SELECT e.campfire_live_event_id, e.campfire_live_event_name,
             COUNT(e.id) AS events,
@@ -150,11 +152,12 @@ func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID str
 		WHERE e.club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
+		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
 		GROUP BY e.id
 	`
 
 	var numbers []EventNumbers
-	if err := d.db.SelectContext(ctx, &numbers, query, clubID, from, to); err != nil {
+	if err := d.db.SelectContext(ctx, &numbers, query, clubID, from, to, caOnly); err != nil {
 		return nil, fmt.Errorf("failed to get event check-ins and accepted members: %w", err)
 	}
 
