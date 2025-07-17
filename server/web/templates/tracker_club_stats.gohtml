@@ -228,6 +228,22 @@
                 </label>
             </div>
 
+            <div class="table-2">
+                <span>Days</span>
+                <span>{{ .LeagueGoals.Days }}</span>
+
+                <span>Days Elapsed</span>
+                <span>{{ .LeagueGoals.DaysElapsed }}</span>
+
+                <span>Days Remaining</span>
+                <span>{{ .LeagueGoals.DaysRemaining }}</span>
+
+                <span>Progress</span>
+                <span class="progress-{{ if gt .LeagueGoals.DaysElapsedPercent 75.0 }}green{{ else if gt .LeagueGoals.DaysElapsedPercent 50.0 }}yellow{{ else if gt .LeagueGoals.DaysElapsedPercent 25.0 }}orange{{ else }}red{{ end }}">
+                    {{ .LeagueGoals.DaysElapsedPercent }}%
+                </span>
+            </div>
+
             <div id="league-goals" class="table-4">
                 <span>League</span>
                 <span>Goal</span>

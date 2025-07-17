@@ -324,6 +324,31 @@ h2 > img {
     height: 30px;
 }
 
+.table-2 {
+    text-align: left;
+    font-size: 16px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    margin: 0;
+    border: 1px solid var(--border-color);
+    width: fit-content;
+}
+
+.table-2 > * {
+    padding: 5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-2 > *:last-child, .table-2 > *:nth-last-child(2) {
+    border-bottom: none;
+}
+
+.table-2 > *:nth-child(2n-1) {
+    border-right: 1px solid var(--border-color);
+    font-weight: bold;
+    background-color: var(--background-color);
+}
+
 .table-4 {
     width: 100%;
     text-align: left;
@@ -442,16 +467,20 @@ h2 > img {
 
 .progress-green {
     background-color: var(--progress-green);
+    color: #000000;
 }
 
 .progress-yellow {
     background-color: var(--progress-yellow);
+    color: #000000;
 }
 
 .progress-orange {
     background-color: var(--progress-orange);
+    color: #000000;
 }
 
 .progress-red {
     background-color: var(--progress-red);
+    color: #000000;
 }

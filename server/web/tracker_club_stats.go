@@ -42,12 +42,16 @@ type TrackerClubStatsVars struct {
 }
 
 type LeagueGoals struct {
-	Open              bool
-	Goals             []LeagueGoal
-	Quarter           string
-	TotalCheckIns     int
-	ProjectedCheckIns int
-	BiggestEvent      *TopEvent
+	Open               bool
+	Goals              []LeagueGoal
+	Quarter            string
+	TotalCheckIns      int
+	ProjectedCheckIns  int
+	Days               int
+	DaysElapsed        int
+	DaysRemaining      int
+	DaysElapsedPercent float64
+	BiggestEvent       *TopEvent
 }
 
 type Quarter struct {
@@ -205,7 +209,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	totalCAProjectedCheckIns := calcCAProjectedCheckIns(quarterFrom, quarterTo, totalCACheckIns)
+	totalCAProjectedCheckIns, quarterDays, quarterDaysRemaining := calcCAProjectedCheckIns(quarterFrom, quarterTo, totalCACheckIns)
 
 	leagueGoals := []LeagueGoal{
 		{
@@ -299,12 +303,16 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			Categories: categories,
 		},
 		LeagueGoals: LeagueGoals{
-			Open:              !leagueGoalsClosed,
-			Goals:             leagueGoals,
-			Quarter:           leagueGoalQuarter,
-			TotalCheckIns:     totalCACheckIns,
-			ProjectedCheckIns: totalCAProjectedCheckIns,
-			BiggestEvent:      trackerBiggestEvent,
+			Open:               !leagueGoalsClosed,
+			Goals:              leagueGoals,
+			Quarter:            leagueGoalQuarter,
+			TotalCheckIns:      totalCACheckIns,
+			ProjectedCheckIns:  totalCAProjectedCheckIns,
+			Days:               quarterDays,
+			DaysElapsed:        quarterDays - quarterDaysRemaining,
+			DaysRemaining:      quarterDaysRemaining,
+			DaysElapsedPercent: calcQuarterProgress(quarterDays, quarterDaysRemaining),
+			BiggestEvent:       trackerBiggestEvent,
 		},
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club stats template", slog.String("club_id", clubID), slog.Any("err", err))
@@ -354,6 +362,16 @@ func calcCheckInRate(accepted int, checkIns int) float64 {
 	return math.RoundToEven(float64(checkIns) / float64(accepted) * 100)
 }
 
+func calcQuarterProgress(days int, daysRemaining int) float64 {
+	if days == 0 {
+		return 0
+	}
+	if daysRemaining <= 0 {
+		return 100
+	}
+	return math.RoundToEven(float64(days-daysRemaining) / float64(days) * 100)
+}
+
 func calcCheckInProgress(goal int, checkIns int) float64 {
 	if goal == 0 {
 		return 0
@@ -364,19 +382,23 @@ func calcCheckInProgress(goal int, checkIns int) float64 {
 	return math.RoundToEven(float64(checkIns) / float64(goal) * 100)
 }
 
-func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) int {
+func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) (int, int, int) {
 	duration := to.Sub(from)
 	if duration <= 0 {
-		return 0
+		return 0, 0, 0 // No projection if the duration is zero or negative
 	}
 
 	days := int(duration.Hours() / 24)
 	if days == 0 {
-		return totalCheckIns // No projection if the duration is less than a day
+		return totalCheckIns, 0, 0 // No projection if the duration is less than a day
 	}
 
 	projectedCheckIns := float64(totalCheckIns) / float64(days) * 365 // Project for a year
-	return int(math.Round(projectedCheckIns))
+
+	now := time.Now()
+	nowDuration := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Sub(from)
+
+	return int(math.Round(projectedCheckIns)), days, days - int(nowDuration.Hours()/24)
 }
 
 func parseTimeQuery(query url.Values, name string, defaultValue time.Time) time.Time {
