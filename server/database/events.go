@@ -7,38 +7,28 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrDuplicate = errors.New("duplicate entry")
-
-func (d *Database) CreateEvent(ctx context.Context, event Event) error {
+func (d *Database) InsertEvent(ctx context.Context, event Event) error {
 	query := `
 		INSERT INTO events (id, name, details, address, location, creator_id, cover_photo_url, event_time, event_end_time, discord_interested, created_by_community_ambassador, campfire_live_event_id, campfire_live_event_name, club_id, raw_json)
 		VALUES (:id, :name, :details, :address, :location, :creator_id, :cover_photo_url, :event_time, :event_end_time, :discord_interested, :created_by_community_ambassador, :campfire_live_event_id, :campfire_live_event_name, :club_id, :raw_json)
-		`
-
-	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
-		var sqlErr *pgconn.PgError
-		if errors.As(err, &sqlErr) && sqlErr.Code == "23505" { // Unique violation
-			return ErrDuplicate
-		}
-
-		return fmt.Errorf("failed to create event: %w", err)
-	}
-
-	return nil
-}
-
-func (d *Database) UpdateEvent(ctx context.Context, event Event) error {
-	query := `
-		UPDATE events
-		SET name = :name, details = :details, address = :address, location = :location,
-		    creator_id = :creator_id, cover_photo_url = :cover_photo_url, event_time = :event_time, 
-		    event_end_time = :event_end_time, discord_interested = :discord_interested, 
-		    created_by_community_ambassador = :created_by_community_ambassador, campfire_live_event_id = :campfire_live_event_id, 
-		    campfire_live_event_name = :campfire_live_event_name, club_id = :club_id, imported_at = NOW(), raw_json = :raw_json
-		WHERE id = :id
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			details = EXCLUDED.details,
+			address = EXCLUDED.address,
+			location = EXCLUDED.location,
+			creator_id = EXCLUDED.creator_id,
+			cover_photo_url = EXCLUDED.cover_photo_url,
+			event_time = EXCLUDED.event_time,
+			event_end_time = EXCLUDED.event_end_time,
+			discord_interested = EXCLUDED.discord_interested,
+			created_by_community_ambassador = EXCLUDED.created_by_community_ambassador,
+			campfire_live_event_id = EXCLUDED.campfire_live_event_id,
+			campfire_live_event_name = EXCLUDED.campfire_live_event_name,
+			club_id = EXCLUDED.club_id,
+			imported_at = NOW(),
+			raw_json = EXCLUDED.raw_json
 	`
 
 	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {

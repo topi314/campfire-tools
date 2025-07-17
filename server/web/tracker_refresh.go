@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -97,7 +96,7 @@ func (h *handler) processEvent(ctx context.Context, event campfire.Event) error 
 		return fmt.Errorf("failed to insert club: %w", err)
 	}
 
-	if err := h.DB.CreateEvent(ctx, database.Event{
+	if err := h.DB.InsertEvent(ctx, database.Event{
 		ID:                           event.ID,
 		Name:                         event.Name,
 		Details:                      event.Details,
@@ -114,10 +113,7 @@ func (h *handler) processEvent(ctx context.Context, event campfire.Event) error 
 		ClubID:                       event.ClubID,
 		RawJSON:                      event.Raw,
 	}); err != nil {
-		if !errors.Is(err, database.ErrDuplicate) {
-			return fmt.Errorf("failed to create event: %w", err)
-		}
-		// return fmt.Errorf("failed to create event: %w", err)
+		return fmt.Errorf("failed to create event: %w", err)
 	}
 
 	slog.InfoContext(ctx, "Event added", slog.String("name", event.Name), slog.String("id", event.ID))
