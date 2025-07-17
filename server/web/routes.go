@@ -48,10 +48,17 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/migrate", h.TrackerMigrate)
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
-	mux.Handle("GET /static/", fs)
-	mux.Handle("HEAD /static/", fs)
+	mux.Handle("GET /static/", cache(fs))
+	mux.Handle("HEAD /static/", cache(fs))
 
 	return h.AuthMiddleware(mux)
+}
+
+func cache(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "stale-while-revalidate, max-age=3600") // Cache for 1 hour, revalidate after stale
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {
