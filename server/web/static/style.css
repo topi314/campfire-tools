@@ -1,51 +1,8 @@
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-
-:root {
-    --font-family: Arial;
-    --primary-color: #007bff;
-    --primary-color-hover: #0056b3;
-    --error-color: #ef5656;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background-color: #1e1e1e;
-        --background2-color: #2c2c2c;
-        --text-color: #ffffff;
-        --border-color: #444444;
-    }
-
-    html {
-        color-scheme: dark;
-    }
-}
-
-@media (prefers-color-scheme: light) {
-    :root {
-        --background-color: #ffffff;
-        --background2-color: #f0f0f0;
-        --text-color: #000000;
-        --border-color: #cccccc;
-    }
-
-    html {
-        color-scheme: light;
-    }
-}
-
 body, html {
     height: 100%;
     margin: 0;
     display: flex;
     flex-direction: column;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    font-family: var(--font-family), sans-serif;
     text-align: center;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
