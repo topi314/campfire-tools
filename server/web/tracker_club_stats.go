@@ -393,12 +393,18 @@ func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) (i
 		return totalCheckIns, 0, 0 // No projection if the duration is less than a day
 	}
 
-	projectedCheckIns := float64(totalCheckIns) / float64(days) * 365 // Project for a year
-
 	now := time.Now()
 	nowDuration := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Sub(from)
 
-	return int(math.Round(projectedCheckIns)), days, days - int(nowDuration.Hours()/24)
+	daysRemaining := int(max(float64(days-int(nowDuration.Hours()/24)), 0))
+
+	// project for the remaining days in the quarter
+	projectedCheckIns := totalCheckIns
+	if daysRemaining > 0 {
+		projectedCheckIns = int(math.Round(float64(totalCheckIns) * float64(days) / float64(daysRemaining)))
+	}
+
+	return projectedCheckIns, days, daysRemaining
 }
 
 func parseTimeQuery(query url.Values, name string, defaultValue time.Time) time.Time {
