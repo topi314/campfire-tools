@@ -7,11 +7,11 @@ import (
 
 func (d *Database) InsertEventRSVPs(ctx context.Context, rsvps []EventRSVP) error {
 	query := `
-		INSERT INTO event_rsvps (rsvp_event_id, rsvp_member_id, rsvp_status)
-		VALUES (:rsvp_event_id, :rsvp_member_id, :rsvp_status)
-		ON CONFLICT (rsvp_event_id, rsvp_member_id) DO UPDATE SET
-			rsvp_status = EXCLUDED.rsvp_status,
-			rsvp_imported_at = NOW()
+		INSERT INTO event_rsvps (event_rsvp_event_id, event_rsvp_member_id, event_rsvp_status)
+		VALUES (:event_rsvp_event_id, :event_rsvp_member_id, :event_rsvp_status)
+		ON CONFLICT (event_rsvp_event_id, event_rsvp_member_id) DO UPDATE SET
+			event_rsvp_status = EXCLUDED.event_rsvp_status,
+			event_rsvp_imported_at = NOW()
 	`
 
 	_, err := d.db.NamedExecContext(ctx, query, rsvps)

@@ -47,8 +47,8 @@ func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]Event
 	query := `
 		SELECT e.*, er.*, m.*
 		FROM events e
-		JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
-		JOIN members m ON er.rsvp_member_id = m.member_id
+		JOIN event_rsvps er ON e.event_id = er.event_rsvp_event_id
+		JOIN members m ON er.event_rsvp_member_id = m.member_id
 		WHERE e.event_id = $1
 		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
@@ -65,8 +65,8 @@ func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID strin
 	query := `
 		SELECT m.*
 		FROM members m
-		JOIN event_rsvps er ON m.member_id = er.rsvp_member_id
-		WHERE er.rsvp_event_id = $1 AND er.rsvp_status = 'CHECKED_IN'
+		JOIN event_rsvps er ON m.member_id = er.event_rsvp_member_id
+		WHERE er.event_rsvp_event_id = $1 AND er.event_rsvp_status = 'CHECKED_IN'
 		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
@@ -82,8 +82,8 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 	query := `
 		SELECT m.*
 		FROM members m
-		JOIN event_rsvps er ON m.member_id = er.rsvp_member_id
-		WHERE er.rsvp_event_id = $1 AND er.rsvp_status = 'ACCEPTED'
+		JOIN event_rsvps er ON m.member_id = er.event_rsvp_member_id
+		WHERE er.event_rsvp_event_id = $1 AND er.event_rsvp_status = 'ACCEPTED'
 		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
@@ -98,11 +98,11 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]TopMember, error) {
 	query := `
 		SELECT m.*,
-			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' or er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
+			COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' or er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
-		JOIN events e ON er.rsvp_event_id = e.event_id
-		JOIN members m ON er.rsvp_member_id = m.member_id
+		JOIN events e ON er.event_rsvp_event_id = e.event_id
+		JOIN members m ON er.event_rsvp_member_id = m.member_id
 		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
@@ -123,10 +123,10 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (int, int, error) {
 	query := `
 		SELECT
-			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
+			COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
-		JOIN events e ON er.rsvp_event_id = e.event_id
+		JOIN events e ON er.event_rsvp_event_id = e.event_id
 		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
@@ -145,10 +145,10 @@ func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID str
 	query := `
 		SELECT e.event_campfire_live_event_id, e.event_campfire_live_event_name,
             COUNT(e.event_id) AS events,
-			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
+			COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM events e
-		JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+		JOIN event_rsvps er ON e.event_id = er.event_rsvp_event_id
 		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
