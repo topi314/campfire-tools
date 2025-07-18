@@ -49,11 +49,7 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
-		Club: Club{
-			ClubID:        club.ID,
-			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL, 48),
-		},
+		Club:            newClub(*club),
 		Events:          trackerEvents,
 		SelectedEventID: eventID,
 		Error:           errorMessage,

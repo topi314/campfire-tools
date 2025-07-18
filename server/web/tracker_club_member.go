@@ -76,11 +76,7 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
-		Club: Club{
-			ClubID:        club.ID,
-			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL, 48),
-		},
+		Club:           newClub(*club),
 		ID:             member.ID,
 		Username:       member.Username,
 		DisplayName:    member.DisplayName,

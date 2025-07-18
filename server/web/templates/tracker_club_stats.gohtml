@@ -1,9 +1,3 @@
-{{ define "league_progress" }}
-    <span class="progress-{{ if gt .Progress 75.0 }}green{{ else if gt .Progress 50.0 }}yellow{{ else if gt .Progress 25.0 }}orange{{ else }}red{{ end }}">
-        {{ .Progress }}%
-    </span>
-{{ end }}
-
 {{ template "head" addStr "Tracker - " .ClubName " - Statistics" }}
 <div class="container">
     <div class="container-header">
@@ -239,9 +233,7 @@
                 <span>{{ .LeagueGoals.DaysRemaining }}</span>
 
                 <span>Progress</span>
-                <span class="progress-{{ if gt .LeagueGoals.DaysElapsedPercent 75.0 }}green{{ else if gt .LeagueGoals.DaysElapsedPercent 50.0 }}yellow{{ else if gt .LeagueGoals.DaysElapsedPercent 25.0 }}orange{{ else }}red{{ end }}">
-                    {{ .LeagueGoals.DaysElapsedPercent }}%
-                </span>
+                {{ template "league_progress" .LeagueGoals.DaysElapsedPercent }}
             </div>
 
             <div id="league-goals" class="table-4">
@@ -252,7 +244,7 @@
                 {{ range $league := .LeagueGoals.Goals }}
                     <span>{{ $league.Name }}</span>
                     <span>{{ $league.Goal }}</span>
-                    {{ template "league_progress" $league }}
+                    {{ template "league_progress" $league.Progress }}
                     <span>{{ if and $league.Projection }}✅️{{ else }}❌{{ end }}</span>
                 {{ end }}
                 <span></span>

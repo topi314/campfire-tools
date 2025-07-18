@@ -18,6 +18,38 @@
 
     <div class="section">
         <div class="section-header">
+            <h2>Details</h2>
+        </div>
+        <p>
+            <strong>Creator:</strong>
+            <br/>
+            {{ if .Creator.AvatarURL }}
+                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
+            {{ else }}
+                <img class="icon-32" src="/static/default_avatar.png">
+            {{ end }}
+            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}">{{ .Creator.DisplayName }}</a>
+        </p>
+        <p>
+            <strong>Created By Community Ambassador:</strong>
+            <br/>
+            {{ if .CreatedByCommunityAmbassador }}
+                ✅️
+            {{ else }}
+                ❌
+            {{ end }}
+        </p>
+        <p>
+            <strong>Imported At:</strong>
+            <br/>
+            {{ if .ImportedAt }}
+                {{ formatTimeToRelDayTime .ImportedAt }}
+            {{ end }}
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
             <h2>Events ({{ len .Events }})</h2>
         </div>
         <ul class="list">

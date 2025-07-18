@@ -6,41 +6,51 @@ import (
 )
 
 type Club struct {
-	ID                           string          `db:"id"`
-	Name                         string          `db:"name"`
-	AvatarURL                    string          `db:"avatar_url"`
-	CreatorID                    string          `db:"creator_id"`
-	CreatedByCommunityAmbassador bool            `db:"created_by_community_ambassador"`
-	ImportedAt                   time.Time       `db:"imported_at"`
-	RawJSON                      json.RawMessage `db:"raw_json"`
+	ID                           string          `db:"club_id"`
+	Name                         string          `db:"club_name"`
+	AvatarURL                    string          `db:"club_avatar_url"`
+	CreatorID                    string          `db:"club_creator_id"`
+	CreatedByCommunityAmbassador bool            `db:"club_created_by_community_ambassador"`
+	ImportedAt                   time.Time       `db:"club_imported_at"`
+	RawJSON                      json.RawMessage `db:"club_raw_json"`
 }
 
 type Event struct {
-	ID                           string          `db:"id"`
-	Name                         string          `db:"name"`
-	Details                      string          `db:"details"`
-	Address                      string          `db:"address"`
-	Location                     string          `db:"location"`
-	CreatorID                    string          `db:"creator_id"`
-	CoverPhotoURL                string          `db:"cover_photo_url"`
-	EventTime                    time.Time       `db:"event_time"`
-	EventEndTime                 time.Time       `db:"event_end_time"`
-	DiscordInterested            int             `db:"discord_interested"`
-	CreatedByCommunityAmbassador bool            `db:"created_by_community_ambassador"`
-	CampfireLiveEventID          string          `db:"campfire_live_event_id"`
-	CampfireLiveEventName        string          `db:"campfire_live_event_name"`
-	ClubID                       string          `db:"club_id"`
-	ImportedAt                   time.Time       `db:"imported_at"`
-	RawJSON                      json.RawMessage `db:"raw_json"`
+	ID                           string          `db:"event_id"`
+	Name                         string          `db:"event_name"`
+	Details                      string          `db:"event_details"`
+	Address                      string          `db:"event_address"`
+	Location                     string          `db:"event_location"`
+	CreatorID                    string          `db:"event_creator_id"`
+	CoverPhotoURL                string          `db:"event_cover_photo_url"`
+	Time                         time.Time       `db:"event_time"`
+	EndTime                      time.Time       `db:"event_end_time"`
+	DiscordInterested            int             `db:"event_discord_interested"`
+	CreatedByCommunityAmbassador bool            `db:"event_created_by_community_ambassador"`
+	CampfireLiveEventID          string          `db:"event_campfire_live_event_id"`
+	CampfireLiveEventName        string          `db:"event_campfire_live_event_name"`
+	ClubID                       string          `db:"event_club_id"`
+	ImportedAt                   time.Time       `db:"event_imported_at"`
+	RawJSON                      json.RawMessage `db:"event_raw_json"`
 }
 
 type Member struct {
-	ID          string          `db:"id"`
-	Username    string          `db:"username"`
-	DisplayName string          `db:"display_name"`
-	AvatarURL   string          `db:"avatar_url"`
-	ImportedAt  time.Time       `db:"imported_at"`
-	RawJSON     json.RawMessage `db:"raw_json"`
+	ID          string          `db:"member_id"`
+	Username    string          `db:"member_username"`
+	DisplayName string          `db:"member_display_name"`
+	AvatarURL   string          `db:"member_avatar_url"`
+	ImportedAt  time.Time       `db:"member_imported_at"`
+	RawJSON     json.RawMessage `db:"member_raw_json"`
+}
+
+type ClubWithCreator struct {
+	Club
+	Member
+}
+
+type EventWithCreator struct {
+	Event
+	Member
 }
 
 type TopEvent struct {
@@ -62,22 +72,22 @@ type EventMember struct {
 }
 
 type EventNumbers struct {
-	CampfireLiveEventID   string `db:"campfire_live_event_id"`
-	CampfireLiveEventName string `db:"campfire_live_event_name"`
+	CampfireLiveEventID   string `db:"event_campfire_live_event_id"`
+	CampfireLiveEventName string `db:"event_campfire_live_event_name"`
 	Events                int    `db:"events"`
 	CheckIns              int    `db:"check_ins"`
 	Accepted              int    `db:"accepted"`
 }
 
 type EventRSVP struct {
-	EventID    string    `db:"event_id"`
-	MemberID   string    `db:"member_id"`
-	Status     string    `db:"status"`
-	ImportedAt time.Time `db:"imported_at"`
+	EventID    string    `db:"event_rsvp_event_id"`
+	MemberID   string    `db:"event_rsvp_member_id"`
+	Status     string    `db:"event_rsvp_status"`
+	ImportedAt time.Time `db:"event_rsvp_imported_at"`
 }
 
 type Session struct {
-	ID        string    `db:"id"`
-	CreatedAt time.Time `db:"created_at"`
-	ExpiresAt time.Time `db:"expires_at"`
+	ID        string    `db:"session_id"`
+	CreatedAt time.Time `db:"session_created_at"`
+	ExpiresAt time.Time `db:"session_expires_at"`
 }

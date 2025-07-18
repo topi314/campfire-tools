@@ -10,7 +10,7 @@ func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, err
 	query := `
 		SELECT *
 		FROM members
-		WHERE id = $1
+		WHERE member_id = $1
 	`
 
 	var member Member
@@ -25,14 +25,14 @@ func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, err
 // Fields which are an empty string will not be updated.
 func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 	query := `
-		INSERT INTO members (id, username, display_name, avatar_url, raw_json)
-		VALUES (:id, :username, :display_name, :avatar_url, :raw_json)
-		ON CONFLICT (id) DO UPDATE SET
-			username = COALESCE(NULLIF(EXCLUDED.username, ''), members.username),
-			display_name = COALESCE(NULLIF(EXCLUDED.display_name, ''), members.display_name),
-			avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), members.avatar_url),
-			imported_at = NOW(),
-			raw_json = COALESCE(NULLIF(EXCLUDED.raw_json, '{}'), members.raw_json)
+		INSERT INTO members (member_id, member_username, member_display_name, member_avatar_url, member_raw_json)
+		VALUES (:member_id, :member_username, :member_display_name, :member_avatar_url, :member_raw_json)
+		ON CONFLICT (member_id) DO UPDATE SET
+			member_username = COALESCE(NULLIF(EXCLUDED.member_username, ''), members.member_username),
+			member_display_name = COALESCE(NULLIF(EXCLUDED.member_display_name, ''), members.member_display_name),
+			member_avatar_url = COALESCE(NULLIF(EXCLUDED.member_avatar_url, ''), members.member_avatar_url),
+			member_imported_at = NOW(),
+			member_raw_json = COALESCE(NULLIF(EXCLUDED.member_raw_json, '{}'), members.member_raw_json)
 	`
 
 	_, err := d.db.NamedExecContext(ctx, query, members)
@@ -47,10 +47,10 @@ func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]Event
 	query := `
 		SELECT e.*, er.*, m.*
 		FROM events e
-		JOIN event_rsvps er ON e.id = er.event_id
-		JOIN members m ON er.member_id = m.id
-		WHERE e.id = $1
-		ORDER BY m.display_name, m.username, m.id
+		JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+		JOIN members m ON er.rsvp_member_id = m.member_id
+		WHERE e.event_id = $1
+		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
 	var members []EventMember
@@ -65,9 +65,9 @@ func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID strin
 	query := `
 		SELECT m.*
 		FROM members m
-		JOIN event_rsvps er ON m.id = er.member_id
-		WHERE er.event_id = $1 AND er.status = 'CHECKED_IN'
-		ORDER BY m.display_name, m.username, m.id
+		JOIN event_rsvps er ON m.member_id = er.rsvp_member_id
+		WHERE er.rsvp_event_id = $1 AND er.rsvp_status = 'CHECKED_IN'
+		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
 	var members []Member
@@ -82,9 +82,9 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 	query := `
 		SELECT m.*
 		FROM members m
-		JOIN event_rsvps er ON m.id = er.member_id
-		WHERE er.event_id = $1 AND er.status = 'ACCEPTED'
-		ORDER BY m.display_name, m.username, m.id
+		JOIN event_rsvps er ON m.member_id = er.rsvp_member_id
+		WHERE er.rsvp_event_id = $1 AND er.rsvp_status = 'ACCEPTED'
+		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
 	var members []Member
@@ -98,17 +98,17 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]TopMember, error) {
 	query := `
 		SELECT m.*,
-			COUNT(CASE WHEN er.status = 'ACCEPTED' or er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
+			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' or er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
-		JOIN events e ON er.event_id = e.id
-		JOIN members m ON er.member_id = m.id
-		WHERE e.club_id = $1
+		JOIN events e ON er.rsvp_event_id = e.event_id
+		JOIN members m ON er.rsvp_member_id = m.member_id
+		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
-		GROUP BY m.id, m.username, m.display_name, m.avatar_url
-		ORDER BY check_ins DESC, accepted DESC, m.display_name, m.username, m.id
+		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+		GROUP BY m.member_id, m.member_username, m.member_display_name, m.member_avatar_url
+		ORDER BY check_ins DESC, accepted DESC, m.member_display_name, m.member_username, m.member_id
 		LIMIT $5
 	`
 
@@ -123,14 +123,14 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (int, int, error) {
 	query := `
 		SELECT
-			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
+			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM event_rsvps er
-		JOIN events e ON er.event_id = e.id
-		WHERE e.club_id = $1
+		JOIN events e ON er.rsvp_event_id = e.event_id
+		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
+		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
 	`
 
 	var accepted, checkIns int
@@ -143,17 +143,17 @@ func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID stri
 
 func (d *Database) GetEventCheckInAcceptedCounts(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]EventNumbers, error) {
 	query := `
-		SELECT e.campfire_live_event_id, e.campfire_live_event_name,
-            COUNT(e.id) AS events,
-			COUNT(CASE WHEN er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN' THEN 1 END) AS accepted,
-			COUNT(CASE WHEN er.status = 'CHECKED_IN' THEN 1 END) AS check_ins
+		SELECT e.event_campfire_live_event_id, e.event_campfire_live_event_name,
+            COUNT(e.event_id) AS events,
+			COUNT(CASE WHEN er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
 		FROM events e
-		JOIN event_rsvps er ON e.id = er.event_id
-		WHERE e.club_id = $1
+		JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
-		GROUP BY e.id
+		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+		GROUP BY e.event_id
 	`
 
 	var numbers []EventNumbers

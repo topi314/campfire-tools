@@ -1,7 +1,7 @@
 {{ template "head" addStr "Tracker - " .Name }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker/club/{{ .ClubID }}" class="back">
+        <a href="/tracker/club/{{ .Club.ClubID }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
@@ -18,18 +18,55 @@
 
             <div class="inline-form-control">
                 <a href="/tracker/event/{{ .ID }}/export" class="button">Export</a>
-                <a href="/tracker/club/{{ .ClubID }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+                <a href="/tracker/club/{{ .Club.ClubID }}/raffle?event={{ .ID }}" class="button">Raffle</a>
             </div>
         </div>
         <p>
-            <strong>Start:</strong> {{ .StartTime.Format "Mon, 02 Jan 2006 15:04 MST" }}
+            <strong>Creator:</strong>
             <br/>
-            <strong>End:</strong> {{ .EndTime.Format "Mon, 02 Jan 2006 15:04 MST" }}
+            {{ if .Creator.AvatarURL }}
+                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
+            {{ else }}
+                <img class="icon-32" src="/static/default_avatar.png">
+            {{ end }}
+            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}">{{ .Creator.DisplayName }}</a>
+        </p>
+        <p>
+            <strong>Start:</strong>
+            <br/>
+            {{ formatTimeToRelDayTime .Time }}
+        </p>
+        <p>
+            <strong>End:</strong>
+            <br/>
+            {{ formatTimeToRelDayTime .EndTime }}
         </p>
         {{ if .CampfireLiveEventID }}
-            <p><strong>Campfire Live Event:</strong> <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span></p>
+            <p>
+                <strong>Campfire Live Event:</strong>
+                <br/>
+                <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span>
+            </p>
         {{ end }}
-        <p><strong>Description:</strong><br/>{{ .Details }}</p>
+        <p>
+            <strong>Created By Community Ambassador:</strong>
+            <br/>
+            {{ if .CreatedByCommunityAmbassador }}
+                ✅️
+            {{ else }}
+                ❌
+            {{ end }}
+        </p>
+        <p>
+            <strong>Imported At:</strong>
+            <br/>
+            {{ formatTimeToRelDayTime .ImportedAt }}
+        </p>
+        <p>
+            <strong>Description:</strong>
+            <br/>
+            {{ .Details }}
+        </p>
     </div>
 
     <div class="section">

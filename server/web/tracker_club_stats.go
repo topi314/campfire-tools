@@ -245,12 +245,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
-		Club: Club{
-			ClubID:        club.ID,
-			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL, 60),
-		},
-
+		Club:         newClub(*club),
 		From:         from,
 		To:           to,
 		OnlyCAEvents: onlyCAEvents,
@@ -396,12 +391,14 @@ func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) (i
 	now := time.Now()
 	nowDuration := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Sub(from)
 
-	daysRemaining := int(max(float64(days-int(nowDuration.Hours()/24)), 0))
+	daysElapsed := int(nowDuration.Hours() / 24)
+
+	daysRemaining := int(max(float64(days-daysElapsed), 0))
 
 	// project for the remaining days in the quarter
 	projectedCheckIns := totalCheckIns
 	if daysRemaining > 0 {
-		projectedCheckIns = int(math.Round(float64(totalCheckIns) * float64(days) / float64(daysRemaining)))
+		projectedCheckIns = int(math.Round(float64(totalCheckIns) / float64(daysElapsed) * float64(days)))
 	}
 
 	return projectedCheckIns, days, daysRemaining

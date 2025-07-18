@@ -178,7 +178,7 @@ func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event
 	dbEvent, err := h.DB.GetEvent(ctx, event)
 	if err == nil {
 		var fullEvent *campfire.Event
-		if err = json.Unmarshal(dbEvent.RawJSON, &fullEvent); err == nil {
+		if err = json.Unmarshal(dbEvent.Event.RawJSON, &fullEvent); err == nil {
 			return fullEvent, nil
 		}
 	}

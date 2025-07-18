@@ -10,26 +10,25 @@ import (
 )
 
 var templateFuncs = template.FuncMap{
-	"add":                 add,
-	"addStr":              addStr,
-	"seq":                 seq,
-	"hasIndex":            hasIndex,
-	"now":                 time.Now,
-	"dict":                dict,
-	"reverse":             reverse,
-	"parseTime":           parseTime,
-	"convertNewLinesToBR": convertNewLinesToBR,
-	"safeHTML":            safeHTML,
-	"safeCSS":             safeCSS,
-	"safeHTMLAttr":        safeHTMLAttr,
-	"safeURL":             safeURL,
-	"safeJS":              safeJS,
-	"safeJSStr":           safeJSStr,
-	"safeSrcset":          safeSrcset,
-	"formatDate":          formatDate,
-	"formatTimeToHour":    formatTimeToHour,
-	"formatTimeToDay":     formatTimeToDay,
-	"formatTimeToRelDay":  formatTimeToRelDay,
+	"add":                    add,
+	"addStr":                 addStr,
+	"seq":                    seq,
+	"hasIndex":               hasIndex,
+	"now":                    time.Now,
+	"dict":                   dict,
+	"reverse":                reverse,
+	"parseTime":              parseTime,
+	"convertNewLinesToBR":    convertNewLinesToBR,
+	"safeHTML":               safeHTML,
+	"safeCSS":                safeCSS,
+	"safeHTMLAttr":           safeHTMLAttr,
+	"safeURL":                safeURL,
+	"safeJS":                 safeJS,
+	"safeJSStr":              safeJSStr,
+	"safeSrcset":             safeSrcset,
+	"formatDate":             formatDate,
+	"formatTimeToDayTime":    formatTimeToDayTime,
+	"formatTimeToRelDayTime": formatTimeToRelDayTime,
 }
 
 func add(a, b any) (int, error) {
@@ -144,27 +143,25 @@ func formatDate(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-func formatTimeToHour(t time.Time) string {
-	return t.Format("15:04")
+func formatTimeToDayTime(t time.Time) string {
+	return t.Format("Mon _2 Jan 2006 15:04 MST")
 }
 
-func formatTimeToDay(t time.Time) string {
-	return t.Format("Mon _2 Jan")
-}
-
-func formatTimeToRelDay(t time.Time) string {
+func formatTimeToRelDayTime(t time.Time) string {
 	nowYear, nowMonth, nowDay := time.Now().Date()
 	year, month, day := t.Date()
 
+	timeStr := t.Format("15:04 MST")
+
 	switch {
 	case year == nowYear && month == nowMonth && day == nowDay:
-		return "Today"
+		return "Today at " + timeStr
 	case year == nowYear && month == nowMonth && day == nowDay-1:
-		return "Yesterday"
+		return "Yesterday at " + timeStr
 	case year == nowYear && month == nowMonth && day == nowDay+1:
-		return "Tomorrow"
+		return "Tomorrow at " + timeStr
 	default:
-		return formatTimeToDay(t)
+		return formatTimeToDayTime(t)
 	}
 }
 

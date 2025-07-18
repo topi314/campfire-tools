@@ -11,24 +11,24 @@ import (
 
 func (d *Database) InsertEvent(ctx context.Context, event Event) error {
 	query := `
-		INSERT INTO events (id, name, details, address, location, creator_id, cover_photo_url, event_time, event_end_time, discord_interested, created_by_community_ambassador, campfire_live_event_id, campfire_live_event_name, club_id, raw_json)
-		VALUES (:id, :name, :details, :address, :location, :creator_id, :cover_photo_url, :event_time, :event_end_time, :discord_interested, :created_by_community_ambassador, :campfire_live_event_id, :campfire_live_event_name, :club_id, :raw_json)
-		ON CONFLICT (id) DO UPDATE SET
-			name = EXCLUDED.name,
-			details = EXCLUDED.details,
-			address = EXCLUDED.address,
-			location = EXCLUDED.location,
-			creator_id = EXCLUDED.creator_id,
-			cover_photo_url = EXCLUDED.cover_photo_url,
+		INSERT INTO events (event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, event_time, event_end_time, event_discord_interested, event_created_by_community_ambassador, event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_raw_json)
+		VALUES (:event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, :event_time, :event_end_time, :event_discord_interested, :event_created_by_community_ambassador, :event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, :event_raw_json)
+		ON CONFLICT (event_id) DO UPDATE SET
+			event_name = EXCLUDED.event_name,
+			event_details = EXCLUDED.event_details,
+			event_address = EXCLUDED.event_address,
+			event_location = EXCLUDED.event_location,
+			event_creator_id = EXCLUDED.event_creator_id,
+			event_cover_photo_url = EXCLUDED.event_cover_photo_url,
 			event_time = EXCLUDED.event_time,
 			event_end_time = EXCLUDED.event_end_time,
-			discord_interested = EXCLUDED.discord_interested,
-			created_by_community_ambassador = EXCLUDED.created_by_community_ambassador,
-			campfire_live_event_id = EXCLUDED.campfire_live_event_id,
-			campfire_live_event_name = EXCLUDED.campfire_live_event_name,
-			club_id = EXCLUDED.club_id,
-			imported_at = NOW(),
-			raw_json = EXCLUDED.raw_json
+			event_discord_interested = EXCLUDED.event_discord_interested,
+			event_created_by_community_ambassador = EXCLUDED.event_created_by_community_ambassador,
+			event_campfire_live_event_id = EXCLUDED.event_campfire_live_event_id,
+			event_campfire_live_event_name = EXCLUDED.event_campfire_live_event_name,
+			event_club_id = EXCLUDED.event_club_id,
+			event_imported_at = NOW(),
+			event_raw_json = EXCLUDED.event_raw_json
 	`
 
 	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
@@ -38,9 +38,16 @@ func (d *Database) InsertEvent(ctx context.Context, event Event) error {
 	return nil
 }
 
-func (d *Database) GetEvent(ctx context.Context, eventID string) (*Event, error) {
-	var event Event
-	if err := d.db.GetContext(ctx, &event, "SELECT * FROM events WHERE id = $1", eventID); err != nil {
+func (d *Database) GetEvent(ctx context.Context, eventID string) (*EventWithCreator, error) {
+	query := `
+		SELECT events.*, members.*
+		FROM events
+		JOIN members ON events.event_creator_id = members.member_id
+		WHERE events.event_id = $1
+	`
+
+	var event EventWithCreator
+	if err := d.db.GetContext(ctx, &event, query, eventID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("event not found: %w", err)
 		}
@@ -53,8 +60,8 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*Event, error)
 func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error) {
 	query := `
 		SELECT * FROM events
-		WHERE club_id = $1
-		ORDER BY event_time DESC, name DESC
+		WHERE event_club_id = $1
+		ORDER BY event_time DESC, event_name DESC
 	`
 
 	var events []Event
@@ -68,7 +75,7 @@ func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error
 func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	query := `
 		SELECT * FROM events
-		ORDER BY event_time DESC, name DESC
+		ORDER BY event_time DESC, event_name DESC
 	`
 
 	var events []Event
@@ -82,16 +89,16 @@ func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (*TopEvent, error) {
 	query := `
 		SELECT e.*, 
-			COUNT(er.member_id) FILTER (WHERE er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN') AS accepted,
-			COUNT(er.member_id) FILTER (WHERE er.status = 'CHECKED_IN') AS check_ins
+			COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN') AS accepted,
+			COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'CHECKED_IN') AS check_ins
 		FROM events e
-		LEFT JOIN event_rsvps er ON e.id = er.event_id
-		WHERE e.club_id = $1
+		LEFT JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-		AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
-		GROUP BY e.id, e.event_time, e.name
-		ORDER BY check_ins DESC, e.event_time DESC, e.name DESC, e.id
+		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+		GROUP BY e.event_id, e.event_time, e.event_name
+		ORDER BY check_ins DESC, e.event_time DESC, e.event_name DESC, e.event_id
 		LIMIT 1
 	`
 
@@ -110,16 +117,16 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
 	query := `
         SELECT
             e.*, 
-            COUNT(er.member_id) FILTER (WHERE er.status = 'ACCEPTED' OR er.status = 'CHECKED_IN') AS accepted,
-            COUNT(er.member_id) FILTER (WHERE er.status = 'CHECKED_IN') AS check_ins
+            COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN') AS accepted,
+            COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'CHECKED_IN') AS check_ins
         FROM events e
-        LEFT JOIN event_rsvps er ON e.id = er.event_id
-        WHERE e.club_id = $1
+        LEFT JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+        WHERE e.event_club_id = $1
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
-        AND (NOT $4 OR e.created_by_community_ambassador = TRUE)
-        GROUP BY e.id, e.event_time, e.name
-        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.name DESC, e.id
+        AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+        GROUP BY e.event_id, e.event_time, e.event_name
+        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id
         LIMIT $5
 	`
 
@@ -136,9 +143,9 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 	query := `
 		SELECT e.*
 		FROM events e
-		JOIN event_rsvps re ON e.id = re.event_id
-		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'CHECKED_IN'
-		ORDER BY e.event_time DESC, e.name, e.id
+		JOIN event_rsvps re ON e.event_id = re.rsvp_event_id
+		WHERE e.event_club_id = $1 AND re.rsvp_member_id = $2 AND re.rsvp_status = 'CHECKED_IN'
+		ORDER BY e.event_time DESC, e.event_name, e.event_id
     `
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
@@ -153,9 +160,9 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 	query := `
 		SELECT e.*
 		FROM events e
-		JOIN event_rsvps re ON e.id = re.event_id
-		WHERE e.club_id = $1 AND re.member_id = $2 AND re.status = 'ACCEPTED'
-		ORDER BY e.event_time DESC, e.name, e.id
+		JOIN event_rsvps re ON e.event_id = re.rsvp_event_id
+		WHERE e.event_club_id = $1 AND re.rsvp_member_id = $2 AND re.rsvp_status = 'ACCEPTED'
+		ORDER BY e.event_time DESC, e.event_name, e.event_id
 	`
 
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {

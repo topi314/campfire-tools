@@ -271,8 +271,12 @@ form label {
 }
 
 .list-item {
-    padding: 4px;
+    padding: 4px 4px 4px 0;
     border-bottom: 1px solid var(--border-color);
+}
+
+.list-item > img {
+    margin-right: 2px;
 }
 
 .list-item:last-child {
@@ -292,7 +296,7 @@ h2 > img {
     height: 32px;
 }
 
-.list-item > img {
+.list-item > img, .icon-32 {
     width: 32px;
     height: 32px;
     vertical-align: middle;

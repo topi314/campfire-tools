@@ -23,7 +23,7 @@ func (h *handler) TrackerClubEventExport(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if _, err = w.Write(event.RawJSON); err != nil {
+	if _, err = w.Write(event.Event.RawJSON); err != nil {
 		slog.ErrorContext(ctx, "Failed to write event export", slog.String("event_id", eventID), slog.Any("err", err))
 		return
 	}

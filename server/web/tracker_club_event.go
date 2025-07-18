@@ -3,24 +3,16 @@ package web
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 )
 
 type TrackerClubEventVars struct {
-	Club
-	ID                    string
-	Name                  string
-	CoverPhotoURL         string
-	Details               string
-	StartTime             time.Time
-	EndTime               time.Time
-	CampfireLiveEventID   string
-	CampfireLiveEventName string
-	CheckedInMembers      []Member
-	AcceptedMembers       []Member
+	Event
+
+	Club             Club
+	CheckedInMembers []Member
+	AcceptedMembers  []Member
 }
 
 func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
@@ -58,13 +50,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	checkedInTrackerMembers := make([]Member, len(checkedInMembers))
 	for i, member := range checkedInMembers {
-		checkedInTrackerMembers[i] = Member{
-			ID:          member.ID,
-			Username:    member.Username,
-			DisplayName: getDisplayName(member.DisplayName, member.Username),
-			AvatarURL:   imageURL(member.AvatarURL, 32),
-			URL:         fmt.Sprintf("/tracker/club/%s/member/%s", event.ClubID, member.ID),
-		}
+		checkedInTrackerMembers[i] = newMember(member, event.ClubID)
 	}
 
 	acceptedMembers, err := h.DB.GetAcceptedMembersByEvent(ctx, eventID)
@@ -75,31 +61,14 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	acceptedTrackerMembers := make([]Member, len(acceptedMembers))
 	for i, member := range acceptedMembers {
-		acceptedTrackerMembers[i] = Member{
-			ID:          member.ID,
-			Username:    member.Username,
-			DisplayName: getDisplayName(member.DisplayName, member.Username),
-			AvatarURL:   imageURL(member.AvatarURL, 32),
-			URL:         fmt.Sprintf("/tracker/club/%s/member/%s", event.ClubID, member.ID),
-		}
+		acceptedTrackerMembers[i] = newMember(member, event.ClubID)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
-		Club: Club{
-			ClubID:        event.ClubID,
-			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL, 48),
-		},
-		ID:                    event.ID,
-		Name:                  event.Name,
-		CoverPhotoURL:         imageURL(event.CoverPhotoURL, 48),
-		Details:               event.Details,
-		StartTime:             event.EventTime,
-		EndTime:               event.EventEndTime,
-		CampfireLiveEventID:   event.CampfireLiveEventID,
-		CampfireLiveEventName: event.CampfireLiveEventName,
-		CheckedInMembers:      checkedInTrackerMembers,
-		AcceptedMembers:       acceptedTrackerMembers,
+		Event:            newEvent(*event),
+		Club:             newClub(*club),
+		CheckedInMembers: checkedInTrackerMembers,
+		AcceptedMembers:  acceptedTrackerMembers,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club event template", slog.String("event_id", eventID), slog.Any("err", err))
 	}

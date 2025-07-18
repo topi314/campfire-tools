@@ -46,11 +46,7 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
-		Club: Club{
-			ClubID:        club.ID,
-			ClubName:      club.Name,
-			ClubAvatarURL: imageURL(club.AvatarURL, 48),
-		},
+		Club:   newClub(*club),
 		Events: trackerEvents,
 		Error:  errorMessage,
 	}); err != nil {
