@@ -1,12 +1,12 @@
 {{ template "head" "Campfire Club Export" }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker/club/{{ .ClubID }}" class="back">
+        <a href="{{ .URL }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
-            <img src="{{ .ClubAvatarURL }}">
-            {{ .ClubName }} Export
+            <img src="{{ .AvatarURL }}">
+            {{ .Name }} Export
         </h1>
     </div>
 
@@ -16,7 +16,9 @@
                 Events
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
-                        <option value="{{ $event.ID }}">{{ $event.Name }}</option>
+                        <option value="{{ $event.ID }}"{{ if eq $.SelectedEventID $event.ID }} selected{{ end }}>
+                            {{ $event.Name }}
+                        </option>
                     {{ end }}
                 </select>
                 {{ if .Error }}

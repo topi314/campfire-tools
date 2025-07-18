@@ -40,7 +40,7 @@ https://cmpf.re/..." required autofocus></textarea>
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $club.URL }}">{{ $club.Name }}</a>
+                    <a href="{{ $club.URL }}">{{ $club.Name }} ({{ $club.Events }})</a>
                 </li>
             {{ else }}
                 <span>No clubs tracked yet.</span>

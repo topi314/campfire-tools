@@ -43,6 +43,11 @@ type Member struct {
 	RawJSON     json.RawMessage `db:"member_raw_json"`
 }
 
+type ClubWithEvents struct {
+	Club
+	Events int `db:"events"`
+}
+
 type ClubWithCreator struct {
 	Club
 	Member

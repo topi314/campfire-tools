@@ -1,17 +1,17 @@
-{{ template "head" addStr "Tracker - " .ClubName " - Statistics" }}
+{{ template "head" addStr "Tracker - " .Name " - Statistics" }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker/club/{{ .ClubID }}" class="back">
+        <a href="{{ .URL }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
-            <img src="{{ .ClubAvatarURL }}">
-            {{ .ClubName }} Statistics
+            <img src="{{ .AvatarURL }}">
+            {{ .Name }} Statistics
         </h1>
     </div>
 
     <div class="section">
-        <form id="filterForm" method="GET" action="/tracker/club/{{ .ClubID }}/stats">
+        <form id="filterForm" method="GET" action="{{ .URL }}/stats">
             <div class="inline-form-control">
                 <div class="stacked-form-control">
                     <label class="inline-form-control" for="from">

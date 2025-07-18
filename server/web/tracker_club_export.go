@@ -8,8 +8,9 @@ import (
 
 type TrackerClubExportVars struct {
 	Club
-	Events []Event
-	Error  string
+	Events          []Event
+	SelectedEventID string
+	Error           string
 }
 
 func (h *handler) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
@@ -18,8 +19,10 @@ func (h *handler) TrackerClubExport(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
+	query := r.URL.Query()
 
 	clubID := r.PathValue("club_id")
+	eventID := query.Get("event")
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -46,9 +49,10 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
-		Club:   newClub(*club),
-		Events: trackerEvents,
-		Error:  errorMessage,
+		Club:            newClub(*club),
+		Events:          trackerEvents,
+		SelectedEventID: eventID,
+		Error:           errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club export template", slog.Any("err", err))
 	}

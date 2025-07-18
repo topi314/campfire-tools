@@ -12,15 +12,8 @@ import (
 )
 
 type TrackerVars struct {
-	Clubs  []TrackerClub
+	Clubs  []ClubWithEvents
 	Errors []string
-}
-
-type TrackerClub struct {
-	ID        string
-	Name      string
-	AvatarURL string
-	URL       string
 }
 
 func (h *handler) Tracker(w http.ResponseWriter, r *http.Request) {
@@ -36,14 +29,9 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 		return
 	}
 
-	trackerClubs := make([]TrackerClub, len(clubs))
+	trackerClubs := make([]ClubWithEvents, len(clubs))
 	for i, club := range clubs {
-		trackerClubs[i] = TrackerClub{
-			ID:        club.ID,
-			Name:      club.Name,
-			AvatarURL: imageURL(club.AvatarURL, 32),
-			URL:       fmt.Sprintf("/tracker/club/%s", club.ID),
-		}
+		trackerClubs[i] = newClubWithEvents(club)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{

@@ -45,7 +45,6 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/event/{event_id}", h.TrackerClubEvent)
 	mux.HandleFunc("GET /tracker/event/{event_id}/export", h.TrackerClubEventExport)
 	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)
-	mux.HandleFunc("GET /tracker/migrate", h.TrackerMigrate)
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
 	mux.Handle("GET /static/", cache(fs))

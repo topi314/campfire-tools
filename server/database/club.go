@@ -5,14 +5,16 @@ import (
 	"fmt"
 )
 
-func (d *Database) GetClubs(ctx context.Context) ([]Club, error) {
+func (d *Database) GetClubs(ctx context.Context) ([]ClubWithEvents, error) {
 	query := `
-		SELECT *
+		SELECT clubs.*, COUNT(events.event_id) AS events
 		FROM clubs
-		ORDER BY club_name
+		LEFT JOIN events ON clubs.club_id = events.event_club_id
+		GROUP BY clubs.club_id, clubs.club_name
+		ORDER BY clubs.club_name
 	`
 
-	var clubs []Club
+	var clubs []ClubWithEvents
 	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
 		return nil, fmt.Errorf("failed to get clubs: %w", err)
 	}

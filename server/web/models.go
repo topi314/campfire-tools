@@ -9,22 +9,36 @@ import (
 
 func newClub(club database.ClubWithCreator) Club {
 	return Club{
-		ClubID:                       club.Club.ID,
-		ClubName:                     club.Club.Name,
-		ClubAvatarURL:                imageURL(club.Club.AvatarURL, 48),
+		ID:                           club.Club.ID,
+		Name:                         club.Club.Name,
+		AvatarURL:                    imageURL(club.Club.AvatarURL, 48),
 		Creator:                      newMember(club.Member, club.Club.ID),
 		CreatedByCommunityAmbassador: club.Club.CreatedByCommunityAmbassador,
 		ImportedAt:                   club.Club.ImportedAt,
+		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
 	}
 }
 
 type Club struct {
-	ClubID                       string
-	ClubName                     string
-	ClubAvatarURL                string
+	ID                           string
+	Name                         string
+	AvatarURL                    string
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	ImportedAt                   time.Time
+	URL                          string
+}
+
+func newClubWithEvents(club database.ClubWithEvents) ClubWithEvents {
+	return ClubWithEvents{
+		Club:   newClub(database.ClubWithCreator{Club: club.Club}),
+		Events: club.Events,
+	}
+}
+
+type ClubWithEvents struct {
+	Club
+	Events int
 }
 
 func newEvent(event database.EventWithCreator) Event {

@@ -1,14 +1,14 @@
 {{ template "head" "Campfire Club Raffle" }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker/club/{{ .ClubID }}" class="back">
+        <a href="{{ .URL }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
-            {{ if .ClubAvatarURL }}
-                <img src="{{ .ClubAvatarURL }}">
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}">
             {{ end }}
-            {{ .ClubName }} Raffle
+            {{ .Name }} Raffle
         </h1>
     </div>
 

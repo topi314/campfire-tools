@@ -1,19 +1,19 @@
-{{ template "head" addStr "Tracker - " .ClubName }}
+{{ template "head" addStr "Tracker - " .Name }}
 <div class="container">
     <div class="container-header">
         <a href="/tracker" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
-            <img src="{{ .ClubAvatarURL }}">
-            {{ .ClubName }}
+            <img src="{{ .AvatarURL }}">
+            {{ .Name }}
         </h1>
     </div>
 
     <div class="section buttons">
-        <a href="/tracker/club/{{ .ClubID }}/stats" class="button">Statistics</a>
-        <a href="/tracker/club/{{ .ClubID }}/raffle" class="button">Raffle</a>
-        <a href="/tracker/club/{{ .ClubID }}/export" class="button">Export</a>
+        <a href="{{ .URL }}/stats" class="button">Statistics</a>
+        <a href="{{ .URL }}/raffle" class="button">Raffle</a>
+        <a href="{{ .URL }}/export" class="button">Export</a>
     </div>
 
     <div class="section">
