@@ -89,10 +89,10 @@ func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (*TopEvent, error) {
 	query := `
 		SELECT e.*, 
-			COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN') AS accepted,
-			COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'CHECKED_IN') AS check_ins
+			COUNT(er.event_rsvp_member_id) FILTER (WHERE er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN') AS accepted,
+			COUNT(er.event_rsvp_member_id) FILTER (WHERE er.event_rsvp_status = 'CHECKED_IN') AS check_ins
 		FROM events e
-		LEFT JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+		LEFT JOIN event_rsvps er ON e.event_id = er.event_rsvp_event_id
 		WHERE e.event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
@@ -117,10 +117,10 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
 	query := `
         SELECT
             e.*, 
-            COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'ACCEPTED' OR er.rsvp_status = 'CHECKED_IN') AS accepted,
-            COUNT(er.rsvp_member_id) FILTER (WHERE er.rsvp_status = 'CHECKED_IN') AS check_ins
+            COUNT(er.event_rsvp_member_id) FILTER (WHERE er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN') AS accepted,
+            COUNT(er.event_rsvp_member_id) FILTER (WHERE er.event_rsvp_status = 'CHECKED_IN') AS check_ins
         FROM events e
-        LEFT JOIN event_rsvps er ON e.event_id = er.rsvp_event_id
+        LEFT JOIN event_rsvps er ON e.event_id = er.event_rsvp_event_id
         WHERE e.event_club_id = $1
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
@@ -143,8 +143,8 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 	query := `
 		SELECT e.*
 		FROM events e
-		JOIN event_rsvps re ON e.event_id = re.rsvp_event_id
-		WHERE e.event_club_id = $1 AND re.rsvp_member_id = $2 AND re.rsvp_status = 'CHECKED_IN'
+		JOIN event_rsvps re ON e.event_id = re.event_rsvp_event_id
+		WHERE e.event_club_id = $1 AND re.event_rsvp_member_id = $2 AND re.event_rsvp_status = 'CHECKED_IN'
 		ORDER BY e.event_time DESC, e.event_name, e.event_id
     `
 
@@ -160,8 +160,8 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 	query := `
 		SELECT e.*
 		FROM events e
-		JOIN event_rsvps re ON e.event_id = re.rsvp_event_id
-		WHERE e.event_club_id = $1 AND re.rsvp_member_id = $2 AND re.rsvp_status = 'ACCEPTED'
+		JOIN event_rsvps re ON e.event_id = re.event_rsvp_event_id
+		WHERE e.event_club_id = $1 AND re.event_rsvp_member_id = $2 AND re.event_rsvp_status = 'ACCEPTED'
 		ORDER BY e.event_time DESC, e.event_name, e.event_id
 	`
 
