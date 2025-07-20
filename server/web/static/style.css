@@ -120,6 +120,20 @@ details summary {
     padding: 10px;
 }
 
+code:not(:where(pre code)) {
+    background-color: var(--background-color);
+    padding: 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    line-height: 2;
+}
+
+pre:has(code) {
+    background-color: var(--background-color);
+    overflow: auto;
+    padding: 4px;
+    border-radius: 4px;
+}
 
 .main {
     display: flex;
@@ -328,13 +342,18 @@ h2 > img {
     height: 30px;
 }
 
-.table-2 {
+.table-2, .table-4, .table-5, .table-6, .table-7 {
     text-align: left;
     font-size: 16px;
     display: grid;
-    grid-template-columns: 2fr 1fr;
     margin: 0;
     border: 1px solid var(--border-color);
+    overflow: auto;
+    width: 100%;
+}
+
+.table-2 {
+    grid-template-columns: 2fr 1fr;
     width: fit-content;
 }
 
@@ -354,13 +373,7 @@ h2 > img {
 }
 
 .table-4 {
-    width: 100%;
-    text-align: left;
-    font-size: 16px;
-    display: grid;
     grid-template-columns: auto 1fr auto auto;
-    margin: 0;
-    border: 1px solid var(--border-color);
 }
 
 .table-4 > * {
@@ -382,13 +395,7 @@ h2 > img {
 }
 
 .table-5 {
-    width: 100%;
-    text-align: left;
-    font-size: 16px;
-    display: grid;
     grid-template-columns: auto 1fr auto auto auto;
-    margin: 0;
-    border: 1px solid var(--border-color);
 }
 
 .table-5 > * {
@@ -410,13 +417,7 @@ h2 > img {
 }
 
 .table-6 {
-    width: 100%;
-    text-align: left;
-    font-size: 16px;
-    display: grid;
     grid-template-columns: auto 1fr auto auto auto auto;
-    margin: 0;
-    border: 1px solid var(--border-color);
 }
 
 .table-6 > * {
@@ -438,13 +439,7 @@ h2 > img {
 }
 
 .table-7 {
-    width: 100%;
-    text-align: left;
-    font-size: 16px;
-    display: grid;
     grid-template-columns: auto 1fr auto auto auto auto auto;
-    margin: 0;
-    border: 1px solid var(--border-color);
 }
 
 .table-7 > * {

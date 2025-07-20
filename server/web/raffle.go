@@ -8,13 +8,11 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/topi314/campfire-tools/internal/xstrconv"
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
@@ -22,7 +20,7 @@ type DoRaffleVars struct {
 	Winners       []Member
 	Events        string
 	Count         int
-	OnlyCheckedIn string
+	OnlyCheckedIn bool
 }
 
 func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
@@ -42,34 +40,14 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	if ids := r.Form["ids"]; len(ids) > 0 {
 		events += "\n" + strings.Join(ids, "\n")
 	}
-	countStr := r.FormValue("count")
-	onlyCheckedInStr := r.FormValue("only_checked_in")
+	count := parseIntQuery(r.Form, "count", 1)
+	onlyCheckedIn := parseBoolQuery(r.Form, "only_checked_in", false)
 
-	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("count", countStr))
+	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.Int("count", count))
 
 	if events == "" {
 		h.renderRaffle(w, r, "Missing 'events' parameter")
 		return
-	}
-
-	count := 1
-	if countStr != "" {
-		parsed, err := strconv.Atoi(countStr)
-		if err != nil || parsed <= 0 {
-			h.renderRaffle(w, r, "Invalid 'count' parameter. It must be a positive number.")
-			return
-		}
-		count = parsed
-	}
-
-	var onlyCheckedIn bool
-	if onlyCheckedInStr != "" {
-		parsed, err := xstrconv.ParseBool(onlyCheckedInStr)
-		if err != nil {
-			h.renderRaffle(w, r, "Invalid 'only_checked_in' parameter. It must be 'true' or 'false'.")
-			return
-		}
-		onlyCheckedIn = parsed
 	}
 
 	var allEvents []string
@@ -160,7 +138,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		Winners:       winners,
 		Events:        strings.Join(eventIDs, "\n"),
 		Count:         count,
-		OnlyCheckedIn: onlyCheckedInStr,
+		OnlyCheckedIn: onlyCheckedIn,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}

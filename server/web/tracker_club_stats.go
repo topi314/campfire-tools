@@ -452,6 +452,23 @@ func parseStringQuery(query url.Values, name string, defaultValue string) string
 	return value
 }
 
+func parseStringSliceQuery(query url.Values, name string, defaultValue []string) []string {
+	value := query.Get(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	var result []string
+	for _, part := range strings.Split(value, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		result = append(result, part)
+	}
+	return result
+}
+
 func getRangeFromQuarter(value string) (time.Time, time.Time) {
 	value = strings.ToLower(value)
 

@@ -29,7 +29,7 @@ type discordGuild struct {
 	Name string `json:"name"`
 }
 
-func (h *handler) AuthMiddleware(next http.Handler) http.Handler {
+func (h *handler) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip authentication for non-tracker endpoints
 		if !strings.HasPrefix(r.URL.Path, "/tracker") {

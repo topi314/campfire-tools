@@ -15,7 +15,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/topi314/campfire-tools/internal/xstrconv"
 	"github.com/topi314/campfire-tools/server/campfire"
 )
 
@@ -29,8 +28,9 @@ const (
 	FieldEventURL                          = "event_url"
 	FieldEventTime                         = "event_time"
 	FieldEventClubID                       = "event_club_id"
-	FieldEventCreatorID                    = "event_creator_id"
+	FieldEventCreatorUserID                = "event_creator_user_id"
 	FieldEventCreatorUsername              = "event_creator_username"
+	FieldEventCreatorDisplayName           = "event_creator_display_name"
 	FieldEventDiscordInterested            = "event_discord_interested"
 	FieldEventCreatedByCommunityAmbassador = "event_created_by_community_ambassador"
 	FieldEventCampfireLiveEventID          = "event_campfire_live_event_id"
@@ -44,6 +44,25 @@ var defaultFields = []string{
 	FieldRSVPStatus,
 	FieldEventID,
 	FieldEventName,
+}
+
+var jsonDefaultFields = []string{
+	FieldUserID,
+	FieldUsername,
+	FieldDisplayName,
+	FieldRSVPStatus,
+	FieldEventID,
+	FieldEventName,
+	FieldEventURL,
+	FieldEventTime,
+	FieldEventClubID,
+	FieldEventCreatorUserID,
+	FieldEventCreatorUsername,
+	FieldEventCreatorDisplayName,
+	FieldEventDiscordInterested,
+	FieldEventCreatedByCommunityAmbassador,
+	FieldEventCampfireLiveEventID,
+	FieldEventCampfireLiveEventName,
 }
 
 func (h *handler) Export(w http.ResponseWriter, r *http.Request) {
@@ -73,38 +92,24 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 	if ids := r.Form["ids"]; len(ids) > 0 {
 		events += "\n" + strings.Join(ids, "\n")
 	}
-	includeMissingMembersStr := r.FormValue("include_missing_members")
-	combineCSVsStr := r.FormValue("combine_csv")
+	includeMissingMembers := parseBoolQuery(r.Form, "include_missing_members", false)
+	combineCSVs := parseBoolQuery(r.Form, "combine_csv", false)
 	includedFields := r.Form["included_fields"]
 	if len(includedFields) == 0 {
 		includedFields = defaultFields
 	}
 
-	slog.Info("Received export request", slog.String("url", r.URL.String()), slog.String("events", events), slog.String("include_missing_members", includeMissingMembersStr), slog.String("combine_csv", combineCSVsStr))
+	slog.Info("Received export request",
+		slog.String("url", r.URL.String()),
+		slog.String("events", events),
+		slog.Bool("include_missing_members", includeMissingMembers),
+		slog.Bool("combine_csv", combineCSVs),
+		slog.Any("included_fields", includedFields),
+	)
 
 	if events == "" {
 		h.renderTracker(w, r, "Missing 'events' parameter")
 		return
-	}
-
-	var includeMissingMembers bool
-	if includeMissingMembersStr != "" {
-		parsed, err := xstrconv.ParseBool(includeMissingMembersStr)
-		if err != nil {
-			h.renderExport(w, r, "Invalid 'include_missing_members' parameter")
-			return
-		}
-		includeMissingMembers = parsed
-	}
-
-	var combineCSVs bool
-	if combineCSVsStr != "" {
-		parsed, err := xstrconv.ParseBool(combineCSVsStr)
-		if err != nil {
-			h.renderExport(w, r, "Invalid 'combine_csv' parameter")
-			return
-		}
-		combineCSVs = parsed
 	}
 
 	var allEvents []string
@@ -121,41 +126,10 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
-	var campfireEvents []campfire.Event
-	var mu sync.Mutex
-	for _, eventID := range allEvents {
-		eg.Go(func() error {
-			event, err := h.fetchEvent(ctx, eventID)
-			if err != nil {
-				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
-					return nil
-				}
-
-				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
-			}
-
-			if len(event.RSVPStatuses) == 0 {
-				return nil
-			}
-
-			mu.Lock()
-			defer mu.Unlock()
-			campfireEvents = append(campfireEvents, *event)
-
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch events", slog.Any("err", err))
-		h.renderExport(w, r, "Failed to fetch events: "+err.Error())
-		return
-	}
-
-	if len(events) == 0 {
-		slog.ErrorContext(ctx, "No events found for the provided URLs")
-		h.renderExport(w, r, "No events found for the provided URLs")
+	campfireEvents, err := h.getAllEvents(ctx, allEvents)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get all events", slog.Any("err", err))
+		h.renderExport(w, r, fmt.Sprintf("Failed to get all events: %s", err.Error()))
 		return
 	}
 
@@ -193,6 +167,47 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 	h.exportRecords(ctx, w, allRecords, combineCSVs)
 }
 
+func (h *handler) getAllEvents(ctx context.Context, allEvents []string) ([]campfire.Event, error) {
+	var (
+		events []campfire.Event
+		mu     sync.Mutex
+	)
+
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, eventID := range allEvents {
+		eg.Go(func() error {
+			event, err := h.fetchEvent(ctx, eventID)
+			if err != nil {
+				if errors.Is(err, campfire.ErrUnsupportedMeetup) {
+					return nil
+				}
+
+				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
+			}
+
+			if len(event.RSVPStatuses) == 0 {
+				return nil
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			events = append(events, *event)
+
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, fmt.Errorf("failed to fetch events: %w", err)
+	}
+
+	if len(events) == 0 {
+		return nil, errors.New("no valid events found in the provided list")
+	}
+
+	return events, nil
+}
+
 func getRecords(event campfire.Event, includeMissingMembers bool, fields []string) [][]string {
 	var records [][]string
 	for _, rsvpStatus := range event.RSVPStatuses {
@@ -216,15 +231,17 @@ func getRecords(event campfire.Event, includeMissingMembers bool, fields []strin
 			case FieldEventName:
 				record = append(record, event.Name)
 			case FieldEventURL:
-				record = append(record, fmt.Sprintf("https://campfire.nianticlabs.com/discover/meetup/%s", event.ID))
+				record = append(record, eventURL(event.ID))
 			case FieldEventTime:
 				record = append(record, event.EventTime.Format(time.RFC3339))
 			case FieldEventClubID:
 				record = append(record, event.ClubID)
-			case FieldEventCreatorID:
+			case FieldEventCreatorUserID:
 				record = append(record, event.Creator.ID)
 			case FieldEventCreatorUsername:
 				record = append(record, event.Creator.Username)
+			case FieldEventCreatorDisplayName:
+				record = append(record, event.Creator.DisplayName)
 			case FieldEventDiscordInterested:
 				record = append(record, strconv.Itoa(event.DiscordInterested))
 			case FieldEventCreatedByCommunityAmbassador:
@@ -239,6 +256,10 @@ func getRecords(event campfire.Event, includeMissingMembers bool, fields []strin
 		records = append(records, record)
 	}
 	return records
+}
+
+func eventURL(id string) string {
+	return fmt.Sprintf("https://campfire.nianticlabs.com/discover/meetup/%s", id)
 }
 
 type Records struct {
