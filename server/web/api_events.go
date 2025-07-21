@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -74,8 +75,20 @@ func (h *handler) APIEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	exportAllEvents(ctx, w, campfireEvents)
+}
+
+func badges(badges []campfire.Badge) []string {
+	var badgeList []string
+	for _, badge := range badges {
+		badgeList = append(badgeList, badge.BadgeType)
+	}
+	return badgeList
+}
+
+func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfire.Event) {
 	var exportEvents []ExportEvent
-	for _, event := range campfireEvents {
+	for _, event := range events {
 		exportEvent := ExportEvent{
 			ID:            event.ID,
 			Name:          event.Name,
@@ -131,18 +144,10 @@ func (h *handler) APIEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(exportEvents); err != nil {
+	if err := json.NewEncoder(w).Encode(exportEvents); err != nil {
 		slog.ErrorContext(ctx, "Failed to encode export members to JSON", slog.Any("error", err))
 		return
 	}
 
 	slog.InfoContext(ctx, "Export completed successfully", slog.Int("events", len(exportEvents)))
-}
-
-func badges(badges []campfire.Badge) []string {
-	var badgeList []string
-	for _, badge := range badges {
-		badgeList = append(badgeList, badge.BadgeType)
-	}
-	return badgeList
 }

@@ -16,6 +16,7 @@
         <h2>Endpoints</h2>
         <ul>
             <li><a href="#events">Events</a> - Return events with check-ins from Campfire</li>
+            <li><a href="#club-events">Club Events</a> - Return a club's imported events with check-ins from Campfire</li>
         </ul>
     </div>
 
@@ -32,7 +33,7 @@
         <pre><code>{{ .BaseURL }}/api/events?events=88213c3f-d5fe-4fc9-acbe-e43671e36edc,event2</code></pre>
 
         <p>Response:</p>
-        <p>Returns a JSON object with the following structure:</p>
+        <p>Returns a JSON array with the following structure:</p>
         <pre><code>[
   {
     "id": "88213c3f-d5fe-4fc9-acbe-e43671e36edc",
@@ -74,5 +75,22 @@
 ]</code></pre>
     </div>
 
+    <div class="section">
+        <h2 id="club-events">Club Events</h2>
+        <p>
+            <strong><code>GET</code></strong> <code>{{ .BaseURL }}/api/clubs/{club_id}/events</code>
+        </p>
+
+        <p>Path Parameters:</p>
+        <ul>
+            <li><strong><code>club_id</code></strong>: The ID of the club to return events for</li>
+        </ul>
+
+        <p>Example:</p>
+        <pre><code>{{ .BaseURL }}/api/clubs/b632fc8e-0b41-49de-ade2-21b0cd81db69/events</code></pre>
+
+        <p>Response:</p>
+        <p>Returns a JSON array with the same structure as <a href="#events">Events</a>, but filtered to the specified club.</p>
+    </div>
 </div>
 {{ template "footer" }}
