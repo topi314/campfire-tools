@@ -61,7 +61,7 @@ type Event struct {
 	Details                      string    `json:"details"`
 	EventTime                    time.Time `json:"eventTime"`
 	EventEndTime                 time.Time `json:"eventEndTime"`
-	RsvpStatus                   string    `json:"rsvpStatus"`
+	RSVPStatus                   string    `json:"rsvpStatus"`
 	CreatedByCommunityAmbassador bool      `json:"createdByCommunityAmbassador"`
 	BadgeGrants                  []string  `json:"badgeGrants"`
 	TopicID                      string    `json:"topicId"`
@@ -137,11 +137,12 @@ func (c *Club) UnmarshalJSON(data []byte) error {
 }
 
 type Member struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-	AvatarURL   string `json:"avatarUrl"`
-	Raw         []byte `json:"-"`
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName string  `json:"displayName"`
+	AvatarURL   string  `json:"avatarUrl"`
+	Badges      []Badge `json:"badges"`
+	Raw         []byte  `json:"-"`
 }
 
 func (m *Member) UnmarshalJSON(data []byte) error {
@@ -153,6 +154,11 @@ func (m *Member) UnmarshalJSON(data []byte) error {
 	*m = Member(a)
 	m.Raw = data
 	return nil
+}
+
+type Badge struct {
+	Alias     string `json:"alias"`
+	BadgeType string `json:"badgeType"`
 }
 
 func FindMember(id string, event Event) (Member, bool) {

@@ -15,51 +15,60 @@
     <div class="section">
         <h2>Endpoints</h2>
         <ul>
-            <li><a href="#export">Export</a> - Export check-in data.</li>
+            <li><a href="#events">Events</a> - Return events with check-ins from Campfire</li>
         </ul>
     </div>
 
     <div class="section">
-        <h2 id="export">Export</h2>
+        <h2 id="events">Events</h2>
         <p>
-            <strong><code>GET</code></strong> <code>{{ .BaseURL }}/api/export</code>
+            <strong><code>GET</code></strong> <code>{{ .BaseURL }}/api/events</code>
         </p>
         <p>Query Parameters:</p>
         <ul>
-            <li><strong><code>events</code></strong>: Comma-separated list of event links/IDs to export</li>
-            <li><strong><code>include_missing_members</code></strong>: Include members who have not checked in (default: false)</li>
-            <li><strong><code>included_fields</code></strong>: Comma-separated list of fields to include in the export (default: all fields)</li>
+            <li><strong><code>events</code></strong>: Comma-separated list of event links/IDs to return</li>
         </ul>
         <p>Example:</p>
-        <pre><code>{{ .BaseURL }}/api/export?
-events=event1,event2&
-include_missing_members=true&
-included_fields=user_id,username,display_name,rsvp_status,event_id,event_name</code></pre>
+        <pre><code>{{ .BaseURL }}/api/events?events=88213c3f-d5fe-4fc9-acbe-e43671e36edc,event2</code></pre>
 
         <p>Response:</p>
         <p>Returns a JSON object with the following structure:</p>
         <pre><code>[
   {
-    "user_id": "E:IUGYINZLEYR64CKEQLPST2VDMHTSE3O4N4FO5XPQEJNHSACPPXOQ",
-    "username": "",
-    "display_name": "",
-    "rsvp_status": "DECLINED",
-    "event": {
-      "id": "88213c3f-d5fe-4fc9-acbe-e43671e36edc",
-      "name": "Raidstunde: Terrakion",
-      "url": "https://campfire.nianticlabs.com/discover/meetup/88213c3f-d5fe-4fc9-acbe-e43671e36edc",
-      "time": "2025-07-16T16:00:00Z",
-      "club_id": "b632fc8e-0b41-49de-ade2-21b0cd81db69",
-      "creator": {
-        "user_id": "E:3I7ZXKS4BN252MFQQ6GX7ROZOPJNA3RITFEIPUZGJ324ESDJ2RVA",
-        "username": "topi314",
-        "display_name": "topi"
+    "id": "88213c3f-d5fe-4fc9-acbe-e43671e36edc",
+    "name": "Raidstunde: Terrakion",
+    "url": "https://campfire.nianticlabs.com/discover/meetup/88213c3f-d5fe-4fc9-acbe-e43671e36edc",
+    "time": "2025-07-16T16:00:00Z",
+    "club_id": "b632fc8e-0b41-49de-ade2-21b0cd81db69",
+    "creator": {
+      "id": "E:3I7ZXKS4BN252MFQQ6GX7ROZOPJNA3RITFEIPUZGJ324ESDJ2RVA",
+      "username": "topi314",
+      "display_name": "topi"
+    },
+    "discord_interested": 0,
+    "created_by_community_ambassador": true,
+    "campfire_live_event_id": "fbb2a356-3b5c-4722-b021-ffdb3591b4a1",
+    "campfire_live_event_name": "Terrakion Raid Hour",
+    "members": [
+      {
+        "id": "E:...",
+        "username": "",
+        "display_name": "",
+        "rsvp_status": "DECLINED"
       },
-      "discord_interested": 0,
-      "created_by_community_ambassador": true,
-      "campfire_live_event_id": "fbb2a356-3b5c-4722-b021-ffdb3591b4a1",
-      "campfire_live_event_name": "Terrakion Raid Hour"
-    }
+      {
+        "id": "E:...",
+        "username": "topi314",
+        "display_name": "topi",
+        "rsvp_status": "CHECKED_IN"
+      },
+      {
+        "id": "E:...",
+        "username": "topi314",
+        "display_name": "topi",
+        "rsvp_status": "ACCEPTED"
+      }
+    ]
   },
   ...
 ]</code></pre>
