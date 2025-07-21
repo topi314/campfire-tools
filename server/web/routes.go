@@ -46,7 +46,8 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/event/{event_id}/export", h.TrackerClubEventExport)
 
 	mux.HandleFunc("GET /api/docs", h.APIDocs)
-	mux.HandleFunc("GET /api/events", h.APIEvents)
+	mux.HandleFunc("GET /api/events", h.APIExportEvents)
+	mux.HandleFunc("POST /api/events", h.APIImportEvents)
 	mux.HandleFunc("GET /api/clubs/{club_id}/events", h.APIClubEvents)
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/tsync"
+	"github.com/topi314/campfire-tools/internal/xerrors"
 )
 
 type TrackerVars struct {
@@ -69,6 +70,27 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		allEvents = allEvents[:50]
 	}
 
+	if err := h.importAllEvents(ctx, allEvents); err != nil {
+		errs = append(errs, xerrors.Unwrap(err)...)
+	}
+
+	if len(errs) > 0 {
+		var errorMessages []string
+		for _, err := range errs {
+			if err != nil {
+				errorMessages = append(errorMessages, err.Error())
+				slog.ErrorContext(ctx, "Failed to add event or members", "err", err)
+			}
+		}
+		h.renderTracker(w, r, errorMessages...)
+		return
+	}
+
+	slog.InfoContext(ctx, "Successfully added events and members", slog.Int("count", len(allEvents)))
+	http.Redirect(w, r, "/tracker", http.StatusFound)
+}
+
+func (h *handler) importAllEvents(ctx context.Context, allEvents []string) error {
 	now := time.Now()
 	var eg tsync.ErrorGroup
 	for _, eventID := range allEvents {
@@ -76,10 +98,6 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 			event, err := h.fetchEvent(ctx, eventID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
-			}
-
-			if len(event.RSVPStatuses) == 0 {
-				return nil
 			}
 
 			if event.EventEndTime.After(now) {
@@ -94,18 +112,5 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if errs = append(errs, eg.Wait()...); len(errs) > 0 {
-		var errorMessages []string
-		for _, err := range errs {
-			if err != nil {
-				errorMessages = append(errorMessages, err.Error())
-				slog.ErrorContext(ctx, "Failed to add event or members", "err", err)
-			}
-		}
-		h.renderTracker(w, r, errorMessages...)
-		return
-	}
-
-	slog.InfoContext(ctx, "Successfully added events and members", slog.Int("count", len(allEvents)))
-	http.Redirect(w, r, "/tracker", http.StatusFound)
+	return eg.Wait()
 }

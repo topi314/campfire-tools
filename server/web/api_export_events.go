@@ -55,7 +55,7 @@ type ExportRSVPMember struct {
 	RSVPStatus string `json:"rsvp_status"`
 }
 
-func (h *handler) APIEvents(w http.ResponseWriter, r *http.Request) {
+func (h *handler) APIExportEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	query := r.URL.Query()
 

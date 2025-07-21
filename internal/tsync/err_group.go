@@ -2,6 +2,7 @@ package tsync
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -29,10 +30,10 @@ func (g *ErrorGroup) Go(n func() error) {
 	}()
 }
 
-func (g *ErrorGroup) Wait() []error {
+func (g *ErrorGroup) Wait() error {
 	g.wg.Wait()
 	if g.cancel != nil {
 		g.cancel()
 	}
-	return g.errors
+	return errors.Join(g.errors...)
 }
