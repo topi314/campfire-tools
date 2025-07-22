@@ -91,8 +91,25 @@ type EventRSVP struct {
 	ImportedAt time.Time `db:"event_rsvp_imported_at"`
 }
 
+type Raffle struct {
+	ID        int       `db:"raffle_id"`
+	UserID    string    `db:"raffle_user_id"`
+	CreatedAt time.Time `db:"raffle_created_at"`
+}
+
+type RaffleEvent struct {
+	RaffleID int    `db:"raffle_event_raffle_id"`
+	EventID  string `db:"raffle_event_event_id"`
+}
+
+type RaffleWinner struct {
+	RaffleID int `db:"raffle_winner_raffle_id"`
+	MemberID int `db:"raffle_winner_raffle_member_id"`
+}
+
 type Session struct {
 	ID        string    `db:"session_id"`
 	CreatedAt time.Time `db:"session_created_at"`
 	ExpiresAt time.Time `db:"session_expires_at"`
+	UserID    string    `db:"session_user_id"`
 }

@@ -26,6 +26,7 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("GET  /raffle", h.Raffle)
 	mux.HandleFunc("POST /raffle", h.DoRaffle)
+	mux.HandleFunc("POST /raffle/winner", h.RaffleWinner)
 
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)

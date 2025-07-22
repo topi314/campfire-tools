@@ -147,6 +147,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		ID:        session,
 		CreatedAt: now,
 		ExpiresAt: expiration,
+		UserID:    user.ID,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create session", slog.Any("error", err))
 		http.Error(w, "Failed to create session", http.StatusInternalServerError)

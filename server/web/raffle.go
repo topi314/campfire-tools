@@ -117,6 +117,19 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	raffleID, err := h.DB.InsertRaffle(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to insert raffle into database", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to create raffle: "+err.Error())
+		return
+	}
+
+	if err = h.DB.InsertRaffleEvents(ctx, raffleID, eventIDs); err != nil {
+		slog.ErrorContext(ctx, "Failed to insert raffle events into database", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to create raffle: "+err.Error())
+		return
+	}
+
 	winners := make([]Member, 0, count)
 	for {
 		if len(members) == 0 || len(winners) >= count {
@@ -134,7 +147,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
+	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
 		Winners:       winners,
 		Events:        strings.Join(eventIDs, "\n"),
 		Count:         count,
