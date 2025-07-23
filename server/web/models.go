@@ -133,3 +133,20 @@ type TopEvent struct {
 	CheckIns    int
 	CheckInRate float64
 }
+
+func newRaffle(raffle database.Raffle) Raffle {
+	return Raffle{
+		ID:            raffle.ID,
+		WinnerCount:   raffle.WinnerCount,
+		OnlyCheckedIn: raffle.OnlyCheckedIn,
+		CreatedAt:     raffle.CreatedAt,
+	}
+}
+
+type Raffle struct {
+	ID            int
+	WinnerCount   int
+	OnlyCheckedIn bool
+	SingleEntry   bool
+	CreatedAt     time.Time
+}

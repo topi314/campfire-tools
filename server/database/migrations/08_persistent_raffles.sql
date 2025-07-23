@@ -1,15 +1,12 @@
 CREATE TABLE raffles
 (
-    raffle_id         BIGSERIAL PRIMARY KEY,
-    raffle_created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    raffle_user_id    VARCHAR   NOT NULL
-);
-
-CREATE TABLE raffle_events
-(
-    raffle_event_raffle_id BIGINT  NOT NULL REFERENCES raffles (raffle_id) ON DELETE CASCADE,
-    raffle_event_event_id  VARCHAR NOT NULL,
-    PRIMARY KEY (raffle_event_raffle_id, raffle_event_event_id)
+    raffle_id              BIGSERIAL PRIMARY KEY,
+    raffle_user_id         VARCHAR   NOT NULL,
+    raffle_events          VARCHAR[] NOT NULL DEFAULT '{}',
+    raffle_winner_count    INTEGER   NOT NULL DEFAULT 1,
+    raffle_only_checked_in BOOLEAN   NOT NULL DEFAULT TRUE,
+    raffle_single_entry    BOOLEAN   NOT NULL DEFAULT TRUE,
+    raffle_created_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE raffle_winners

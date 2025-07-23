@@ -9,21 +9,23 @@
 
     {{ if .Winners }}
         <ol class="winners">
-            {{ range $index, $element := .Winners }}
-                <li title="{{ .Username }}">{{ .DisplayName }}</li>
+            {{ range $index, $winner := .Winners }}
+                <li title="{{ $winner.Username }}">
+                    {{ $winner.DisplayName }}
+                    <form action="/raffle/{{ $.ID }}/winner" method="POST">
+                        <input type="hidden" name="member_id" value="{{ $winner.ID }}">
+                        <input type="hidden" name="winners" value="{{ $.WinnerIDs }}">
+                        <button type="submit" class="delete-button">
+                            Mark as Won
+                        </button>
+                    </form>
+                </li>
             {{ end }}
         </ol>
     {{ end}}
 
     <div class="buttons">
-        {{ if .Events }}
-            <form action="/raffle" method="POST">
-                <input type="hidden" name="events" value="{{ .Events }}">
-                <input type="hidden" name="count" value="{{ .Count }}">
-                <input type="hidden" name="only_checked_in" value="{{ if .OnlyCheckedIn }}on{{ else }}off{{ end }}">
-                <button type="submit" class="button">Rerun</button>
-            </form>
-        {{ end }}
+        <a href="/raffle/{{ .ID }}" class="button">Rerun</a>
         <a href="/raffle" class="button">Back</a>
     </div>
 </div>

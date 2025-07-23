@@ -2,25 +2,29 @@ package web
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/database"
 )
 
-type DoRaffleVars struct {
-	Winners       []Member
-	Events        string
-	Count         int
-	OnlyCheckedIn bool
+type RaffleResultVars struct {
+	Raffle
+	Winners   []Member
+	WinnerIDs string
 }
 
 func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
@@ -40,10 +44,17 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 	if ids := r.Form["ids"]; len(ids) > 0 {
 		events += "\n" + strings.Join(ids, "\n")
 	}
-	count := parseIntQuery(r.Form, "count", 1)
+	winnerCount := parseIntQuery(r.Form, "winner_count", 1)
 	onlyCheckedIn := parseBoolQuery(r.Form, "only_checked_in", false)
+	singleEntry := parseBoolQuery(r.Form, "single_entry", false)
 
-	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("events", events), slog.Int("count", count))
+	slog.InfoContext(ctx, "Received raffle request",
+		slog.String("url", r.URL.String()),
+		slog.String("events", events),
+		slog.Int("winner_count", winnerCount),
+		slog.Bool("only_checked_in", onlyCheckedIn),
+		slog.Bool("single_entry", singleEntry),
+	)
 
 	if events == "" {
 		h.renderRaffle(w, r, "Missing 'events' parameter")
@@ -63,13 +74,85 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
-	var members []Member
+	eg, egCtx := errgroup.WithContext(ctx)
 	var eventIDs []string
 	var mu sync.Mutex
-	for _, eventID := range allEvents {
+	for _, event := range allEvents {
 		eg.Go(func() error {
-			event, err := h.fetchEvent(ctx, eventID)
+			eventID, err := h.fetchEventID(egCtx, event)
+			if err != nil {
+				return fmt.Errorf("failed to fetch event id %q: %w", event, err)
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			eventIDs = append(eventIDs, eventID)
+
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch events for raffle", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to fetch events: "+err.Error())
+		return
+	}
+
+	session := auth.GetSession(r)
+
+	raffleID, err := h.DB.InsertRaffle(ctx, database.Raffle{
+		UserID:        session.UserID,
+		Events:        eventIDs,
+		WinnerCount:   winnerCount,
+		OnlyCheckedIn: onlyCheckedIn,
+		SingleEntry:   singleEntry,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to insert raffle into database", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to create raffle: "+err.Error())
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/raffle/%d", raffleID), http.StatusSeeOther)
+}
+
+func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	raffleIDStr := r.PathValue("raffle_id")
+
+	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("raffle_id", raffleIDStr))
+
+	raffleID, err := strconv.Atoi(raffleIDStr)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.NotFound(w, r)
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to get raffle from database", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to get raffle: "+err.Error())
+		return
+	}
+
+	pastWinners, err := h.DB.GetRaffleWinners(ctx, raffleID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get past raffle winners from database", slog.Any("err", err))
+		h.renderRaffle(w, r, "Failed to get past raffle winners: "+err.Error())
+		return
+	}
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	var members []Member
+	var mu sync.Mutex
+	for _, eventID := range raffle.Events {
+		eg.Go(func() error {
+			event, err := h.fetchEvent(egCtx, eventID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
 			}
@@ -81,16 +164,25 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			defer mu.Unlock()
 			for _, rsvpStatus := range event.RSVPStatuses {
-				// Only consider checked-in members if `onlyCheckedIn` is true
-				if rsvpStatus.RSVPStatus == "DECLINED" || (onlyCheckedIn && rsvpStatus.RSVPStatus != "CHECKED_IN") {
+				// Skip if user is already a past winner
+				if slices.ContainsFunc(pastWinners, func(winner database.RaffleWinner) bool {
+					return winner.MemberID == rsvpStatus.UserID
+				}) {
 					continue
 				}
 
-				// Skip if the user is already in the members map
-				if i := slices.IndexFunc(members, func(m Member) bool {
-					return m.ID == rsvpStatus.UserID
-				}); i != -1 {
+				// Only consider checked-in members if `onlyCheckedIn` is true
+				if rsvpStatus.RSVPStatus == "DECLINED" || (raffle.OnlyCheckedIn && rsvpStatus.RSVPStatus != "CHECKED_IN") {
 					continue
+				}
+
+				if raffle.SingleEntry {
+					// Skip if the user is already in the members
+					if i := slices.IndexFunc(members, func(m Member) bool {
+						return m.ID == rsvpStatus.UserID
+					}); i != -1 {
+						continue
+					}
 				}
 
 				// Skip if we don't have the member's information
@@ -106,33 +198,20 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 					AvatarURL:   imageURL(member.AvatarURL, 32),
 				})
 			}
-			eventIDs = append(eventIDs, event.ID)
 
 			return nil
 		})
 	}
-	if err := eg.Wait(); err != nil {
+	if err = eg.Wait(); err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for raffle", slog.Any("err", err))
 		h.renderRaffle(w, r, "Failed to fetch events: "+err.Error())
 		return
 	}
 
-	raffleID, err := h.DB.InsertRaffle(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to insert raffle into database", slog.Any("err", err))
-		h.renderRaffle(w, r, "Failed to create raffle: "+err.Error())
-		return
-	}
-
-	if err = h.DB.InsertRaffleEvents(ctx, raffleID, eventIDs); err != nil {
-		slog.ErrorContext(ctx, "Failed to insert raffle events into database", slog.Any("err", err))
-		h.renderRaffle(w, r, "Failed to create raffle: "+err.Error())
-		return
-	}
-
-	winners := make([]Member, 0, count)
+	winners := make([]Member, 0, raffle.WinnerCount)
+	winnerIDs := make([]string, 0, raffle.WinnerCount)
 	for {
-		if len(members) == 0 || len(winners) >= count {
+		if len(members) == 0 || len(winners) >= raffle.WinnerCount {
 			break
 		}
 		num := rand.N(len(members))
@@ -140,6 +219,7 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		members = slices.Delete(members, num, num+1) // Remove selected member to avoid duplicates
 
 		winners = append(winners, member)
+		winnerIDs = append(winnerIDs, member.ID)
 	}
 
 	if len(winners) == 0 {
@@ -147,14 +227,35 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", DoRaffleVars{
-		Winners:       winners,
-		Events:        strings.Join(eventIDs, "\n"),
-		Count:         count,
-		OnlyCheckedIn: onlyCheckedIn,
+	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
+		Raffle:    newRaffle(*raffle),
+		Winners:   winners,
+		WinnerIDs: strings.Join(winnerIDs, ","),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}
+}
+
+func (h *handler) fetchEventID(ctx context.Context, event string) (string, error) {
+	if strings.HasPrefix(event, "https://") {
+		eventID, err := h.Campfire.ResolveEventID(ctx, event)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve event ID from URL %q: %w", event, err)
+		}
+		return eventID, nil
+	}
+
+	dbEvent, err := h.DB.GetEvent(ctx, event)
+	if err == nil {
+		return dbEvent.Event.ID, nil
+	}
+
+	campfireEvent, err := h.Campfire.GetEvent(ctx, event)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch event %q: %w", event, err)
+	}
+
+	return campfireEvent.ID, nil
 }
 
 func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event, error) {

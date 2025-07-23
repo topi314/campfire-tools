@@ -31,33 +31,46 @@ type discordGuild struct {
 
 func (h *handler) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip authentication for non-tracker endpoints
-		if !strings.HasPrefix(r.URL.Path, "/tracker") {
-			next.ServeHTTP(w, r)
-			return
-		}
+		ctx := r.Context()
 
 		cookie, err := r.Cookie("session")
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
-				h.forceLogin(w, r)
+				if strings.HasPrefix(r.URL.Path, "/tracker") {
+					h.forceLogin(w, r)
+					return
+				}
+			} else {
+				slog.Error("failed to get session cookie", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			slog.Error("failed to get session cookie", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
 
-		ctx := r.Context()
-		session, err := h.DB.GetSession(ctx, cookie.Value)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				h.forceLogin(w, r)
-				return
+		var session *database.Session
+		if cookie != nil {
+			session, err = h.DB.GetSession(ctx, cookie.Value)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					if strings.HasPrefix(r.URL.Path, "/tracker") {
+						h.forceLogin(w, r)
+						return
+					}
+				} else {
+					slog.Error("failed to get session", "error", err)
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					return
+				}
 			}
-			slog.Error("failed to get session", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
+		}
+
+		if session == nil {
+			session = &database.Session{
+				ID:        "",
+				CreatedAt: time.Time{},
+				ExpiresAt: time.Time{},
+				UserID:    "",
+			}
 		}
 
 		r = r.WithContext(auth.SetSession(ctx, *session))
