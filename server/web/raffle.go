@@ -145,6 +145,8 @@ func (h *handler) DoRaffle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event, error) {
+	event = strings.TrimSpace(event)
+
 	if strings.HasPrefix(event, "https://") {
 		eventID, err := h.Campfire.ResolveEventID(ctx, event)
 		if err != nil {
