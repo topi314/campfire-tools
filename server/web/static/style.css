@@ -149,6 +149,15 @@ pre:has(code) {
     margin-top: 20px;
 }
 
+.buttons form {
+    width: auto;
+}
+
+.small-text {
+    font-size: 12px;
+    color: var(--text2-color);
+}
+
 .container {
     display: flex;
     flex-direction: column;
@@ -268,13 +277,28 @@ form label {
     font-weight: bold;
 }
 
-.winners > li {
+.winners > li > div {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.winners > li > div > form {
+    align-items: flex-end;
 }
 
 .winners > li:last-child {
     border-bottom: none;
+}
+
+.past-winners {
+    width: 100%;
+    text-align: left;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 .list {

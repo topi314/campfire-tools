@@ -255,9 +255,9 @@ func addSessionCookie(w http.ResponseWriter, session string, expiration time.Tim
 		Value:    session,
 		Expires:  expiration,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   false,      // Can use via http reqs
-		HttpOnly: true,       // Can't be accessed by JS
-		Path:     "/tracker", // Only valid for tracker endpoints
+		Secure:   false, // Can use via http reqs
+		HttpOnly: true,  // Can't be accessed by JS
+		Path:     "/",   // Only valid for tracker endpoints
 	}
 
 	http.SetCookie(w, &cookie)

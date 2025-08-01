@@ -7,28 +7,21 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"sync"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/database"
 )
 
-func (h *handler) RaffleWinner(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	if err := r.ParseForm(); err != nil {
-		slog.ErrorContext(ctx, "Failed to parse form data", slog.Any("err", err))
-		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
-		return
-	}
-
 	raffleIDStr := r.PathValue("raffle_id")
+	memberID := r.PathValue("member_id")
 
-	slog.InfoContext(ctx, "Received raffle winner request", slog.String("url", r.URL.String()), slog.String("raffle_id", raffleIDStr))
-
-	memberID := r.FormValue("member_id")
-	winnersStr := r.FormValue("winners")
+	slog.InfoContext(ctx, "Received raffle winner request",
+		slog.String("url", r.URL.String()),
+		slog.String("raffle_id", raffleIDStr),
+		slog.String("member_id", memberID),
+	)
 
 	raffleID, err := strconv.Atoi(raffleIDStr)
 	if err != nil {
@@ -36,55 +29,37 @@ func (h *handler) RaffleWinner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
-	if err != nil {
+	if _, err = h.DB.GetRaffleByID(ctx, raffleID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.NotFound(w, r)
 			return
 		}
 		slog.ErrorContext(ctx, "Failed to get raffle from database", slog.Any("err", err))
-		h.renderRaffle(w, r, "Failed to get raffle: "+err.Error())
+		h.renderRaffleResult(w, r, database.Raffle{}, "Failed to get raffle: "+err.Error())
 		return
 	}
 
-	if err = h.DB.InsertRaffleWinner(ctx, raffleID, memberID); err != nil {
-		slog.ErrorContext(ctx, "Failed to insert raffle winner into database", slog.Any("err", err))
-		h.renderRaffle(w, r, "Failed to insert raffle winner: "+err.Error())
+	if err = h.DB.ConfirmRaffleWinner(ctx, raffleID, memberID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			slog.ErrorContext(ctx, "Raffle winner not found", slog.String("member_id", memberID), slog.Int("raffle_id", raffleID))
+			h.renderRaffleResult(w, r, database.Raffle{}, "Raffle winner not found")
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to confirm raffle winner in database", slog.Any("err", err))
+		h.renderRaffleResult(w, r, database.Raffle{}, "Failed to confirm raffle winner: "+err.Error())
 		return
 	}
 
-	eg, egCtx := errgroup.WithContext(ctx)
-	var winners []campfire.Member
-	var mu sync.Mutex
-	for _, eventID := range raffle.Events {
-		eg.Go(func() error {
-			event, err := h.fetchEvent(egCtx, eventID)
-			if err != nil {
-				return fmt.Errorf("failed to fetch event %q: %w", eventID, err)
-			}
+	redirectRaffle(w, r, raffleID, r.URL.RawQuery)
+}
 
-			mu.Lock()
-			defer mu.Unlock()
+func redirectRaffle(w http.ResponseWriter, r *http.Request, raffleID int, rawQuery string) {
+	http.Redirect(w, r, withQuery(fmt.Sprintf("/raffle/%d", raffleID), rawQuery), http.StatusSeeOther)
+}
 
-			for _, member := range mem
-
-			for _, edge := range event.Members.Edges {
-				if edge.Node.ID == memberID {
-					winners = append(winners, edge.Node)
-					break
-				}
-			}
-
-			return nil
-		})
+func withQuery(url string, query string) string {
+	if query == "" {
+		return url
 	}
-	if err = eg.Wait(); err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch events for raffle", slog.Any("err", err))
-		h.renderRaffle(w, r, "Failed to fetch events: "+err.Error())
-		return
-	}
-
-	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
-	}
+	return fmt.Sprintf("%s?%s", url, query)
 }

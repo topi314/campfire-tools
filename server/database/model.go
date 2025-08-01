@@ -104,8 +104,16 @@ type Raffle struct {
 }
 
 type RaffleWinner struct {
-	RaffleID int    `db:"raffle_winner_raffle_id"`
-	MemberID string `db:"raffle_winner_member_id"`
+	RaffleID  int       `db:"raffle_winner_raffle_id"`
+	MemberID  string    `db:"raffle_winner_member_id"`
+	Confirmed bool      `db:"raffle_winner_confirmed"`
+	Past      bool      `db:"raffle_winner_past"`
+	CreatedAt time.Time `db:"raffle_winner_created_at"`
+}
+
+type RaffleWinnerWithMember struct {
+	RaffleWinner
+	Member
 }
 
 type Session struct {

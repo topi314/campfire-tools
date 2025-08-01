@@ -25,9 +25,10 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /login/callback", h.LoginCallback)
 
 	mux.HandleFunc("GET  /raffle", h.Raffle)
-	mux.HandleFunc("POST /raffle", h.DoRaffle)
+	mux.HandleFunc("POST /raffle", h.RunRaffle)
+	mux.HandleFunc("POST /raffle/{raffle_id}", h.RerunRaffle)
 	mux.HandleFunc("GET  /raffle/{raffle_id}", h.GetRaffle)
-	mux.HandleFunc("POST /raffle/{raffle_id}/winner", h.RaffleWinner)
+	mux.HandleFunc("POST /raffle/{raffle_id}/winner/{member_id}", h.ConfirmRaffleWinner)
 
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)

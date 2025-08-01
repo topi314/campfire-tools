@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -112,6 +113,16 @@ func newMember(member database.Member, clubID string) Member {
 	}
 }
 
+func newMemberFromCampfire(member campfire.Member, clubID string) Member {
+	return Member{
+		ID:          member.ID,
+		Username:    member.Username,
+		DisplayName: getDisplayName(member.DisplayName, member.Username),
+		AvatarURL:   imageURL(member.AvatarURL, 32),
+		URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
+	}
+}
+
 type Member struct {
 	ID          string
 	Username    string
@@ -139,14 +150,33 @@ func newRaffle(raffle database.Raffle) Raffle {
 		ID:            raffle.ID,
 		WinnerCount:   raffle.WinnerCount,
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
+		SingleEntry:   raffle.SingleEntry,
 		CreatedAt:     raffle.CreatedAt,
+		URL:           fmt.Sprintf("/raffle/%d", raffle.ID),
 	}
 }
 
 type Raffle struct {
 	ID            int
+	UserID        string
+	Events        []string
 	WinnerCount   int
 	OnlyCheckedIn bool
 	SingleEntry   bool
 	CreatedAt     time.Time
+	URL           string
+}
+
+func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
+	return Winner{
+		Member:    newMember(winner.Member, clubID),
+		Confirmed: winner.Confirmed,
+		Previous:  winner.Past,
+	}
+}
+
+type Winner struct {
+	Member
+	Confirmed bool
+	Previous  bool
 }
