@@ -26,8 +26,9 @@ func (d *Database) GetSession(ctx context.Context, sessionID string) (*Session, 
 
 func (d *Database) CreateSession(ctx context.Context, session Session) error {
 	query := `
-	INSERT INTO sessions (session_id, session_created_at, session_expires_at)
-	VALUES (:session_id, :session_created_at, :session_expires_at)`
+		INSERT INTO sessions (session_id, session_created_at, session_expires_at, session_user_id)
+		VALUES (:session_id, :session_created_at, :session_expires_at, :session_user_id)
+	`
 	_, err := d.db.NamedExecContext(ctx, query, session)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)

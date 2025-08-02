@@ -11,7 +11,7 @@
     </div>
 
     <div class="section">
-        <form action="/export" method="POST" id="export-form">
+        <form action="/tracker/club/{{ .ID }}/export" method="POST" id="export-form">
             <label class="form-control" for="ids">
                 Events
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>

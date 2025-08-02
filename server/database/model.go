@@ -3,6 +3,8 @@ package database
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Club struct {
@@ -91,8 +93,32 @@ type EventRSVP struct {
 	ImportedAt time.Time `db:"event_rsvp_imported_at"`
 }
 
+type Raffle struct {
+	ID            int            `db:"raffle_id"`
+	UserID        string         `db:"raffle_user_id"`
+	Events        pq.StringArray `db:"raffle_events"`
+	WinnerCount   int            `db:"raffle_winner_count"`
+	OnlyCheckedIn bool           `db:"raffle_only_checked_in"`
+	SingleEntry   bool           `db:"raffle_single_entry"`
+	CreatedAt     time.Time      `db:"raffle_created_at"`
+}
+
+type RaffleWinner struct {
+	RaffleID  int       `db:"raffle_winner_raffle_id"`
+	MemberID  string    `db:"raffle_winner_member_id"`
+	Confirmed bool      `db:"raffle_winner_confirmed"`
+	Past      bool      `db:"raffle_winner_past"`
+	CreatedAt time.Time `db:"raffle_winner_created_at"`
+}
+
+type RaffleWinnerWithMember struct {
+	RaffleWinner
+	Member
+}
+
 type Session struct {
 	ID        string    `db:"session_id"`
 	CreatedAt time.Time `db:"session_created_at"`
 	ExpiresAt time.Time `db:"session_expires_at"`
+	UserID    string    `db:"session_user_id"`
 }

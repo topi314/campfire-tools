@@ -17,13 +17,13 @@ import (
 var migrations embed.FS
 
 func New(cfg Config) (*Database, error) {
-	dbx, err := sqlx.Connect("pgx", cfg.DataSourceName())
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbx, err := sqlx.ConnectContext(ctx, "pgx", cfg.DataSourceName())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	if err = gomigrate.Migrate(ctx, dbx, sqlite.New, migrations); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)

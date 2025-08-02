@@ -275,7 +275,7 @@
             field.value = element.open ? 'false' : 'true';
         }
 
-        window.history.replaceState({}, '', url.toString());
+        window.history.replaceState(null, '', url.toString());
     }
 
     const fromDate = document.getElementById('from');
