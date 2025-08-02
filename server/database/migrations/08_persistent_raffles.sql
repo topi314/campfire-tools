@@ -14,7 +14,7 @@ CREATE TABLE raffle_winners
     raffle_winner_raffle_id  BIGINT    NOT NULL REFERENCES raffles (raffle_id) ON DELETE CASCADE,
     raffle_winner_member_id  VARCHAR   NOT NULL REFERENCES members (member_id),
     raffle_winner_confirmed  BOOLEAN   NOT NULL DEFAULT FALSE,
-    raffle_winner_previous   BOOLEAN   NOT NULL DEFAULT FALSE,
+    raffle_winner_past       BOOLEAN   NOT NULL DEFAULT FALSE,
     raffle_winner_created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (raffle_winner_raffle_id, raffle_winner_member_id)
 );
