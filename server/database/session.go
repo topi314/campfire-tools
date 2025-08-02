@@ -9,9 +9,15 @@ import (
 
 var ErrSessionExpired = errors.New("session expired")
 
-func (d *Database) GetSession(ctx context.Context, sessionID string) (*Session, error) {
-	var session Session
-	err := d.db.GetContext(ctx, &session, "SELECT * FROM sessions WHERE session_id = $1", sessionID)
+func (d *Database) GetSession(ctx context.Context, sessionID string) (*SessionWithUserSetting, error) {
+	query := `
+		SELECT * FROM sessions 
+		LEFT JOIN user_settings ON sessions.session_user_id = user_settings.user_setting_user_id
+        WHERE session_id = $1
+		`
+
+	var session SessionWithUserSetting
+	err := d.db.GetContext(ctx, &session, query, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}

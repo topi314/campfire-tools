@@ -42,6 +42,9 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/club/{club_id}/stats", h.TrackerClubStats)
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
 
+	mux.HandleFunc("POST /tracker/club/{club_id}/pin", h.TrackerClubPin)
+	mux.HandleFunc("POST /tracker/club/{club_id}/unpin", h.TrackerClubPin)
+
 	mux.HandleFunc("GET  /tracker/club/{club_id}/export", h.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", h.DoExport)
 

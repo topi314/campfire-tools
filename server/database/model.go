@@ -122,3 +122,14 @@ type Session struct {
 	ExpiresAt time.Time `db:"session_expires_at"`
 	UserID    string    `db:"session_user_id"`
 }
+
+type UserSetting struct {
+	UserID       string  `db:"user_setting_user_id"`
+	PinnedClubID *string `db:"user_setting_pinned_club_id"`
+}
+
+type SessionWithUserSetting struct {
+	Session
+	UserSettingUserID *string `db:"user_setting_user_id"`
+	PinnedClubID      *string `db:"user_setting_pinned_club_id"`
+}

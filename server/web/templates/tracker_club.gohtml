@@ -14,6 +14,11 @@
         <a href="{{ .URL }}/stats" class="button">Statistics</a>
         <a href="{{ .URL }}/raffle" class="button">Raffle</a>
         <a href="{{ .URL }}/export" class="button">Export</a>
+        <form action="/tracker/club/{{ .ID }}/{{ if .Pinned }}unpin{{else}}pin{{end}}" method="post">
+            <button type="submit" class="button">
+                {{ if .Pinned }}Unpin{{else}}Pin{{end}}
+            </button>
+        </form>
     </div>
 
     <div class="section">
