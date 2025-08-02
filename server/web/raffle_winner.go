@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -31,13 +32,20 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.DB.GetRaffleByID(ctx, raffleID); err != nil {
+	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.NotFound(w, r)
 			return
 		}
 		slog.ErrorContext(ctx, "Failed to get raffle from database", slog.Any("err", err))
 		h.renderRaffleResult(w, r, database.Raffle{}, clubID, "Failed to get raffle: "+err.Error())
+		return
+	}
+
+	session := auth.GetSession(r)
+	if raffle.UserID != "" && raffle.UserID != session.UserID {
+		h.NotFound(w, r)
 		return
 	}
 

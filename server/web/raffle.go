@@ -193,6 +193,12 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session := auth.GetSession(r)
+	if raffle.UserID != "" && raffle.UserID != session.UserID {
+		h.NotFound(w, r)
+		return
+	}
+
 	pastWinners, err := h.DB.GetRaffleWinners(ctx, raffleID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get past raffle winners from database", slog.Any("err", err))
@@ -246,6 +252,12 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.ErrorContext(ctx, "Failed to get raffle from database", slog.Any("err", err))
 		h.renderRaffleResult(w, r, database.Raffle{}, clubID, "Failed to get raffle: "+err.Error())
+		return
+	}
+
+	session := auth.GetSession(r)
+	if raffle.UserID != "" && raffle.UserID != session.UserID {
+		h.NotFound(w, r)
 		return
 	}
 
