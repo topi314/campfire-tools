@@ -34,35 +34,22 @@ func (h *handler) auth(next http.Handler) http.Handler {
 		ctx := r.Context()
 
 		var session *database.SessionWithUserSetting
-		if !strings.HasPrefix(r.URL.Path, "/login/callback") {
-			cookie, err := r.Cookie("session")
-			if err != nil {
-				if errors.Is(err, http.ErrNoCookie) {
-					if strings.HasPrefix(r.URL.Path, "/tracker") {
-						h.forceLogin(w, r)
-						return
-					}
-				} else {
-					slog.Error("failed to get session cookie", "error", err)
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-					return
-				}
-			}
-
-			if cookie != nil {
+		if !strings.HasPrefix(r.URL.Path, "/login") {
+			for _, cookie := range r.CookiesNamed("session") {
+				var err error
 				session, err = h.DB.GetSession(ctx, cookie.Value)
 				if err != nil {
-					if errors.Is(err, sql.ErrNoRows) {
-						if strings.HasPrefix(r.URL.Path, "/tracker") {
-							h.forceLogin(w, r)
-							return
-						}
-					} else {
-						slog.Error("failed to get session", "error", err)
-						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-						return
+					if !errors.Is(err, sql.ErrNoRows) {
+						slog.ErrorContext(ctx, "failed to get session from database", slog.Any("error", err), slog.String("session_id", cookie.Value))
 					}
+					continue
 				}
+				break
+			}
+
+			if session == nil && strings.HasPrefix(r.URL.Path, "/tracker") {
+				h.forceLogin(w, r)
+				return
 			}
 		}
 
