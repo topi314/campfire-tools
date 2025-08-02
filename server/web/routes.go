@@ -28,7 +28,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /raffle", h.RunRaffle)
 	mux.HandleFunc("POST /raffle/{raffle_id}", h.RerunRaffle)
 	mux.HandleFunc("GET  /raffle/{raffle_id}", h.GetRaffle)
-	mux.HandleFunc("POST /raffle/{raffle_id}/winner/{member_id}", h.ConfirmRaffleWinner)
+	mux.HandleFunc("POST /raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
 
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)
@@ -39,23 +39,32 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)
 
 	mux.HandleFunc("GET /tracker/club/{club_id}", h.TrackerClub)
-	mux.HandleFunc("GET /tracker/club/{club_id}/export", h.TrackerClubExport)
 	mux.HandleFunc("GET /tracker/club/{club_id}/stats", h.TrackerClubStats)
-	mux.HandleFunc("GET /tracker/club/{club_id}/raffle", h.TrackerClubRaffle)
-	mux.HandleFunc("GET /tracker/club/{club_id}/events/export", h.TrackerClubEventsExport)
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
+
+	mux.HandleFunc("GET  /tracker/club/{club_id}/export", h.TrackerClubExport)
+	mux.HandleFunc("POST /tracker/club/{club_id}/export", h.DoExport)
+
+	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle", h.TrackerClubRaffle)
+	mux.HandleFunc("POST /tracker/club/{club_id}/raffle", h.RunRaffle)
+	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}", h.RerunRaffle)
+	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle/{raffle_id}", h.GetRaffle)
+	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
+
+	mux.HandleFunc("GET  /tracker/club/{club_id}/events/export", h.TrackerClubEventsExport)
+	mux.HandleFunc("POST /tracker/club/{club_id}/events/export", h.DoExport)
 
 	mux.HandleFunc("GET /tracker/event/{event_id}", h.TrackerClubEvent)
 	mux.HandleFunc("GET /tracker/event/{event_id}/export", h.TrackerClubEventExport)
 
-	mux.HandleFunc("GET /api/docs", h.APIDocs)
-	mux.HandleFunc("GET /api/events", h.APIExportEvents)
+	mux.HandleFunc("GET  /api/docs", h.APIDocs)
+	mux.HandleFunc("GET  /api/events", h.APIExportEvents)
 	mux.HandleFunc("POST /api/events", h.APIImportEvents)
-	mux.HandleFunc("GET /api/clubs/{club_id}/events", h.APIClubEvents)
+	mux.HandleFunc("GET  /api/clubs/{club_id}/events", h.APIClubEvents)
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
 
-	mux.Handle("GET /static/", fs)
+	mux.Handle("GET  /static/", fs)
 	mux.Handle("HEAD /static/", fs)
 
 	mux.HandleFunc("/", h.NotFound)

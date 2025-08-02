@@ -168,15 +168,24 @@ type Raffle struct {
 }
 
 func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
+	var confirmURL string
+	if clubID != "" {
+		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/confirm/%s", clubID, winner.RaffleID, winner.Member.ID)
+	} else {
+		confirmURL = fmt.Sprintf("/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
+	}
+
 	return Winner{
-		Member:    newMember(winner.Member, clubID),
-		Confirmed: winner.Confirmed,
-		Previous:  winner.Past,
+		Member:     newMember(winner.Member, clubID),
+		Confirmed:  winner.Confirmed,
+		Previous:   winner.Past,
+		ConfirmURL: confirmURL,
 	}
 }
 
 type Winner struct {
 	Member
-	Confirmed bool
-	Previous  bool
+	Confirmed  bool
+	Previous   bool
+	ConfirmURL string
 }

@@ -13,7 +13,7 @@
     </div>
 
     <div class="section">
-        <form action="/raffle" method="POST">
+        <form action="/tracker/club/{{ .ID }}/raffle" method="POST">
             <label class="form-control" for="ids" title="Select events for the raffle. You can select multiple events.">
                 Events
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>

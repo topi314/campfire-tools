@@ -1,7 +1,7 @@
 {{ template "head" "Campfire Raffle Result" }}
 <div class="container">
     <div class="container-header">
-        <a href="/raffle" class="back">
+        <a href="{{ .BackURL }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>Raffle Result</h1>
@@ -21,7 +21,7 @@
                         <div>
                             {{ $winner.DisplayName }}
                             {{ if not $winner.Confirmed }}
-                                <form action="/raffle/{{ $.ID }}/winner/{{ $winner.ID }}" method="POST">
+                                <form action="{{ $winner.ConfirmURL }}" method="POST">
                                     <button type="submit" class="delete-button">
                                         Confirm
                                     </button>
@@ -38,15 +38,14 @@
         {{ end }}
 
         <div class="buttons">
-            {{ if .ID}}
-                <form action="/raffle/{{ .ID }}" method="POST">
+            {{ if .ID }}
+                <form action="{{ .RerunRaffleURL }}" method="POST">
                     <input type="hidden" id="field-past-winners" name="past_winners" value="{{ if .PastWinnersOpen }}true{{ else }}false{{ end }}">
                     <button type="submit" class="button">
                         Rerun
                     </button>
                 </form>
             {{ end }}
-            <a href="/raffle" class="button">Back</a>
         </div>
     </div>
 
