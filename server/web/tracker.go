@@ -10,11 +10,13 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/tsync"
 	"github.com/topi314/campfire-tools/internal/xerrors"
+	"github.com/topi314/campfire-tools/server/auth"
 )
 
 type TrackerVars struct {
-	Clubs  []ClubWithEvents
-	Errors []string
+	PinnedClub *ClubWithEvents
+	Clubs      []ClubWithEvents
+	Errors     []string
 }
 
 func (h *handler) Tracker(w http.ResponseWriter, r *http.Request) {
@@ -30,14 +32,23 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 		return
 	}
 
+	session := auth.GetSession(r)
+
+	var pinnedClub *ClubWithEvents
 	trackerClubs := make([]ClubWithEvents, len(clubs))
 	for i, club := range clubs {
+		if session.PinnedClubID != nil && *session.PinnedClubID == club.Club.ID {
+			c := newClubWithEvents(club)
+			pinnedClub = &c
+			continue
+		}
 		trackerClubs[i] = newClubWithEvents(club)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
-		Clubs:  trackerClubs,
-		Errors: errorMessages,
+		PinnedClub: pinnedClub,
+		Clubs:      trackerClubs,
+		Errors:     errorMessages,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker template", slog.Any("err", err))
 	}

@@ -33,7 +33,7 @@ func (h *handler) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		var session *database.Session
+		var session *database.SessionWithUserSetting
 		if !strings.HasPrefix(r.URL.Path, "/login/callback") {
 			cookie, err := r.Cookie("session")
 			if err != nil {
@@ -67,11 +67,14 @@ func (h *handler) auth(next http.Handler) http.Handler {
 		}
 
 		if session == nil {
-			session = &database.Session{
-				ID:        "",
-				CreatedAt: time.Time{},
-				ExpiresAt: time.Time{},
-				UserID:    "",
+			session = &database.SessionWithUserSetting{
+				Session: database.Session{
+					ID:        "",
+					CreatedAt: time.Time{},
+					ExpiresAt: time.Time{},
+					UserID:    "",
+				},
+				PinnedClubID: nil,
 			}
 		}
 

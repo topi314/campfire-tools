@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+
+	"github.com/topi314/campfire-tools/server/auth"
 )
 
 type TrackerClubVars struct {
 	Club
 	Events []Event
+	Pinned bool
 }
 
 func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +49,13 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	session := auth.GetSession(r)
+	pinned := session.PinnedClubID != nil && *session.PinnedClubID == clubID
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
 		Club:   newClub(*club),
 		Events: trackerEvents,
+		Pinned: pinned,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

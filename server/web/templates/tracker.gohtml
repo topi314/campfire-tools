@@ -33,6 +33,16 @@ https://cmpf.re/..." required autofocus></textarea>
     <div class="section">
         <h2>Clubs ({{ len .Clubs }})</h2>
         <ul class="list">
+            {{ if .PinnedClub }}
+                <li class="list-item">
+                    {{ if .PinnedClub.AvatarURL }}
+                        <img src="{{ .PinnedClub.AvatarURL }}">
+                    {{ else }}
+                        <img src="/static/default.png">
+                    {{ end }}
+                    <a href="{{ .PinnedClub.URL }}">{{ .PinnedClub.Name }} ({{ .PinnedClub.Events }})</a>
+                </li>
+            {{ end }}
             {{ range $club := .Clubs }}
                 <li class="list-item">
                     {{ if $club.AvatarURL }}
