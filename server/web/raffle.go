@@ -70,9 +70,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	events := strings.TrimSpace(r.FormValue("events"))
-	if ids := r.Form["ids"]; len(ids) > 0 {
-		events += "\n" + strings.Join(ids, "\n")
-	}
+	eventIDs := r.Form["ids"]
 	winnerCount := parseIntQuery(r.Form, "winner_count", 1)
 	onlyCheckedIn := parseBoolQuery(r.Form, "only_checked_in", false)
 	singleEntry := parseBoolQuery(r.Form, "single_entry", false)
@@ -85,7 +83,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 		slog.Bool("single_entry", singleEntry),
 	)
 
-	if events == "" {
+	if events == "" && len(eventIDs) == 0 {
 		h.renderRaffle(w, r, nil, "Missing 'events' parameter")
 		return
 	}
@@ -99,12 +97,13 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 		allEvents = append(allEvents, event)
 	}
 	if len(allEvents) > 50 {
-		h.renderExport(w, r, fmt.Sprintf("please limit the number of events to 50, got %d.", len(allEvents)))
+		h.renderRaffle(w, r, nil, fmt.Sprintf("please limit the number of events to 50, got %d.", len(allEvents)))
 		return
 	}
+	allEvents = append(allEvents, eventIDs...)
 
 	eg, egCtx := errgroup.WithContext(ctx)
-	var eventIDs []string
+	var allEventIDs []string
 	var mu sync.Mutex
 	for _, event := range allEvents {
 		eg.Go(func() error {
@@ -116,7 +115,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			defer mu.Unlock()
 
-			eventIDs = append(eventIDs, eventID)
+			allEventIDs = append(allEventIDs, eventID)
 
 			return nil
 		})
@@ -131,7 +130,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 
 	raffle := database.Raffle{
 		UserID:        session.UserID,
-		Events:        eventIDs,
+		Events:        allEventIDs,
 		WinnerCount:   winnerCount,
 		OnlyCheckedIn: onlyCheckedIn,
 		SingleEntry:   singleEntry,
@@ -454,6 +453,11 @@ func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event
 }
 
 func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, raffles []Raffle, errorMessage string) {
+	if strings.HasPrefix(r.URL.Path, "/tracker/club/") {
+		h.renderTrackerClubRaffle(w, r, errorMessage)
+		return
+	}
+
 	ctx := r.Context()
 
 	if err := h.Templates().ExecuteTemplate(w, "raffle.gohtml", RaffleVars{

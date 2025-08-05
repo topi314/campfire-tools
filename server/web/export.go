@@ -46,30 +46,16 @@ var defaultFields = []string{
 	FieldEventName,
 }
 
-var jsonDefaultFields = []string{
-	FieldUserID,
-	FieldUsername,
-	FieldDisplayName,
-	FieldRSVPStatus,
-	FieldEventID,
-	FieldEventName,
-	FieldEventURL,
-	FieldEventTime,
-	FieldEventClubID,
-	FieldEventCreatorUserID,
-	FieldEventCreatorUsername,
-	FieldEventCreatorDisplayName,
-	FieldEventDiscordInterested,
-	FieldEventCreatedByCommunityAmbassador,
-	FieldEventCampfireLiveEventID,
-	FieldEventCampfireLiveEventName,
-}
-
 func (h *handler) Export(w http.ResponseWriter, r *http.Request) {
 	h.renderExport(w, r, "")
 }
 
 func (h *handler) renderExport(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	if strings.HasPrefix(r.URL.Path, "/tracker/club/") {
+		h.renderTrackerClubExport(w, r, errorMessage)
+		return
+	}
+
 	ctx := r.Context()
 
 	if err := h.Templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
@@ -89,9 +75,7 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	events := strings.TrimSpace(r.FormValue("events"))
-	if ids := r.Form["ids"]; len(ids) > 0 {
-		events += "\n" + strings.Join(ids, "\n")
-	}
+	eventIDs := r.Form["ids"]
 	includeMissingMembers := parseBoolQuery(r.Form, "include_missing_members", false)
 	combineCSVs := parseBoolQuery(r.Form, "combine_csv", false)
 	includedFields := r.Form["included_fields"]
@@ -107,8 +91,8 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 		slog.Any("included_fields", includedFields),
 	)
 
-	if events == "" {
-		h.renderTracker(w, r, "Missing 'events' parameter")
+	if events == "" && len(eventIDs) == 0 {
+		h.renderExport(w, r, "Missing 'events' parameter")
 		return
 	}
 
@@ -125,6 +109,8 @@ func (h *handler) DoExport(w http.ResponseWriter, r *http.Request) {
 		h.renderExport(w, r, fmt.Sprintf("please limit the number of URLs to 50, got %d.", len(allEvents)))
 		return
 	}
+
+	allEvents = append(allEvents, eventIDs...)
 
 	campfireEvents, err := h.getAllEvents(ctx, allEvents)
 	if err != nil {
