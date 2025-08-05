@@ -13,9 +13,12 @@
     </div>
 
     <div class="section">
-        <form action="/tracker/club/{{ .ID }}/raffle" method="POST">
+        <form action="/tracker/club/{{ .ID }}/raffle" method="POST" id="raffle-form">
             <label class="form-control" for="ids" title="Select events for the raffle. You can select multiple events.">
-                Events
+                <div class="section-header">
+                    Events
+                    <button id="select-all" class="button">Select All</button>
+                </div>
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
                         <option value="{{ $event.ID }}" {{ if eq $event.ID $.SelectedEventID }}selected{{ end }}>
@@ -43,4 +46,20 @@
         </form>
     </div>
 </div>
+<script>
+    document.getElementById('raffle-form').addEventListener('submit', () => {
+        const err = document.getElementById('error-message');
+        if (err) {
+            err.remove();
+        }
+    });
+
+    document.getElementById('select-all').addEventListener('click', (e) => {
+        e.preventDefault();
+        const select = document.getElementById('ids');
+        for (let i = 0; i < select.options.length; i++) {
+            select.options[i].selected = true;
+        }
+    });
+</script>
 {{ template "footer" }}

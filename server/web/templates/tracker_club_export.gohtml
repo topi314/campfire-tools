@@ -5,15 +5,20 @@
             <img src="/static/back.svg" alt="Back">
         </a>
         <h1>
-            <img src="{{ .AvatarURL }}">
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}">
+            {{ end }}
             {{ .Name }} Export
         </h1>
     </div>
 
     <div class="section">
         <form action="/tracker/club/{{ .ID }}/export" method="POST" id="export-form">
-            <label class="form-control" for="ids">
-                Events
+            <label class="form-control" for="ids" title="Select events to export. You can select multiple events.">
+                <div class="section-header">
+                    Events
+                    <button id="select-all" class="button">Select All</button>
+                </div>
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
                         <option value="{{ $event.ID }}"{{ if eq $.SelectedEventID $event.ID }} selected{{ end }}>
@@ -39,10 +44,18 @@
     </div>
 </div>
 <script>
-    document.getElementById('export-form')?.addEventListener('submit', () => {
+    document.getElementById('export-form').addEventListener('submit', () => {
         const err = document.getElementById('error-message');
         if (err) {
             err.remove();
+        }
+    });
+
+    document.getElementById('select-all').addEventListener('click', (e) => {
+        e.preventDefault();
+        const select = document.getElementById('ids');
+        for (let i = 0; i < select.options.length; i++) {
+            select.options[i].selected = true;
         }
     });
 </script>
