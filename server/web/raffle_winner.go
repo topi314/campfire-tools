@@ -19,11 +19,13 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 
 	raffleIDStr := r.PathValue("raffle_id")
 	memberID := r.PathValue("member_id")
+	pastWinnersOpenStr := r.FormValue("past_winners")
 
 	slog.InfoContext(ctx, "Received raffle winner request",
 		slog.String("url", r.URL.String()),
 		slog.String("raffle_id", raffleIDStr),
 		slog.String("member_id", memberID),
+		slog.String("past_winners_open", pastWinnersOpenStr),
 	)
 
 	raffleID, err := strconv.Atoi(raffleIDStr)
@@ -31,6 +33,8 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+
+	pastWinnersOpen, _ := strconv.ParseBool(pastWinnersOpenStr)
 
 	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
 	if err != nil {
@@ -60,7 +64,12 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	redirectRaffle(w, r, raffleID, clubID, r.URL.RawQuery)
+	var rawQuery string
+	if pastWinnersOpen {
+		rawQuery = "past-winners=true"
+	}
+
+	redirectRaffle(w, r, raffleID, clubID, rawQuery)
 }
 
 func redirectRaffle(w http.ResponseWriter, r *http.Request, raffleID int, clubID string, rawQuery string) {

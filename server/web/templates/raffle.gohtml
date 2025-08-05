@@ -47,10 +47,9 @@ https://cmpf.re/..." required autofocus></textarea>
     {{ end }}
 </div>
 <script>
-    const events = document.getElementById('events')
-    events.addEventListener('input', function () {
-        events.style.height = 'auto';
-        events.style.height = (events.scrollHeight + 4) + 'px';
+    document.getElementById('events').addEventListener('input', (event) => {
+        event.target.style.height = 'auto';
+        event.target.style.height = (event.target.scrollHeight + 4) + 'px';
     });
 </script>
 {{ template "footer" }}

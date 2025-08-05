@@ -38,7 +38,7 @@
 
                 <div class="stacked-form-control">
                     <label for="date-preset">
-                        <select id="date-preset" onchange="updateDate(this)">
+                        <select id="date-preset">
                             <option value="">Select Quarter</option>
                             {{ range $quarter := .Quarters }}
                                 <option value="{{ $quarter.Value }}">
@@ -57,13 +57,13 @@
         <div class="section-header">
             <h2>Top Members</h2>
         </div>
-        <details ontoggle="toggleParam(this, 'members-closed')" {{ if .TopMembers.Open }}open{{ end }}>
+        <details id="members-closed" {{ if .TopMembers.Open }}open{{ end }}>
             <summary>
                 View Top Members based on check-ins
             </summary>
             <div class="inline-form-control">
                 <label for="top-members">
-                    <select id="top-members" onchange="updateParam(this, 'members');">
+                    <select id="top-members">
                         {{ range $count := .TopCounts }}
                             <option value="{{ $count }}" {{ if eq $count $.TopMembers.Count }}selected{{ end }}>
                                 {{ $count }}
@@ -101,14 +101,14 @@
             <h2>Top Events</h2>
         </div>
 
-        <details ontoggle="toggleParam(this, 'events-closed')" {{ if .TopEvents.Open }}open{{ end }}>
+        <details id="top-events-closed" {{ if .TopEvents.Open }}open{{ end }}>
             <summary>
                 View top events based on RSVP and check-ins.
             </summary>
 
             <div class="inline-form-control">
                 <label for="top-events">
-                    <select id="top-events" onchange="updateParam(this, 'events');">
+                    <select id="top-events">
                         {{ range $count := .TopCounts }}
                             <option value="{{ $count }}" {{ if eq $count $.TopEvents.Count }}selected{{ end }}>
                                 {{ $count }}
@@ -153,7 +153,7 @@
             <h2>Event Categories</h2>
         </div>
 
-        <details ontoggle="toggleParam(this, 'event-categories-closed')" {{ if .EventCategories.Open }}open{{ end }}>
+        <details id="event-categories-open" {{ if .EventCategories.Open }}open{{ end }}>
             <summary>
                 View event categories with their accepted and check-in counts.
             </summary>
@@ -192,7 +192,7 @@
             <h2>League Goals</h2>
         </div>
 
-        <details ontoggle="toggleParam(this, 'league-goals-closed')" {{ if .LeagueGoals.Open }}open{{ end }}>
+        <details id="league-goals-open" {{ if .LeagueGoals.Open }}open{{ end }}>
             <summary>
                 View league goals and their completion status.
             </summary>
@@ -212,7 +212,7 @@
 
             <div class="inline-form-control">
                 <label for="league-goal-quarter">
-                    <select id="league-goal-quarter" onchange="updateParam(this, 'league-goal-quarter');">
+                    <select id="league-goal-quarter">
                         {{ range $quarter := .Quarters }}
                             <option value="{{ $quarter.Value }}" {{ if eq $quarter.Value $.LeagueGoals.Quarter }}selected{{ end }}>
                                 {{ $quarter.Name }}
@@ -256,27 +256,33 @@
     </div>
 </div>
 <script>
-    function updateParam(select, name) {
-        const url = new URL(window.location);
-        url.searchParams.set(name, select.value);
-        window.location = url.toString();
-    }
+    document.getElementById("members-closed").addEventListener("toggle", (event) => {
+        toggleParam(event.target, 'members-closed');
+    })
 
-    function toggleParam(element, name) {
-        const url = new URL(window.location);
-        if (element.open) {
-            url.searchParams.delete(name);
-        } else {
-            url.searchParams.set(name, 'true');
-        }
+    document.getElementById("top-members").addEventListener("change", (event) => {
+        updateParam(event.target, 'members');
+    })
 
-        const field = document.getElementById('field-' + name);
-        if (field) {
-            field.value = element.open ? 'false' : 'true';
-        }
+    document.getElementById("top-events-closed").addEventListener("change", (event) => {
+        toggleParam(event.target, 'events-closed');
+    })
 
-        window.history.replaceState(null, '', url.toString());
-    }
+    document.getElementById("top-events").addEventListener("change", (event) => {
+        updateParam(event.target, 'events');
+    })
+
+    document.getElementById("event-categories-open").addEventListener("toggle", (event) => {
+        toggleParam(event.target, 'event-categories-closed');
+    });
+
+    document.getElementById("league-goals-open").addEventListener("change", (event) => {
+        toggleParam(event.target, 'league-goals-closed');
+    })
+
+    document.getElementById("league-goal-quarter").addEventListener("change", (event) => {
+        updateParam(event.target, 'league-goal-quarter');
+    })
 
     const fromDate = document.getElementById('from');
     const toDate = document.getElementById('to');
@@ -295,11 +301,11 @@
         fromDate.max = toDate.value; // Set the maximum value for "from" date
     });
 
-    function updateDate(select) {
+    document.getElementById("date-preset").addEventListener("change", (event) => {
         let from;
         let to;
 
-        switch (select.value) {
+        switch (event.target.value) {
             case 'q3-2025':
                 from = "2025-07-01";
                 to = "2025-09-30";
@@ -350,6 +356,28 @@
 
         document.getElementById('from').value = from;
         document.getElementById('to').value = to;
+    })
+
+    function updateParam(select, name) {
+        const url = new URL(window.location);
+        url.searchParams.set(name, select.value);
+        window.location = url.toString();
+    }
+
+    function toggleParam(element, name) {
+        const url = new URL(window.location);
+        if (element.open) {
+            url.searchParams.delete(name);
+        } else {
+            url.searchParams.set(name, 'true');
+        }
+
+        const field = document.getElementById('field-' + name);
+        if (field) {
+            field.value = element.open ? 'false' : 'true';
+        }
+
+        window.history.replaceState(null, '', url.toString());
     }
 </script>
 {{ template "footer" }}

@@ -22,6 +22,7 @@
                             {{ $winner.DisplayName }}
                             {{ if not $winner.Confirmed }}
                                 <form action="{{ $winner.ConfirmURL }}" method="POST">
+                                    <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
                                     <button type="submit" class="delete-button">
                                         Confirm
                                     </button>
@@ -40,7 +41,7 @@
         <div class="buttons">
             {{ if .ID }}
                 <form action="{{ .RerunRaffleURL }}" method="POST">
-                    <input type="hidden" id="field-past-winners" name="past_winners" value="{{ if .PastWinnersOpen }}true{{ else }}false{{ end }}">
+                    <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
                     <button type="submit" class="button">
                         Rerun
                     </button>
@@ -51,7 +52,7 @@
 
     {{ if .PastWinners }}
         <div class="section">
-            <details ontoggle="toggleParam(this, 'past-winners')" {{ if .PastWinnersOpen }}open{{ end }}>
+            <details id="past-winners" {{ if .PastWinnersOpen }}open{{ end }}>
                 <summary>Past Winners</summary>
                 <ul class="past-winners">
                     {{ range $index, $pastWinner := .PastWinners }}
@@ -65,6 +66,10 @@
     {{ end }}
 </div>
 <script>
+    document.getElementById('past-winners').addEventListener('toggle', () => {
+        toggleParam(this, 'past-winners');
+    });
+
     function toggleParam(element, name) {
         const url = new URL(window.location);
         if (element.open) {
@@ -72,11 +77,9 @@
         } else {
             url.searchParams.delete(name);
         }
-
-        const field = document.getElementById('field-' + name);
-        if (field) {
+        document.querySelectorAll('input[name="' + name.replaceAll("-", "_") + '"]').forEach(field => {
             field.value = element.open ? 'true' : 'false';
-        }
+        })
 
         window.history.replaceState(null, '', url.toString());
     }
