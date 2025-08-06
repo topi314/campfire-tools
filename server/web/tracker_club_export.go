@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 type TrackerClubExportVars struct {
 	Club
+	EventsFilter
+
 	Events          []Event
 	SelectedEventID string
 	Error           string
@@ -23,6 +26,12 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 
 	clubID := r.PathValue("club_id")
 	eventID := query.Get("event")
+	from := parseTimeQuery(query, "from", time.Time{})
+	to := parseTimeQuery(query, "to", time.Time{})
+	if !to.IsZero() {
+		to = to.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
+	}
+	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -31,7 +40,7 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID)
+	events, err := h.DB.GetEventsRange(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -49,7 +58,14 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
-		Club:            newClub(*club),
+		Club: newClub(*club),
+		EventsFilter: EventsFilter{
+			FilterURL:    r.URL.Path,
+			From:         from,
+			To:           to,
+			OnlyCAEvents: onlyCAEvents,
+			Quarters:     quarters,
+		},
 		Events:          trackerEvents,
 		SelectedEventID: eventID,
 		Error:           errorMessage,

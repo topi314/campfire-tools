@@ -13,6 +13,10 @@
     </div>
 
     <div class="section">
+        {{ template "events_filter" . }}
+
+        <br/>
+
         <form action="/tracker/club/{{ .ID }}/export" method="POST" id="export-form">
             <label class="form-control" for="ids" title="Select events to export. You can select multiple events.">
                 <div class="section-header">

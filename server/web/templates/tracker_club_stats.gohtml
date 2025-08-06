@@ -11,46 +11,13 @@
     </div>
 
     <div class="section">
-        <form id="filterForm" method="GET" action="{{ .URL }}/stats">
-            <div class="inline-form-control">
-                <div class="stacked-form-control">
-                    <label class="inline-form-control" for="from">
-                        From
-                        <input type="date" id="from" name="from" {{ if not .From.IsZero }}value="{{ formatDate .From }}"{{ end }} max="{{ formatDate now }}">
-                    </label>
-                    <label class="inline-form-control" for="to">
-                        To
-                        <input type="date" id="to" name="to" {{ if not .To.IsZero }}value="{{ formatDate .To }}"{{ end }} max="{{ formatDate now }}">
-                    </label>
-                </div>
-                <div class="stacked-form-control">
-                    <label class="form-control">
-                        Only CA Events
-                        <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
-                    </label>
-                </div>
+        {{ template "events_filter" . }}
 
-                <input type="hidden" name="members" value="{{ .TopMembers.Count }}">
-                <input type="hidden" name="events" value="{{ .TopEvents.Count }}">
-                <input id="field-members-closed" type="hidden" name="members-closed" value="{{ if .TopMembers.Open }}false{{ else }}true{{ end }}">
-                <input id="field-events-closed" type="hidden" name="events-closed" value="{{ if .TopEvents.Open }}false{{ else }}true{{ end }}">
-                <input id="field-event-categories-closed" type="hidden" name="event-categories-closed" value="{{ if .EventCategories.Open }}false{{ else }}true{{ end }}">
-
-                <div class="stacked-form-control">
-                    <label for="date-preset">
-                        <select id="date-preset">
-                            <option value="">Select Quarter</option>
-                            {{ range $quarter := .Quarters }}
-                                <option value="{{ $quarter.Value }}">
-                                    {{ $quarter.Name }}
-                                </option>
-                            {{ end }}
-                        </select>
-                    </label>
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
-            </div>
-        </form>
+        <input form="events-filter" type="hidden" name="members" value="{{ .TopMembers.Count }}">
+        <input form="events-filter" type="hidden" name="events" value="{{ .TopEvents.Count }}">
+        <input form="events-filter" id="field-members-closed" type="hidden" name="members-closed" value="{{ if .TopMembers.Open }}false{{ else }}true{{ end }}">
+        <input form="events-filter" id="field-events-closed" type="hidden" name="events-closed" value="{{ if .TopEvents.Open }}false{{ else }}true{{ end }}">
+        <input form="events-filter" id="field-event-categories-closed" type="hidden" name="event-categories-closed" value="{{ if .EventCategories.Open }}false{{ else }}true{{ end }}">
     </div>
 
     <div class="section">
@@ -282,80 +249,6 @@
 
     document.getElementById("league-goal-quarter").addEventListener("change", (event) => {
         updateParam(event.target, 'league-goal-quarter');
-    })
-
-    const fromDate = document.getElementById('from');
-    const toDate = document.getElementById('to');
-
-    fromDate.addEventListener('change', () => {
-        if (toDate.value && fromDate.value > toDate.value) {
-            toDate.value = fromDate.value; // Adjust "to" date if it's earlier than "from" date
-        }
-        toDate.min = fromDate.value; // Set the minimum value for "to" date
-    });
-
-    toDate.addEventListener('change', () => {
-        if (fromDate.value && toDate.value < fromDate.value) {
-            fromDate.value = toDate.value; // Adjust "from" date if it's later than "to" date
-        }
-        fromDate.max = toDate.value; // Set the maximum value for "from" date
-    });
-
-    document.getElementById("date-preset").addEventListener("change", (event) => {
-        let from;
-        let to;
-
-        switch (event.target.value) {
-            case 'q3-2025':
-                from = "2025-07-01";
-                to = "2025-09-30";
-                break;
-            case 'q2-2025':
-                from = "2025-04-01";
-                to = "2025-06-30";
-                break;
-            case 'q1-2025':
-                from = "2025-01-01";
-                to = "2025-03-31";
-                break;
-            case 'q4-2024':
-                from = "2024-10-01";
-                to = "2024-12-31";
-                break;
-            case 'q3-2024':
-                from = "2024-07-01";
-                to = "2024-09-30";
-                break;
-            case 'q2-2024':
-                from = "2024-04-01";
-                to = "2024-06-30";
-                break;
-            case 'q1-2024':
-                from = "2024-01-01";
-                to = "2024-03-31";
-                break;
-            default:
-                from = "";
-                to = "";
-        }
-
-        const now = new Date();
-        if (from) {
-            const fromDate = new Date(from);
-            if (fromDate > now) {
-                from = now.toISOString().split('T')[0];
-            }
-        }
-
-        if (to) {
-            const toDate = new Date(to);
-            if (toDate > now) {
-                to = now.toISOString().split('T')[0];
-            }
-        }
-
-        document.getElementById('from').value = from;
-        document.getElementById('to').value = to;
     })
 
     function updateParam(select, name) {

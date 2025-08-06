@@ -13,6 +13,10 @@
     </div>
 
     <div class="section">
+        {{ template "events_filter" . }}
+
+        <br/>
+
         <form action="/tracker/club/{{ .ID }}/raffle" method="POST" id="raffle-form">
             <label class="form-control" for="ids" title="Select events for the raffle. You can select multiple events.">
                 <div class="section-header">

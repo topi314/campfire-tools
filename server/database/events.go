@@ -72,6 +72,24 @@ func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error
 	return events, nil
 }
 
+func (d *Database) GetEventsRange(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]Event, error) {
+	query := `
+		SELECT * FROM events
+		WHERE event_club_id = $1
+		AND ($2 = '0001-01-01 00:00:00'::timestamp OR event_time >= $2)
+		AND ($3 = '0001-01-01 00:00:00'::timestamp OR event_time <= $3)
+		AND (NOT $4 OR event_created_by_community_ambassador = TRUE)
+		ORDER BY event_time DESC, event_name DESC
+	`
+
+	var events []Event
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly); err != nil {
+		return nil, fmt.Errorf("failed to get events in range: %w", err)
+	}
+
+	return events, nil
+}
+
 func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	query := `
 		SELECT * FROM events

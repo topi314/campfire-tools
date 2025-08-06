@@ -25,20 +25,73 @@ const (
 	LegendaryLeagueGoal = 1500
 )
 
+var quarters = []Quarter{
+	{
+		Name:  "Q3 2025",
+		Value: "q3-2025",
+	},
+	{
+		Name:  "Q2 2025",
+		Value: "q2-2025",
+	},
+	{
+		Name:  "Q1 2025",
+		Value: "q1-2025",
+	},
+	{
+		Name:  "Q4 2024",
+		Value: "q4-2024",
+	},
+	{
+		Name:  "Q3 2024",
+		Value: "q3-2024",
+	},
+	{
+		Name:  "Q2 2024",
+		Value: "q2-2024",
+	},
+	{
+		Name:  "Q1 2024",
+		Value: "q1-2024",
+	},
+	{
+		Name:  "Q4 2023",
+		Value: "q4-2023",
+	},
+	{
+		Name:  "Q3 2023",
+		Value: "q3-2023",
+	},
+	{
+		Name:  "Q2 2023",
+		Value: "q2-2023",
+	},
+	{
+		Name:  "Q1 2023",
+		Value: "q1-2023",
+	},
+}
+
 type TrackerClubStatsVars struct {
 	Club
 
-	From         time.Time
-	To           time.Time
-	OnlyCAEvents bool
+	EventsFilter
 
 	TopCounts []int
-	Quarters  []Quarter
 
 	TopMembers      TopMembers
 	TopEvents       TopEvents
 	EventCategories EventCategories
 	LeagueGoals     LeagueGoals
+}
+
+type EventsFilter struct {
+	FilterURL    string
+	From         time.Time
+	To           time.Time
+	OnlyCAEvents bool
+
+	Quarters []Quarter
 }
 
 type LeagueGoals struct {
@@ -245,41 +298,15 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
-		Club:         newClub(*club),
-		From:         from,
-		To:           to,
-		OnlyCAEvents: onlyCAEvents,
-		TopCounts:    []int{10, 25, 50, 75, 100},
-		Quarters: []Quarter{
-			{
-				Name:  "Q3 2025",
-				Value: "q3-2025",
-			},
-			{
-				Name:  "Q2 2025",
-				Value: "q2-2025",
-			},
-			{
-				Name:  "Q1 2025",
-				Value: "q1-2025",
-			},
-			{
-				Name:  "Q4 2024",
-				Value: "q4-2024",
-			},
-			{
-				Name:  "Q3 2024",
-				Value: "q3-2024",
-			},
-			{
-				Name:  "Q2 2024",
-				Value: "q2-2024",
-			},
-			{
-				Name:  "Q1 2024",
-				Value: "q1-2024",
-			},
+		Club: newClub(*club),
+		EventsFilter: EventsFilter{
+			FilterURL:    r.URL.Path,
+			From:         from,
+			To:           to,
+			OnlyCAEvents: onlyCAEvents,
+			Quarters:     quarters,
 		},
+		TopCounts: []int{10, 25, 50, 75, 100},
 		TopMembers: TopMembers{
 			Count:   membersCount,
 			Open:    !topMembersClosed,
