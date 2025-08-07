@@ -28,6 +28,7 @@ var (
 
 	ErrUnsupportedMeetup = errors.New("meetup not supported")
 	ErrTooManyRequests   = errors.New("too many requests, please try again later")
+	ErrEventNotFound     = errors.New("event not found")
 
 	//go:embed queries/public_events.graphql
 	publicEventsQuery string
@@ -83,7 +84,7 @@ func (c *Client) ResolveEventID(ctx context.Context, meetupURL string) (string, 
 		}
 
 		if len(events.PublicMapObjectsByID) == 0 {
-			return "", errors.New("event not found")
+			return "", ErrEventNotFound
 		}
 
 		firstEvent := events.PublicMapObjectsByID[0]

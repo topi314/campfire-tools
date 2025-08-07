@@ -16,7 +16,7 @@
             <label class="form-control" for="events" title="Enter event links for the import. Each link should be on a new line.">
                 Event Links
                 <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus></textarea>
+https://cmpf.re/..." required autofocus>{{ .Events }}</textarea>
                 {{ if .Errors }}
                     <p class="error">
                         {{ range $error := .Errors }}

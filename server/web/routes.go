@@ -33,6 +33,10 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)
 
+	mux.HandleFunc("GET  /check-ins", h.CheckIns)
+	mux.HandleFunc("POST /check-ins", h.ShowCheckIns)
+	mux.HandleFunc("GET  /check-ins/{event_id}", h.GetCheckIns)
+
 	mux.HandleFunc("GET  /tracker", h.Tracker)
 	mux.HandleFunc("POST /tracker", h.TrackerAdd)
 

@@ -14,16 +14,24 @@ import (
 )
 
 type TrackerVars struct {
+	Events     string
 	PinnedClub *ClubWithEvents
 	Clubs      []ClubWithEvents
 	Errors     []string
 }
 
 func (h *handler) Tracker(w http.ResponseWriter, r *http.Request) {
-	h.renderTracker(w, r)
+	ctx := r.Context()
+	query := r.URL.Query()
+
+	events := query.Get("events")
+
+	slog.InfoContext(ctx, "Tracker request received", slog.String("url", r.URL.String()), slog.String("events", events))
+
+	h.renderTracker(w, r, events)
 }
 
-func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
+func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, events string, errorMessages ...string) {
 	ctx := r.Context()
 
 	clubs, err := h.DB.GetClubs(ctx)
@@ -46,6 +54,7 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
+		Events:     events,
 		PinnedClub: pinnedClub,
 		Clubs:      trackerClubs,
 		Errors:     errorMessages,
@@ -93,7 +102,7 @@ func (h *handler) TrackerAdd(w http.ResponseWriter, r *http.Request) {
 				slog.ErrorContext(ctx, "Failed to add event or members", "err", err)
 			}
 		}
-		h.renderTracker(w, r, errorMessages...)
+		h.renderTracker(w, r, "", errorMessages...)
 		return
 	}
 
