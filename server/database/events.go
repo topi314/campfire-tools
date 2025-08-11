@@ -57,32 +57,21 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*EventWithCrea
 	return &event, nil
 }
 
-func (d *Database) GetEvents(ctx context.Context, clubID string) ([]Event, error) {
+func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]EventWithCheckIns, error) {
 	query := `
-		SELECT * FROM events
-		WHERE event_club_id = $1
-		ORDER BY event_time DESC, event_name DESC
-	`
-
-	var events []Event
-	if err := d.db.SelectContext(ctx, &events, query, clubID); err != nil {
-		return nil, fmt.Errorf("failed to get events: %w", err)
-	}
-
-	return events, nil
-}
-
-func (d *Database) GetEventsRange(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]Event, error) {
-	query := `
-		SELECT * FROM events
-		WHERE event_club_id = $1
+		SELECT events.*, 
+			COUNT(event_rsvp_member_id) FILTER (WHERE event_rsvp_status = 'ACCEPTED' OR event_rsvp_status = 'CHECKED_IN') AS accepted,
+			COUNT(event_rsvp_member_id) FILTER (WHERE event_rsvp_status = 'CHECKED_IN') AS check_ins
+		FROM events
+		LEFT JOIN event_rsvps ON event_id = event_rsvp_event_id WHERE event_club_id = $1
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR event_time <= $3)
 		AND (NOT $4 OR event_created_by_community_ambassador = TRUE)
+		GROUP BY event_id, event_time, event_name
 		ORDER BY event_time DESC, event_name DESC
 	`
 
-	var events []Event
+	var events []EventWithCheckIns
 	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly); err != nil {
 		return nil, fmt.Errorf("failed to get events in range: %w", err)
 	}
@@ -104,7 +93,7 @@ func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	return events, nil
 }
 
-func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (*TopEvent, error) {
+func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) (*EventWithCheckIns, error) {
 	query := `
 		SELECT e.*, 
 			COUNT(er.event_rsvp_member_id) FILTER (WHERE er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN') AS accepted,
@@ -120,7 +109,7 @@ func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, fr
 		LIMIT 1
 	`
 
-	var event TopEvent
+	var event EventWithCheckIns
 	if err := d.db.GetContext(ctx, &event, query, clubID, from, to, caOnly); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("no events found in range: %w", err)
@@ -131,7 +120,7 @@ func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, fr
 	return &event, nil
 }
 
-func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]TopEvent, error) {
+func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]EventWithCheckIns, error) {
 	query := `
         SELECT
             e.*, 
@@ -148,7 +137,7 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         LIMIT $5
 	`
 
-	var events []TopEvent
+	var events []EventWithCheckIns
 	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top club events in range: %w", err)
 	}
@@ -157,7 +146,6 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
 }
 
 func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]Event, error) {
-	var events []Event
 	query := `
 		SELECT e.*
 		FROM events e
@@ -166,6 +154,7 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 		ORDER BY e.event_time DESC, e.event_name, e.event_id
     `
 
+	var events []Event
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
 		return nil, fmt.Errorf("failed to get checked-in club events by user: %w", err)
 	}
@@ -174,7 +163,6 @@ func (d *Database) GetCheckedInClubEventsByMember(ctx context.Context, clubID st
 }
 
 func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID string, memberID string) ([]Event, error) {
-	var events []Event
 	query := `
 		SELECT e.*
 		FROM events e
@@ -183,6 +171,7 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 		ORDER BY e.event_time DESC, e.event_name, e.event_id
 	`
 
+	var events []Event
 	if err := d.db.SelectContext(ctx, &events, query, clubID, memberID); err != nil {
 		return nil, fmt.Errorf("failed to get accepted club events by user: %w", err)
 	}

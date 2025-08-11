@@ -65,7 +65,7 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $event.URL }}">{{ $event.Name }}</a>
+                    <a href="{{ $event.URL }}">{{ $event.Name }} ({{ $event.CheckIns }})</a>
                 </li>
             {{ else }}
                 <span>No events tracked yet.</span>

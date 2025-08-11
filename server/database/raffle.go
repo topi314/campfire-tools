@@ -49,10 +49,15 @@ func (d *Database) InsertRaffle(ctx context.Context, raffle Raffle) (int, error)
 
 func (d *Database) GetRaffleWinners(ctx context.Context, raffleID int) ([]RaffleWinnerWithMember, error) {
 	query := `
-		SELECT * FROM raffle_winners
-		JOIN members ON raffle_winners.raffle_winner_member_id = members.member_id
+		SELECT members.*,
+			COUNT(CASE WHEN event_rsvp_status = 'ACCEPTED' or event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
+		FROM raffle_winners
+		JOIN members ON raffle_winner_member_id = member_id
+		JOIN event_rsvps ON member_id = event_rsvp_member_id
 		WHERE raffle_winner_raffle_id = $1
-		ORDER BY raffle_winner_created_at DESC, member_display_name, member_username, raffle_winner_member_id
+		GROUP BY member_id, raffle_winner_created_at, member_display_name, member_username
+		ORDER BY raffle_winner_created_at DESC, member_display_name, member_username, member_id
 	`
 
 	var winners []RaffleWinnerWithMember

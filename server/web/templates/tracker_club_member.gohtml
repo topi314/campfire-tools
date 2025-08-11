@@ -25,7 +25,9 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $event.URL }}" title="{{ .ID }}">{{ $event.Name }}</a>
+                    <a href="{{ $event.URL }}" title="{{ .ID }}">
+                        {{ $event.Name }}
+                    </a>
                 </li>
             {{ else }}
                 <span>No events found.</span>

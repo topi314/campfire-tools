@@ -2,11 +2,10 @@ package web
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/auth"
 )
@@ -32,7 +31,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID)
+	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -41,12 +40,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 
 	trackerEvents := make([]Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = Event{
-			ID:            event.ID,
-			Name:          event.Name,
-			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
-		}
+		trackerEvents[i] = newEventWithCheckIns(event, 32)
 	}
 
 	session := auth.GetSession(r)
@@ -58,28 +52,5 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		Pinned: pinned,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
-	}
-}
-
-func (h *handler) TrackerClubEventsExport(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	clubID := r.PathValue("club_id")
-
-	events, err := h.DB.GetEvents(ctx, clubID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var exportEvents []json.RawMessage
-	for _, event := range events {
-		exportEvents = append(exportEvents, event.RawJSON)
-	}
-
-	if err = json.NewEncoder(w).Encode(exportEvents); err != nil {
-		slog.ErrorContext(ctx, "Failed to write events export", slog.String("club_id", clubID), slog.Any("err", err))
-		return
 	}
 }

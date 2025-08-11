@@ -262,8 +262,8 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 
 	allWinners, err := h.DB.GetRaffleWinners(ctx, raffleID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get past raffle winners from database", slog.Any("err", err))
-		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to get past raffle winners: "+err.Error())
+		slog.ErrorContext(ctx, "Failed to get raffle winners from database", slog.Any("err", err))
+		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to get raffle winners: "+err.Error())
 		return
 	}
 

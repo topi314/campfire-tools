@@ -3,7 +3,6 @@ package web
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 )
@@ -51,12 +50,7 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 	trackerEvents := make([]Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = Event{
-			ID:            event.ID,
-			Name:          event.Name,
-			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
-		}
+		trackerEvents[i] = newEvent(event, 32)
 	}
 
 	acceptedEvents, err := h.DB.GetAcceptedClubEventsByMember(ctx, clubID, memberID)
@@ -67,12 +61,7 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 	acceptedTrackerEvents := make([]Event, len(acceptedEvents))
 	for i, event := range acceptedEvents {
-		acceptedTrackerEvents[i] = Event{
-			ID:            event.ID,
-			Name:          event.Name,
-			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
-		}
+		acceptedTrackerEvents[i] = newEvent(event, 32)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{

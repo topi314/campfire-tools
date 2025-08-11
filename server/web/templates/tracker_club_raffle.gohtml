@@ -26,7 +26,7 @@
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
                     {{ range $event := .Events }}
                         <option value="{{ $event.ID }}" {{ if eq $event.ID $.SelectedEventID }}selected{{ end }}>
-                            {{ $event.Name }}
+                            {{ $event.Name }} ({{ $event.CheckIns }})
                         </option>
                     {{ end }}
                 </select>

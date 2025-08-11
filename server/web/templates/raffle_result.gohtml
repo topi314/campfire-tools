@@ -19,7 +19,7 @@
                 {{ range $index, $winner := .Winners }}
                     <li title="{{ $winner.Username }}">
                         <div>
-                            {{ $winner.DisplayName }}
+                            <span>{{ $winner.DisplayName }} ({{ $winner.CheckIns }})</span>
                             {{ if not $winner.Confirmed }}
                                 <form action="{{ $winner.ConfirmURL }}" method="POST">
                                     <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
@@ -57,7 +57,7 @@
                 <ul class="past-winners">
                     {{ range $index, $pastWinner := .PastWinners }}
                         <li title="{{ $pastWinner.Username }}">
-                            {{ $pastWinner.DisplayName }}
+                            {{ $pastWinner.DisplayName }} ({{ $pastWinner.CheckIns }})
                         </li>
                     {{ end }}
                 </ul>

@@ -42,21 +42,36 @@ type ClubWithEvents struct {
 	Events int
 }
 
-func newEvent(event database.EventWithCreator) Event {
+func newEvent(event database.Event, iconSize int) Event {
 	return Event{
-		ID:                           event.Event.ID,
-		Name:                         event.Event.Name,
-		URL:                          fmt.Sprintf("/tracker/event/%s", event.Event.ID),
-		CoverPhotoURL:                imageURL(event.Event.CoverPhotoURL, 128),
-		Creator:                      newMember(event.Member, event.Event.ClubID),
-		Details:                      event.Event.Details,
-		Time:                         event.Event.Time,
-		EndTime:                      event.Event.EndTime,
-		CampfireLiveEventID:          event.Event.CampfireLiveEventID,
-		CampfireLiveEventName:        event.Event.CampfireLiveEventName,
-		CreatedByCommunityAmbassador: event.Event.CreatedByCommunityAmbassador,
-		ImportedAt:                   event.Event.ImportedAt,
+		ID:            event.ID,
+		Name:          event.Name,
+		URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
+		CoverPhotoURL: imageURL(event.CoverPhotoURL, iconSize),
+		Creator: Member{
+			ID: event.CreatorID,
+		},
+		Details:                      event.Details,
+		Time:                         event.Time,
+		EndTime:                      event.EndTime,
+		CampfireLiveEventID:          event.CampfireLiveEventID,
+		CampfireLiveEventName:        event.CampfireLiveEventName,
+		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+		ImportedAt:                   event.ImportedAt,
 	}
+}
+
+func newEventWithCheckIns(event database.EventWithCheckIns, iconSize int) Event {
+	e := newEvent(event.Event, iconSize)
+	e.Accepted = event.Accepted
+	e.CheckIns = event.CheckIns
+	return e
+}
+
+func newEventWithCreator(event database.EventWithCreator) Event {
+	e := newEvent(event.Event, 48)
+	e.Creator = newMember(event.Member, event.Event.ClubID)
+	return e
 }
 
 type Event struct {
@@ -72,6 +87,8 @@ type Event struct {
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	ImportedAt                   time.Time
+	Accepted                     int
+	CheckIns                     int
 }
 
 type TopMembers struct {
@@ -177,6 +194,8 @@ func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
 
 	return Winner{
 		Member:     newMember(winner.Member, clubID),
+		Accepted:   winner.Accepted,
+		CheckIns:   winner.CheckIns,
 		Confirmed:  winner.Confirmed,
 		Previous:   winner.Past,
 		ConfirmURL: confirmURL,
@@ -185,6 +204,8 @@ func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
 
 type Winner struct {
 	Member
+	Accepted   int
+	CheckIns   int
 	Confirmed  bool
 	Previous   bool
 	ConfirmURL string

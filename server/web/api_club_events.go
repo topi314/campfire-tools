@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
 )
@@ -20,7 +21,7 @@ func (h *handler) APIClubEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID)
+	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get events for club", slog.Any("error", err), slog.String("club_id", clubID))
 		http.Error(w, "Failed to get events: "+err.Error(), http.StatusInternalServerError)

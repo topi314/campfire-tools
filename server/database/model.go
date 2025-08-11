@@ -60,7 +60,7 @@ type EventWithCreator struct {
 	Member
 }
 
-type TopEvent struct {
+type EventWithCheckIns struct {
 	Event
 	Accepted int `db:"accepted"`
 	CheckIns int `db:"check_ins"`
@@ -114,6 +114,8 @@ type RaffleWinner struct {
 type RaffleWinnerWithMember struct {
 	RaffleWinner
 	Member
+	Accepted int `db:"accepted"`
+	CheckIns int `db:"check_ins"`
 }
 
 type Session struct {

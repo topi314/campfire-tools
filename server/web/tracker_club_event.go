@@ -65,7 +65,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
-		Event:            newEvent(*event),
+		Event:            newEventWithCreator(*event),
 		Club:             newClub(*club),
 		CheckedInMembers: checkedInTrackerMembers,
 		AcceptedMembers:  acceptedTrackerMembers,

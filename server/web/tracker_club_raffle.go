@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -39,7 +38,7 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	events, err := h.DB.GetEventsRange(ctx, clubID, from, to, onlyCAEvents)
+	events, err := h.DB.GetEvents(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -48,12 +47,7 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 
 	trackerEvents := make([]Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = Event{
-			ID:            event.ID,
-			Name:          event.Name,
-			URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-			CoverPhotoURL: imageURL(event.CoverPhotoURL, 32),
-		}
+		trackerEvents[i] = newEventWithCheckIns(event, 32)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
