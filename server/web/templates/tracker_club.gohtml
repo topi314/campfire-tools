@@ -27,7 +27,6 @@
         </div>
         <p>
             <strong>Creator:</strong>
-            <br/>
             {{ if .Creator.AvatarURL }}
                 <img class="icon-32" src="{{ .Creator.AvatarURL }}">
             {{ else }}
@@ -36,17 +35,11 @@
             <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}">{{ .Creator.DisplayName }}</a>
         </p>
         <p>
-            <strong>Created By Community Ambassador:</strong>
-            <br/>
-            {{ if .CreatedByCommunityAmbassador }}
-                ✅️
-            {{ else }}
-                ❌
-            {{ end }}
+            <strong>Community Ambassador:</strong>
+            {{ template "checkbox" .CreatedByCommunityAmbassador }}
         </p>
         <p>
             <strong>Imported At:</strong>
-            <br/>
             {{ if .ImportedAt }}
                 {{ formatTimeToRelDayTime .ImportedAt }}
             {{ end }}

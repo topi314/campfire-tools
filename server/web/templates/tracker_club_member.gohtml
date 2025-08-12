@@ -1,7 +1,7 @@
 {{ template "head" addStr "Tracker - " .DisplayName }}
 <div class="container">
     <div class="container-header">
-        <a href="{{ .URL }}" class="back">
+        <a href="{{ .Club.URL }}" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
 
@@ -16,7 +16,27 @@
     </div>
 
     <div class="section">
-        <h2>Check-Ins ({{ len .Events }})</h2>
+        <div class="section-header">
+            <h2>Details</h2>
+        </div>
+        <p>
+            <strong>Username:</strong>
+            {{ .Username }}
+        </p>
+        <p>
+            <strong>Display Name:</strong>
+            {{ .DisplayName }}
+        </p>
+        <p>
+            <strong>Community Ambassador:</strong>
+            {{ template "checkbox" .IsCommunityAmbassador }}
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Check-Ins ({{ len .Events }})</h2>
+        </div>
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
@@ -36,7 +56,9 @@
     </div>
 
     <div class="section">
-        <h2>Accepted ({{ len .AcceptedEvents }})</h2>
+        <div class="section-header">
+            <h2>Accepted ({{ len .AcceptedEvents }})</h2>
+        </div>
         <ul class="list">
             {{ range $event := .AcceptedEvents }}
                 <li class="list-item">

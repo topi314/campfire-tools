@@ -78,7 +78,7 @@ func (h *handler) APIExportEvents(w http.ResponseWriter, r *http.Request) {
 	exportAllEvents(ctx, w, campfireEvents)
 }
 
-func badges(badges []campfire.Badge) []string {
+func badgeTypes(badges []campfire.Badge) []string {
 	var badgeList []string
 	for _, badge := range badges {
 		badgeList = append(badgeList, badge.BadgeType)
@@ -109,7 +109,7 @@ func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfi
 					Username:    event.Club.Creator.Username,
 					DisplayName: event.Club.Creator.DisplayName,
 					AvatarURL:   event.Club.Creator.AvatarURL,
-					Badges:      badges(event.Club.Creator.Badges),
+					Badges:      badgeTypes(event.Club.Creator.Badges),
 				},
 			},
 			Creator: ExportMember{
@@ -135,7 +135,7 @@ func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfi
 					Username:    member.Username,
 					DisplayName: member.DisplayName,
 					AvatarURL:   member.AvatarURL,
-					Badges:      badges(member.Badges),
+					Badges:      badgeTypes(member.Badges),
 				},
 				RSVPStatus: rsvpStatus.RSVPStatus,
 			})

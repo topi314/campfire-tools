@@ -51,16 +51,16 @@
     </div>
 </div>
 <script>
-    document.getElementById('raffle-form').addEventListener('submit', () => {
-        const err = document.getElementById('error-message');
+    document.getElementById("raffle-form").addEventListener("submit", () => {
+        const err = document.getElementById("error-message");
         if (err) {
             err.remove();
         }
     });
 
-    document.getElementById('select-all').addEventListener('click', (e) => {
+    document.getElementById("select-all").addEventListener("click", (e) => {
         e.preventDefault();
-        const select = document.getElementById('ids');
+        const select = document.getElementById("ids");
         for (let i = 0; i < select.options.length; i++) {
             select.options[i].selected = true;
         }

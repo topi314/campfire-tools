@@ -22,7 +22,7 @@ https://cmpf.re/..." required autofocus></textarea>
                 <input class="form-control" type="number" id="winner-count" name="winner_count" min="1" value="1" required>
             </label>
             <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
-                Only Checked-in Members
+                Only Checked-In Members
                 <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" checked>
             </label>
             <label class="form-control" for="single-entry" title="Only allow one entry per member">
@@ -47,9 +47,9 @@ https://cmpf.re/..." required autofocus></textarea>
     {{ end }}
 </div>
 <script>
-    document.getElementById('events').addEventListener('input', (event) => {
-        event.target.style.height = 'auto';
-        event.target.style.height = (event.target.scrollHeight + 4) + 'px';
+    document.getElementById("events").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
     });
 </script>
 {{ template "footer" }}

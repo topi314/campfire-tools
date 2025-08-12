@@ -25,18 +25,15 @@ type TrackerEventCheckIns struct {
 	AcceptedMembers  []Member
 }
 
-func (h *handler) CheckIns(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *handler) Event(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	event := query.Get("event")
 
-	slog.InfoContext(ctx, "Check-ins request received", slog.String("url", r.URL.String()), slog.String("event", event))
-
 	h.renderCheckIns(w, r, event, "")
 }
 
-func (h *handler) ShowCheckIns(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ShowEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	event := r.FormValue("event")
@@ -55,10 +52,10 @@ func (h *handler) ShowCheckIns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/check-ins/%s", campfireEvent.ID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/event/%s", campfireEvent.ID), http.StatusSeeOther)
 }
 
-func (h *handler) GetCheckIns(w http.ResponseWriter, r *http.Request) {
+func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	eventID := r.PathValue("event_id")
@@ -77,7 +74,7 @@ func (h *handler) GetCheckIns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "event_check_ins.gohtml", TrackerEventCheckIns{
+	if err = h.Templates().ExecuteTemplate(w, "event_details.gohtml", TrackerEventCheckIns{
 		Event: Event{
 			ID:                           event.ID,
 			Name:                         event.Name,
@@ -88,7 +85,7 @@ func (h *handler) GetCheckIns(w http.ResponseWriter, r *http.Request) {
 			EndTime:                      event.EventEndTime,
 			CampfireLiveEventID:          event.CampfireLiveEventID,
 			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
-			Creator:                      newMemberFromCampfire(event.Creator, event.ClubID),
+			Creator:                      newMemberFromCampfire(event.Creator, event.ClubID, 32),
 			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 			ImportedAt:                   time.Now(),
 		},
@@ -96,7 +93,7 @@ func (h *handler) GetCheckIns(w http.ResponseWriter, r *http.Request) {
 			ID:                           event.ClubID,
 			Name:                         event.Club.Name,
 			AvatarURL:                    imageURL(event.Club.AvatarURL, 32),
-			Creator:                      newMemberFromCampfire(event.Club.Creator, event.Club.ID),
+			Creator:                      newMemberFromCampfire(event.Club.Creator, event.Club.ID, 32),
 			CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
 			ImportedAt:                   time.Now(),
 			URL:                          fmt.Sprintf("/tracker/club/%s", event.Club.ID),
@@ -104,14 +101,14 @@ func (h *handler) GetCheckIns(w http.ResponseWriter, r *http.Request) {
 		CheckedInMembers: getEventMembers(*event, "CHECKED_IN"),
 		AcceptedMembers:  getEventMembers(*event, "ACCEPTED"),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render event check-ins template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render event details template", slog.String("error", err.Error()))
 	}
 }
 
 func (h *handler) renderCheckIns(w http.ResponseWriter, r *http.Request, event string, errorMessage string) {
 	ctx := r.Context()
 
-	if err := h.Templates().ExecuteTemplate(w, "check_ins.gohtml", TrackerCheckIns{
+	if err := h.Templates().ExecuteTemplate(w, "event.gohtml", TrackerCheckIns{
 		Event: event,
 		Error: errorMessage,
 	}); err != nil {
@@ -129,7 +126,7 @@ func getEventMembers(event campfire.Event, status string) []Member {
 		if !ok {
 			continue
 		}
-		members = append(members, newMemberFromCampfire(member, event.ClubID))
+		members = append(members, newMemberFromCampfire(member, event.ClubID, 32))
 	}
 	slices.SortFunc(members, func(a, b Member) int {
 		if a.DisplayName != b.DisplayName {

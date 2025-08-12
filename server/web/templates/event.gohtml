@@ -4,11 +4,11 @@
         <a href="/" class="back">
             <img src="/static/back.svg" alt="Back">
         </a>
-        <h1>Check-Ins</h1>
+        <h1>Event</h1>
     </div>
 
     <div class="section">
-        <form action="/check-ins" method="POST">
+        <form action="/event" method="POST">
             <label class="form-control" for="event" title="Enter the event link to show check-ins for.">
                 Event Link
                 <input class="form-control" id="event" name="event" placeholder="https://cmpf.re/..." {{ if .Event }}value="{{ .Event }}" {{ end }}required autofocus/>

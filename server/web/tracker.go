@@ -21,12 +21,9 @@ type TrackerVars struct {
 }
 
 func (h *handler) Tracker(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	query := r.URL.Query()
 
 	events := query.Get("events")
-
-	slog.InfoContext(ctx, "Tracker request received", slog.String("url", r.URL.String()), slog.String("events", events))
 
 	h.renderTracker(w, r, events)
 }

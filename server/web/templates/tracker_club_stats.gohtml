@@ -212,7 +212,7 @@
                     <span>{{ $league.Name }}</span>
                     <span>{{ $league.Goal }}</span>
                     {{ template "league_progress" $league.Progress }}
-                    <span>{{ if and $league.Projection }}✅️{{ else }}❌{{ end }}</span>
+                    <span>{{ template "checkbox" $league.Projection }}</span>
                 {{ end }}
                 <span></span>
                 <span></span>
@@ -224,31 +224,31 @@
 </div>
 <script>
     document.getElementById("members-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, 'members-closed');
+        toggleParam(event.target, "members-closed");
     })
 
     document.getElementById("top-members").addEventListener("change", (event) => {
-        updateParam(event.target, 'members');
+        updateParam(event.target, "members");
     })
 
     document.getElementById("top-events-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, 'events-closed');
+        toggleParam(event.target, "events-closed");
     })
 
     document.getElementById("top-events").addEventListener("change", (event) => {
-        updateParam(event.target, 'events');
+        updateParam(event.target, "events");
     })
 
     document.getElementById("event-categories-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, 'event-categories-closed');
+        toggleParam(event.target, "event-categories-closed");
     });
 
     document.getElementById("league-goals-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, 'league-goals-closed');
+        toggleParam(event.target, "league-goals-closed");
     })
 
     document.getElementById("league-goal-quarter").addEventListener("change", (event) => {
-        updateParam(event.target, 'league-goal-quarter');
+        updateParam(event.target, "league-goal-quarter");
     })
 
     function updateParam(select, name) {
@@ -262,15 +262,15 @@
         if (element.open) {
             url.searchParams.delete(name);
         } else {
-            url.searchParams.set(name, 'true');
+            url.searchParams.set(name, "true");
         }
 
-        const field = document.getElementById('field-' + name);
+        const field = document.getElementById("field-" + name);
         if (field) {
-            field.value = element.open ? 'false' : 'true';
+            field.value = element.open ? "false" : "true";
         }
 
-        window.history.replaceState(null, '', url.toString());
+        window.history.replaceState(null, "", url.toString());
     }
 </script>
 {{ template "footer" }}

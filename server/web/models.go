@@ -1,7 +1,9 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -13,7 +15,7 @@ func newClub(club database.ClubWithCreator) Club {
 		ID:                           club.Club.ID,
 		Name:                         club.Club.Name,
 		AvatarURL:                    imageURL(club.Club.AvatarURL, 48),
-		Creator:                      newMember(club.Member, club.Club.ID),
+		Creator:                      newMember(club.Member, club.Club.ID, 32),
 		CreatedByCommunityAmbassador: club.Club.CreatedByCommunityAmbassador,
 		ImportedAt:                   club.Club.ImportedAt,
 		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
@@ -32,7 +34,9 @@ type Club struct {
 
 func newClubWithEvents(club database.ClubWithEvents) ClubWithEvents {
 	return ClubWithEvents{
-		Club:   newClub(database.ClubWithCreator{Club: club.Club}),
+		Club: newClub(database.ClubWithCreator{
+			Club: club.Club,
+		}),
 		Events: club.Events,
 	}
 }
@@ -70,7 +74,7 @@ func newEventWithCheckIns(event database.EventWithCheckIns, iconSize int) Event 
 
 func newEventWithCreator(event database.EventWithCreator) Event {
 	e := newEvent(event.Event, 48)
-	e.Creator = newMember(event.Member, event.Event.ClubID)
+	e.Creator = newMember(event.Member, event.Event.ClubID, 32)
 	return e
 }
 
@@ -120,32 +124,44 @@ type EventCategory struct {
 	TotalCheckInRate float64
 }
 
-func newMember(member database.Member, clubID string) Member {
-	return Member{
-		ID:          member.ID,
-		Username:    member.Username,
-		DisplayName: getDisplayName(member.DisplayName, member.Username),
-		AvatarURL:   imageURL(member.AvatarURL, 32),
-		URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
+func newMember(member database.Member, clubID string, iconSize int) Member {
+	if member.ID == "" {
+		return Member{}
 	}
+
+	var campfireMember campfire.Member
+	if err := json.Unmarshal(member.RawJSON, &campfireMember); err != nil {
+		panic(fmt.Errorf("failed to unmarshal member: %w", err))
+	}
+
+	return newMemberFromCampfire(campfireMember, clubID, iconSize)
 }
 
-func newMemberFromCampfire(member campfire.Member, clubID string) Member {
+func newMemberFromCampfire(member campfire.Member, clubID string, iconSize int) Member {
 	return Member{
 		ID:          member.ID,
 		Username:    member.Username,
 		DisplayName: getDisplayName(member.DisplayName, member.Username),
-		AvatarURL:   imageURL(member.AvatarURL, 32),
-		URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
+		AvatarURL:   imageURL(member.AvatarURL, iconSize),
+		IsCommunityAmbassador: slices.ContainsFunc(member.Badges, func(badge campfire.Badge) bool {
+			return badge.Alias == "PGO_COMMUNITY_AMBASSADOR"
+		}),
+		URL: fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
 	}
 }
 
 type Member struct {
-	ID          string
-	Username    string
-	DisplayName string
-	AvatarURL   string
-	URL         string
+	ID                    string
+	Username              string
+	DisplayName           string
+	AvatarURL             string
+	IsCommunityAmbassador bool
+	URL                   string
+}
+
+type Badge struct {
+	Alias     string
+	BadgeType string
 }
 
 type TopMember struct {
@@ -165,6 +181,8 @@ type TopEvent struct {
 func newRaffle(raffle database.Raffle) Raffle {
 	return Raffle{
 		ID:            raffle.ID,
+		UserID:        raffle.UserID,
+		Events:        raffle.Events,
 		WinnerCount:   raffle.WinnerCount,
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
 		SingleEntry:   raffle.SingleEntry,
@@ -193,7 +211,7 @@ func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
 	}
 
 	return Winner{
-		Member:     newMember(winner.Member, clubID),
+		Member:     newMember(winner.Member, clubID, 32),
 		Accepted:   winner.Accepted,
 		CheckIns:   winner.CheckIns,
 		Confirmed:  winner.Confirmed,

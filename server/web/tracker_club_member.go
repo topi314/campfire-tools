@@ -8,11 +8,9 @@ import (
 )
 
 type TrackerClubMemberVars struct {
-	Club
-	ID             string
-	Username       string
-	DisplayName    string
-	AvatarURL      string
+	Member
+
+	Club           Club
 	Events         []Event
 	AcceptedEvents []Event
 }
@@ -65,11 +63,8 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
+		Member:         newMember(*member, clubID, 48),
 		Club:           newClub(*club),
-		ID:             member.ID,
-		Username:       member.Username,
-		DisplayName:    member.DisplayName,
-		AvatarURL:      imageURL(member.AvatarURL, 48),
 		Events:         trackerEvents,
 		AcceptedEvents: acceptedTrackerEvents,
 	}); err != nil {

@@ -50,18 +50,18 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	checkedInTrackerMembers := make([]Member, len(checkedInMembers))
 	for i, member := range checkedInMembers {
-		checkedInTrackerMembers[i] = newMember(member, event.ClubID)
+		checkedInTrackerMembers[i] = newMember(member, event.ClubID, 32)
 	}
 
 	acceptedMembers, err := h.DB.GetAcceptedMembersByEvent(ctx, eventID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch accepted members", slog.String("event_id", eventID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch accpeted members: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	acceptedTrackerMembers := make([]Member, len(acceptedMembers))
 	for i, member := range acceptedMembers {
-		acceptedTrackerMembers[i] = newMember(member, event.ClubID)
+		acceptedTrackerMembers[i] = newMember(member, event.ClubID, 32)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{

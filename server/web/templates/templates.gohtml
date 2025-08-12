@@ -27,6 +27,9 @@
     </span>
 {{ end }}
 
+{{ define "checkbox" }}
+    {{ if . }}✅️{{ else }}❌{{ end }}
+{{ end}}
 
 {{ define "events_filter" }}
     <form id="events-filter" method="GET" action="{{ .FilterURL }}">
@@ -66,17 +69,17 @@
         </div>
     </form>
     <script>
-        const fromDate = document.getElementById('from');
-        const toDate = document.getElementById('to');
+        const fromDate = document.getElementById("from");
+        const toDate = document.getElementById("to");
 
-        fromDate.addEventListener('change', () => {
+        fromDate.addEventListener("change", () => {
             if (toDate.value && fromDate.value > toDate.value) {
                 toDate.value = fromDate.value; // Adjust "to" date if it's earlier than "from" date
             }
             toDate.min = fromDate.value; // Set the minimum value for "to" date
         });
 
-        toDate.addEventListener('change', () => {
+        toDate.addEventListener("change", () => {
             if (fromDate.value && toDate.value < fromDate.value) {
                 fromDate.value = toDate.value; // Adjust "from" date if it's later than "to" date
             }
@@ -88,47 +91,47 @@
             let to;
 
             switch (event.target.value) {
-                case 'q3-2025':
+                case "q3-2025":
                     from = "2025-07-01";
                     to = "2025-09-30";
                     break;
-                case 'q2-2025':
+                case "q2-2025":
                     from = "2025-04-01";
                     to = "2025-06-30";
                     break;
-                case 'q1-2025':
+                case "q1-2025":
                     from = "2025-01-01";
                     to = "2025-03-31";
                     break;
-                case 'q4-2024':
+                case "q4-2024":
                     from = "2024-10-01";
                     to = "2024-12-31";
                     break;
-                case 'q3-2024':
+                case "q3-2024":
                     from = "2024-07-01";
                     to = "2024-09-30";
                     break;
-                case 'q2-2024':
+                case "q2-2024":
                     from = "2024-04-01";
                     to = "2024-06-30";
                     break;
-                case 'q1-2024':
+                case "q1-2024":
                     from = "2024-01-01";
                     to = "2024-03-31";
                     break;
-                case 'q4-2023':
+                case "q4-2023":
                     from = "2023-10-01";
                     to = "2023-12-31";
                     break;
-                case 'q3-2023':
+                case "q3-2023":
                     from = "2023-07-01";
                     to = "2023-09-30";
                     break;
-                case 'q2-2023':
+                case "q2-2023":
                     from = "2023-04-01";
                     to = "2023-06-30";
                     break;
-                case 'q1-2023':
+                case "q1-2023":
                     from = "2023-01-01";
                     to = "2023-03-31";
                     break;
@@ -141,19 +144,19 @@
             if (from) {
                 const fromDate = new Date(from);
                 if (fromDate > now) {
-                    from = now.toISOString().split('T')[0];
+                    from = now.toISOString().split("T")[0];
                 }
             }
 
             if (to) {
                 const toDate = new Date(to);
                 if (toDate > now) {
-                    to = now.toISOString().split('T')[0];
+                    to = now.toISOString().split("T")[0];
                 }
             }
 
-            document.getElementById('from').value = from;
-            document.getElementById('to').value = to;
+            document.getElementById("from").value = from;
+            document.getElementById("to").value = to;
         })
     </script>
 {{ end }}

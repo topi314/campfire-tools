@@ -29,16 +29,16 @@ https://cmpf.re/..." required autofocus></textarea>
     </form>
 </div>
 <script>
-    document.getElementById('export-form')?.addEventListener('submit', () => {
-        const err = document.getElementById('error-message');
+    document.getElementById("export-form")?.addEventListener("submit", () => {
+        const err = document.getElementById("error-message");
         if (err) {
             err.remove();
         }
     });
 
-    document.getElementById('events').addEventListener('input', (event) => {
-        event.target.style.height = 'auto';
-        event.target.style.height = (event.target.scrollHeight + 4) + 'px';
+    document.getElementById("events").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
     });
 </script>
 {{ template "footer" }}

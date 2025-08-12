@@ -23,7 +23,6 @@
         </div>
         <p>
             <strong>Creator:</strong>
-            <br/>
             {{ if .Creator.AvatarURL }}
                 <img class="icon-32" src="{{ .Creator.AvatarURL }}">
             {{ else }}
@@ -33,7 +32,6 @@
         </p>
         <p>
             <strong>Club:</strong>
-            <br/>
             {{ if .Club.AvatarURL }}
                 <img class="icon-32" src="{{ .Club.AvatarURL }}">
             {{ else }}
@@ -43,33 +41,24 @@
         </p>
         <p>
             <strong>Start:</strong>
-            <br/>
             {{ formatTimeToRelDayTime .Time }}
         </p>
         <p>
             <strong>End:</strong>
-            <br/>
             {{ formatTimeToRelDayTime .EndTime }}
         </p>
         {{ if .CampfireLiveEventID }}
             <p>
                 <strong>Campfire Live Event:</strong>
-                <br/>
                 <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span>
             </p>
         {{ end }}
         <p>
             <strong>Created By Community Ambassador:</strong>
-            <br/>
-            {{ if .CreatedByCommunityAmbassador }}
-                ✅️
-            {{ else }}
-                ❌
-            {{ end }}
+            {{ template "checkbox" .CreatedByCommunityAmbassador }}
         </p>
         <p>
             <strong>Imported At:</strong>
-            <br/>
             {{ formatTimeToRelDayTime .ImportedAt }}
         </p>
         <p>
