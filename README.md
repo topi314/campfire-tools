@@ -7,6 +7,10 @@ Campfire Tools is a collection of tools designed to help Community Ambassadors w
 - **Raffles**: Easily run raffles at https://campfire-tools.topi.wtf/raffle
 - **Event Checkin Export**: Export event check-in data at https://campfire-tools.topi.wtf/export
 
+## Development
+
+A docker compose file is provided for local development and testing.  To run locally use the command `docker compose -f compose/dev.yml up -d --build` and view the site at `localhost:8000`
+
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
