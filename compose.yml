@@ -1,11 +1,11 @@
 services:
   campfire-tools:
-    build: ..
+    build: .
     ports:
-      - "8000:8000"
+      - "8085:8085"
     volumes:
       - type: bind
-        source: ../config/dev.config.toml
+        source: example.config.toml
         target: /var/lib/config.toml
     networks:
       - db
@@ -23,7 +23,6 @@ services:
       - db
 networks:
   db:
-    driver: bridge
 
 volumes:
   db:

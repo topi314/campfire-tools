@@ -9,7 +9,7 @@ Campfire Tools is a collection of tools designed to help Community Ambassadors w
 
 ## Development
 
-A docker compose file is provided for local development and testing.  To run locally use the command `docker compose -f compose/dev.yml up -d --build` and view the site at `localhost:8000`
+A docker compose file is provided for local development and testing.  To run locally use the command `docker compose up -d --build` and view the site at `localhost:8085`
 
 ## License
 
