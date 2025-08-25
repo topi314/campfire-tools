@@ -4,9 +4,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - type: bind
-        source: example.config.toml
-        target: /var/lib/config.toml
+      - ./example.config.toml:/var/lib/config.toml
     networks:
       - db
   db:
