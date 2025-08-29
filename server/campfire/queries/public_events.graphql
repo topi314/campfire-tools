@@ -1,4 +1,4 @@
-query PublicMeetupPage_Query(
+query PublicMeetups_Query(
   $ids: [ID!]!
 ) {
   publicMapObjectsById(ids: $ids) {

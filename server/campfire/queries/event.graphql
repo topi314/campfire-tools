@@ -1,4 +1,4 @@
-query MeetupDetailsWrapperQR_Query(
+query Event_Query(
   $id: ID!
   $pageSize: Int!
 ) {
@@ -64,9 +64,11 @@ query MeetupDetailsWrapperQR_Query(
             alias
           }
         }
+        cursor
       }
       pageInfo {
         hasNextPage
+        startCursor
         endCursor
       }
     }

@@ -1,0 +1,259 @@
+query ActiveMeetups_Query(
+    $pageSize: Int!
+    $membersPageSize: Int!
+    $clubId: ID!
+) {
+    club(id: $clubId) {
+        id
+        name
+        game
+        visibility
+        amIMember
+        avatarUrl
+        myPermissions
+        badgeGrants
+        createdByCommunityAmbassador
+        creator {
+            id
+            username
+            displayName
+            avatarUrl
+            badges {
+                badgeType
+                alias
+            }
+        }
+        activeFeed(first: $pageSize) {
+            totalCount
+            edges {
+                node {
+                    __typename
+                    ... on Event {
+                        id
+                        name
+                        visibility
+                        address
+                        location
+                        coverPhotoUrl
+                        mapPreviewUrl
+                        details
+                        eventTime
+                        eventEndTime
+                        rsvpStatus
+                        createdByCommunityAmbassador
+                        badgeGrants
+                        topicId
+                        discordInterested
+                        game
+                        creator {
+                            id
+                            username
+                            displayName
+                            avatarUrl
+                            badges {
+                                badgeType
+                                alias
+                            }
+                        }
+                        clubId
+                        club {
+                            id
+                            name
+                            game
+                            visibility
+                            amIMember
+                            avatarUrl
+                            myPermissions
+                            badgeGrants
+                            createdByCommunityAmbassador
+                            creator {
+                                id
+                                username
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                            }
+                        }
+                        members(first: $membersPageSize) {
+                            totalCount
+                            edges {
+                                node {
+                                    id
+                                    username
+                                    displayName
+                                    avatarUrl
+                                    badges {
+                                        badgeType
+                                        alias
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                        }
+                        checkedInMembersCount
+                        rsvpStatuses {
+                            userId
+                            rsvpStatus
+                        }
+                        isPasscodeRewardEligible
+                        passcode
+                        campfireLiveEventId
+                        campfireLiveEvent {
+                            id
+                            checkInRadiusMeters
+                            eventName
+                            modalHeadingImageUrl
+                        }
+                        commentCount
+                        isSubscribed
+                        commentsPermissions
+                        commentsPreview {
+                            id
+                            body
+                            createdAt
+                            updatedAt
+                            author {
+                                id
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                            }
+                        }
+                    }
+                }
+                cursor
+            }
+            pageInfo {
+                hasNextPage
+                startCursor
+                endCursor
+            }
+        }
+        archivedFeed(first: $pageSize) {
+            totalCount
+            edges {
+                node {
+                    __typename
+                    ... on Event {
+                        id
+                        name
+                        visibility
+                        address
+                        location
+                        coverPhotoUrl
+                        mapPreviewUrl
+                        details
+                        eventTime
+                        eventEndTime
+                        rsvpStatus
+                        createdByCommunityAmbassador
+                        badgeGrants
+                        topicId
+                        discordInterested
+                        game
+                        creator {
+                            id
+                            username
+                            displayName
+                            avatarUrl
+                            badges {
+                                badgeType
+                                alias
+                            }
+                        }
+                        clubId
+                        club {
+                            id
+                            name
+                            game
+                            visibility
+                            amIMember
+                            avatarUrl
+                            myPermissions
+                            badgeGrants
+                            createdByCommunityAmbassador
+                            creator {
+                                id
+                                username
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                            }
+                        }
+                        members(first: $membersPageSize) {
+                            totalCount
+                            edges {
+                                node {
+                                    id
+                                    username
+                                    displayName
+                                    avatarUrl
+                                    badges {
+                                        badgeType
+                                        alias
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                        }
+                        checkedInMembersCount
+                        rsvpStatuses {
+                            userId
+                            rsvpStatus
+                        }
+                        isPasscodeRewardEligible
+                        passcode
+                        campfireLiveEventId
+                        campfireLiveEvent {
+                            id
+                            checkInRadiusMeters
+                            eventName
+                            modalHeadingImageUrl
+                        }
+                        commentCount
+                        isSubscribed
+                        commentsPermissions
+                        commentsPreview {
+                            id
+                            body
+                            createdAt
+                            updatedAt
+                            author {
+                                id
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                            }
+                        }
+                    }
+                }
+                cursor
+            }
+            pageInfo {
+                hasNextPage
+                startCursor
+                endCursor
+            }
+        }
+    }
+}
+
+
