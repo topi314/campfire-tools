@@ -2,3 +2,4 @@
 ddl/
 
 config.toml
+.env
