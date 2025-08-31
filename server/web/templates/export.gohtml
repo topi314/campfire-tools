@@ -11,7 +11,7 @@
         <label class="form-control" for="events" title="Enter event links for the export. Each link should be on a new line.">
             Event Links
             <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus></textarea>
+https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
             {{ if .Error }}
                 <p class="error" id="error-message">{{ .Error }}</p>
             {{ end }}

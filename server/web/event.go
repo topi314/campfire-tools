@@ -74,6 +74,11 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var clubImportedAt time.Time
+	if club, err := h.DB.GetClub(ctx, event.ClubID); err == nil {
+		clubImportedAt = club.Club.ImportedAt
+	}
+
 	if err = h.Templates().ExecuteTemplate(w, "event_details.gohtml", TrackerEventCheckIns{
 		Event: Event{
 			ID:                           event.ID,
@@ -95,7 +100,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 			AvatarURL:                    imageURL(event.Club.AvatarURL, 32),
 			Creator:                      newMemberFromCampfire(event.Club.Creator, event.Club.ID, 32),
 			CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
-			ImportedAt:                   time.Now(),
+			ImportedAt:                   clubImportedAt,
 			URL:                          fmt.Sprintf("/tracker/club/%s", event.Club.ID),
 		},
 		CheckedInMembers: getEventMembers(*event, "CHECKED_IN"),

@@ -46,6 +46,11 @@ var defaultFields = []string{
 	FieldEventName,
 }
 
+type ExportVars struct {
+	SelectedEventID string
+	Error           string
+}
+
 func (h *handler) Export(w http.ResponseWriter, r *http.Request) {
 	h.renderExport(w, r, "")
 }
@@ -56,10 +61,14 @@ func (h *handler) renderExport(w http.ResponseWriter, r *http.Request, errorMess
 		return
 	}
 
+	query := r.URL.Query()
 	ctx := r.Context()
 
-	if err := h.Templates().ExecuteTemplate(w, "export.gohtml", map[string]any{
-		"Error": errorMessage,
+	eventID := query.Get("event")
+
+	if err := h.Templates().ExecuteTemplate(w, "export.gohtml", ExportVars{
+		SelectedEventID: eventID,
+		Error:           errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render export template", slog.Any("err", err))
 	}

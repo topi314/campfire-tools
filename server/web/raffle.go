@@ -22,8 +22,9 @@ import (
 )
 
 type RaffleVars struct {
-	Raffles []Raffle
-	Error   string
+	Raffles         []Raffle
+	SelectedEventID string
+	Error           string
 }
 
 type RaffleResultVars struct {
@@ -458,11 +459,15 @@ func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, raffles [
 		return
 	}
 
+	query := r.URL.Query()
 	ctx := r.Context()
 
+	eventID := query.Get("event")
+
 	if err := h.Templates().ExecuteTemplate(w, "raffle.gohtml", RaffleVars{
-		Raffles: raffles,
-		Error:   errorMessage,
+		Raffles:         raffles,
+		SelectedEventID: eventID,
+		Error:           errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle template", slog.Any("err", err))
 	}

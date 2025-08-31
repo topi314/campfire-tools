@@ -17,8 +17,13 @@
             <h2>Details </h2>
 
             <div class="inline-form-control">
-                <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
-                <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+                {{ if .Club.ImportedAt.IsZero}}
+                    <a href="/export?event={{ .ID }}" class="button">Export</a>
+                    <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
+                {{ else }}
+                    <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
+                    <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+                {{ end }}
                 <a href="/tracker?events={{ .ID }}" class="button">Import</a>
             </div>
         </div>
