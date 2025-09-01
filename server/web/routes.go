@@ -38,9 +38,11 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /event/{event_id}", h.GetEvent)
 
 	mux.HandleFunc("GET  /tracker", h.Tracker)
-	mux.HandleFunc("POST /tracker", h.TrackerAdd)
 
 	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)
+
+	mux.HandleFunc("GET  /tracker/club/import", h.TrackerClubImport)
+	mux.HandleFunc("POST /tracker/club/import", h.TrackerClubDoImport)
 
 	mux.HandleFunc("GET /tracker/club/{club_id}", h.TrackerClub)
 	mux.HandleFunc("GET /tracker/club/{club_id}/stats", h.TrackerClubStats)
@@ -57,6 +59,9 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}", h.RerunRaffle)
 	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle/{raffle_id}", h.GetRaffle)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
+
+	mux.HandleFunc("GET  /tracker/event/import", h.TrackerEventImport)
+	mux.HandleFunc("POST /tracker/event/import", h.TrackerEventDoImport)
 
 	mux.HandleFunc("GET  /tracker/event/{event_id}", h.TrackerClubEvent)
 

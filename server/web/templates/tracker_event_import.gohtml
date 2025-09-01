@@ -1,0 +1,39 @@
+{{ template "head" "Campfire Tracker Event Import" }}
+<div class="container">
+    <div class="container-header">
+        <a href="/tracker" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>Tracker Event Import</h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Import Events</h2>
+        </div>
+        <form method="POST" action="/tracker/event/import" class="form">
+            <label for="events">Campfire Events</label>
+            <textarea id="events" name="events" rows="10" required placeholder="https://cmpf.re/...
+https://cmpf.re/...
+">{{ .SelectedEventID }}</textarea>
+            {{ if .Errors }}
+                <p class="error">
+                    {{ range $error := .Errors }}
+                        {{ $error }}
+                        <br/>
+                    {{ end }}
+                </p>
+            {{ end }}
+            <button type="submit" class="button">Import</button>
+        </form>
+    </div>
+
+
+</div>
+<script>
+    document.getElementById("events").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
+    });
+</script>
+{{ template "footer" }}

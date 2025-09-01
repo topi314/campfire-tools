@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (d *Database) InsertEvent(ctx context.Context, event Event) error {
+func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 	query := `
 		INSERT INTO events (event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, event_time, event_end_time, event_discord_interested, event_created_by_community_ambassador, event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_raw_json)
 		VALUES (:event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, :event_time, :event_end_time, :event_discord_interested, :event_created_by_community_ambassador, :event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, :event_raw_json)
@@ -31,7 +31,7 @@ func (d *Database) InsertEvent(ctx context.Context, event Event) error {
 			event_raw_json = EXCLUDED.event_raw_json
 	`
 
-	if _, err := d.db.NamedExecContext(ctx, query, event); err != nil {
+	if _, err := d.db.NamedExecContext(ctx, query, events); err != nil {
 		return fmt.Errorf("failed to update event: %w", err)
 	}
 

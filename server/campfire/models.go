@@ -23,7 +23,11 @@ type Error struct {
 }
 
 func (e Error) String() string {
-	return fmt.Sprintf("Error: %s, Path: %v", e.Message, strings.Join(e.Path, "."))
+	msg := fmt.Sprintf("Error: %s", e.Message)
+	if len(e.Path) > 0 {
+		msg += fmt.Sprintf(", Path: %v", strings.Join(e.Path, "."))
+	}
+	return msg
 }
 
 type Pagination[T any] struct {
@@ -119,6 +123,10 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type clubResp struct {
+	Club Club `json:"club"`
+}
+
 type Club struct {
 	ID                           string   `json:"id"`
 	Name                         string   `json:"name"`
@@ -144,8 +152,16 @@ func (c *Club) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type ClubWithEvents struct {
+	Club
+	ArchivedFeed
+}
+
+type archivedFeedResp struct {
+	Club ArchivedFeed `json:"club"`
+}
+
 type ArchivedFeed struct {
-	ID           string            `json:"id"`
 	ArchivedFeed Pagination[Event] `json:"archivedFeed"`
 	Raw          []byte            `json:"-"`
 }

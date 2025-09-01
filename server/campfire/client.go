@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -25,11 +26,14 @@ var (
 	ErrEventNotFound   = errors.New("event not found")
 )
 
-func New(cfg Config, httpClient *http.Client) *Client {
+type TokenFunc func(ctx context.Context) (string, error)
+
+func New(cfg Config, httpClient *http.Client, token TokenFunc) *Client {
 	return &Client{
 		cfg:        cfg,
 		httpClient: httpClient,
 		limiter:    rate.NewLimiter(rate.Every(time.Duration(cfg.Every)), cfg.Burst),
+		token:      token,
 	}
 }
 
@@ -37,6 +41,7 @@ type Client struct {
 	cfg        Config
 	httpClient *http.Client
 	limiter    *rate.Limiter
+	token      TokenFunc
 }
 
 func (c *Client) Do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
@@ -47,6 +52,7 @@ func (c *Client) Do(ctx context.Context, token string, query string, vars map[st
 			}
 			return err
 		}
+		return nil
 	}
 
 	return ErrTooManyRequests
@@ -88,10 +94,16 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 		return fmt.Errorf("request failed with status: %s", rs.Status)
 	}
 
+	logBuf := &bytes.Buffer{}
+	bodyReader := io.TeeReader(rs.Body, logBuf)
+
 	var resp Resp[json.RawMessage]
-	if err = json.NewDecoder(rs.Body).Decode(&resp); err != nil {
-		return err
+	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
+		slog.ErrorContext(ctx, "Failed to decode response", slog.String("response", logBuf.String()), slog.Any("error", err))
+		return fmt.Errorf("failed to decode response: %w", err)
 	}
+
+	slog.DebugContext(ctx, "GraphQL response", slog.String("query", query), slog.String("variables", fmt.Sprintf("%+v", vars)), slog.String("response", logBuf.String()))
 
 	if len(resp.Errors) > 0 {
 		var errs []any

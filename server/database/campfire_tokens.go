@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"time"
 )
 
@@ -33,4 +34,17 @@ func (d *Database) DeleteCampfireToken(id int) error {
 	query := `DELETE FROM campfire_tokens WHERE id = $1`
 	_, err := d.db.Exec(query, id)
 	return err
+}
+
+func (d *Database) GetNextCampfireToken(ctx context.Context) (*CampfireToken, error) {
+	query := `SELECT id, token, expires_at, email FROM campfire_tokens WHERE expires_at > $1 ORDER BY expires_at LIMIT 1`
+
+	now := time.Now().Add(time.Minute)
+
+	var campfireToken CampfireToken
+	if err := d.db.GetContext(ctx, &campfireToken, query, now); err != nil {
+		return nil, err
+	}
+
+	return &campfireToken, nil
 }

@@ -60,7 +60,7 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		Query: eventQuery,
 		Variables: map[string]any{
 			"id":    eventID,
-			"first": 1000000000000000000, // Large enough to fetch all members
+			"first": 100000000, // Large enough to fetch all members
 		},
 	}); err != nil {
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
