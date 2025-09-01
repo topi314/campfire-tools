@@ -134,24 +134,20 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 		members []database.Member
 		clubs   []database.Club
 		events  []database.Event
+		rsvps   []database.EventRSVP
 	)
 
 	for _, event := range allEvents {
-		for _, edge := range event.Members.Edges {
-			member := edge.Node
-
-			if slices.ContainsFunc(members, func(m database.Member) bool {
-				return m.ID == member.ID
-			}) {
+		for _, member := range event.Members.Edges {
+			if containsMember(members, member.Node.ID) {
 				continue
 			}
-
 			members = append(members, database.Member{
-				ID:          member.ID,
-				Username:    member.Username,
-				DisplayName: member.DisplayName,
-				AvatarURL:   member.AvatarURL,
-				RawJSON:     member.Raw,
+				ID:          member.Node.ID,
+				Username:    member.Node.Username,
+				DisplayName: member.Node.DisplayName,
+				AvatarURL:   member.Node.AvatarURL,
+				RawJSON:     member.Node.Raw,
 			})
 		}
 
@@ -167,9 +163,7 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 				RawJSON:                      event.Club.Raw,
 			})
 
-			if !slices.ContainsFunc(members, func(m database.Member) bool {
-				return m.ID == event.Club.Creator.ID
-			}) {
+			if !containsMember(members, event.Club.Creator.ID) {
 				members = append(members, database.Member{
 					ID:          event.Club.Creator.ID,
 					Username:    event.Club.Creator.Username,
@@ -197,6 +191,23 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 			ClubID:                       event.ClubID,
 			RawJSON:                      event.Raw,
 		})
+
+		for _, rsvpStatus := range event.RSVPStatuses {
+			if !containsMember(members, rsvpStatus.UserID) {
+				members = append(members, database.Member{
+					ID:          rsvpStatus.UserID,
+					Username:    "",
+					DisplayName: "",
+					AvatarURL:   "",
+					RawJSON:     []byte("{}"),
+				})
+			}
+			rsvps = append(rsvps, database.EventRSVP{
+				EventID:  event.ID,
+				MemberID: rsvpStatus.UserID,
+				Status:   rsvpStatus.RSVPStatus,
+			})
+		}
 	}
 
 	if err := h.DB.InsertMembers(ctx, members); err != nil {
@@ -211,5 +222,22 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 		return fmt.Errorf("failed to insert events: %w", err)
 	}
 
+	if err := h.DB.InsertEventRSVPs(ctx, rsvps); err != nil {
+		return fmt.Errorf("failed to add event RSVPs: %w", err)
+	}
+
+	slog.InfoContext(ctx, "Members added for events",
+		slog.Int("member_count", len(members)),
+		slog.Int("club_count", len(clubs)),
+		slog.Int("event_count", len(events)),
+		slog.Int("rsvp_count", len(rsvps)),
+	)
+
 	return nil
+}
+
+func containsMember(members []database.Member, memberID string) bool {
+	return slices.ContainsFunc(members, func(m database.Member) bool {
+		return m.ID == memberID
+	})
 }
