@@ -12,15 +12,17 @@ type Config struct {
 	DiscordGuildID  string   `toml:"discord_guild_id"`
 	RefreshPassword string   `toml:"refresh_password"`
 	Whitelist       []string `toml:"whitelist"`
+	Admins          []string `toml:"admins"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("\n PublicURL: %s\n ClientID: %s\n ClientSecret: %s\n DiscordGuildID: %s\n RefreshPassword: %s\n Whitelist: %s",
+	return fmt.Sprintf("\n PublicURL: %s\n ClientID: %s\n ClientSecret: %s\n DiscordGuildID: %s\n RefreshPassword: %s\n Whitelist: %s\n Admins: %s",
 		c.PublicURL,
 		c.ClientID,
 		strings.Repeat("*", len(c.ClientSecret)),
 		c.DiscordGuildID,
 		strings.Repeat("*", len(c.RefreshPassword)),
 		strings.Join(c.Whitelist, ", "),
+		strings.Join(c.Admins, ", "),
 	)
 }

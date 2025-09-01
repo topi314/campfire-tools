@@ -69,7 +69,7 @@ func New(cfg Config) (*Server, error) {
 			Addr: cfg.Server.Addr,
 		},
 		HttpClient: httpClient,
-		Campfire:   campfire.New(cfg.Campfire, httpClient),
+		Campfire:   campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:         db,
 		Auth:       auth.New(cfg.Auth, db),
 		Templates:  t,
@@ -77,6 +77,17 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	return s, nil
+}
+
+func getCampfireToken(db *database.Database) func(ctx context.Context) (string, error) {
+	return func(ctx context.Context) (string, error) {
+		token, err := db.GetNextCampfireToken(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to get next campfire token: %w", err)
+		}
+
+		return token.Token, nil
+	}
 }
 
 func cleanPathMiddleware(next http.Handler) http.Handler {

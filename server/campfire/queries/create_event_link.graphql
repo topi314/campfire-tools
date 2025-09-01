@@ -1,0 +1,9 @@
+mutation CreateLinkMutation(
+    $input: CreateLinkInput!
+) {
+    createLink(input: $input) {
+        link {
+            url
+        }
+    }
+}

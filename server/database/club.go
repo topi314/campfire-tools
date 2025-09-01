@@ -5,14 +5,21 @@ import (
 	"fmt"
 )
 
-func (d *Database) GetClubs(ctx context.Context) ([]ClubWithEvents, error) {
+func (d *Database) GetClubs(ctx context.Context, order string) ([]ClubWithEvents, error) {
+	orderQuery := " ORDER BY "
+	switch order {
+	case "events":
+		orderQuery += "events DESC, clubs.club_name ASC"
+	default:
+		orderQuery += "clubs.club_name ASC"
+	}
+
 	query := `
 		SELECT clubs.*, COUNT(events.event_id) AS events
 		FROM clubs
 		LEFT JOIN events ON clubs.club_id = events.event_club_id
 		GROUP BY clubs.club_id, clubs.club_name
-		ORDER BY clubs.club_name
-	`
+	` + orderQuery
 
 	var clubs []ClubWithEvents
 	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
@@ -38,7 +45,7 @@ func (d *Database) GetClub(ctx context.Context, clubID string) (*ClubWithCreator
 	return &club, nil
 }
 
-func (d *Database) InsertClub(ctx context.Context, club Club) error {
+func (d *Database) InsertClubs(ctx context.Context, clubs []Club) error {
 	query := `
 		INSERT INTO clubs (club_id, club_name, club_avatar_url, club_creator_id, club_created_by_community_ambassador, club_raw_json)
 		VALUES (:club_id, :club_name, :club_avatar_url, :club_creator_id, :club_created_by_community_ambassador, :club_raw_json)
@@ -51,7 +58,7 @@ func (d *Database) InsertClub(ctx context.Context, club Club) error {
 			club_raw_json = EXCLUDED.club_raw_json
 	`
 
-	if _, err := d.db.NamedExecContext(ctx, query, club); err != nil {
+	if _, err := d.db.NamedExecContext(ctx, query, clubs); err != nil {
 		return fmt.Errorf("failed to create or update club: %w", err)
 	}
 

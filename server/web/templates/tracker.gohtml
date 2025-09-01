@@ -8,29 +8,21 @@
     </div>
 
     <div class="section">
-        <div class="section-header">
-            <h2>Add Events</h2>
+        <div class="buttons">
+            <a class="button" href="/tracker/club/import">Import Club</a>
+            <a class="button" href="/tracker/event/import">Import Events</a>
         </div>
-
-        <form action="/tracker" method="POST">
-            <label class="form-control" for="events" title="Enter event links for the import. Each link should be on a new line.">
-                Event Links
-                <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus>{{ .Events }}</textarea>
-                {{ if .Errors }}
-                    <p class="error">
-                        {{ range $error := .Errors }}
-                            {{ $error }}
-                            <br/>
-                        {{ end }}
-                    </p>
-                {{ end }}
-            </label>
-            <button class="form-control" type="submit">Add</button>
-        </form>
     </div>
 
     <div class="section">
+        <div class="inline-form-control">
+            <label for="sort">
+                <select id="sort">
+                    <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Sort by Name</option>
+                    <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Sort by Events</option>
+                </select>
+            </label>
+        </div>
         <h2>Clubs ({{ len .Clubs }})</h2>
         <ul class="list">
             {{ if .PinnedClub }}
@@ -59,9 +51,14 @@ https://cmpf.re/..." required autofocus>{{ .Events }}</textarea>
     </div>
 </div>
 <script>
-    document.getElementById("events").addEventListener("input", (event) => {
-        event.target.style.height = "auto";
-        event.target.style.height = (event.target.scrollHeight + 4) + "px";
-    });
+    document.getElementById("sort").addEventListener("change", (event) => {
+        updateParam(event.target, "sort");
+    })
+
+    function updateParam(select, name) {
+        const url = new URL(window.location);
+        url.searchParams.set(name, select.value);
+        window.location = url.toString();
+    }
 </script>
 {{ template "footer" }}

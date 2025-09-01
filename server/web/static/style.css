@@ -114,6 +114,10 @@ details > *:not(:last-child) {
     margin-bottom: 10px;
 }
 
+.section > *:not(:last-child) {
+    margin-bottom: 10px;
+}
+
 details summary {
     cursor: pointer;
     font-weight: bold;

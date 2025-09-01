@@ -1,0 +1,148 @@
+query ArchivedMeetups_Query(
+    $first: Int!
+    $after: String
+    $membersFirst: Int!
+    $clubId: ID!
+) {
+    club(id: $clubId) {
+        id
+        archivedFeed(first: $first, after: $after) {
+            totalCount
+            edges {
+                node {
+                    __typename
+                    ... on Event {
+                        id
+                        name
+                        visibility
+                        address
+                        location
+                        coverPhotoUrl
+                        mapPreviewUrl
+                        details
+                        eventTime
+                        eventEndTime
+                        rsvpStatus
+                        createdByCommunityAmbassador
+                        badgeGrants
+                        topicId
+                        discordInterested
+                        game
+                        creator {
+                            id
+                            username
+                            displayName
+                            avatarUrl
+                            badges {
+                                badgeType
+                                alias
+                            }
+                            clubRoles(clubId: $clubId) {
+                                id
+                                name
+                            }
+                            clubRank(clubId: $clubId)
+                        }
+                        clubId
+                        club {
+                            id
+                            name
+                            game
+                            visibility
+                            amIMember
+                            avatarUrl
+                            badgeGrants
+                            createdByCommunityAmbassador
+                            creator {
+                                id
+                                username
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                                clubRoles(clubId: $clubId) {
+                                    id
+                                    name
+                                }
+                                clubRank(clubId: $clubId)
+                            }
+                        }
+                        members(first: $membersFirst) {
+                            totalCount
+                            edges {
+                                node {
+                                    id
+                                    username
+                                    displayName
+                                    avatarUrl
+                                    badges {
+                                        badgeType
+                                        alias
+                                    }
+                                    clubRoles(clubId: $clubId) {
+                                        id
+                                        name
+                                    }
+                                    clubRank(clubId: $clubId)
+                                }
+                            }
+                            pageInfo {
+                                hasNextPage
+                                startCursor
+                                endCursor
+                            }
+                        }
+                        checkedInMembersCount
+                        rsvpStatuses {
+                            userId
+                            rsvpStatus
+                        }
+                        isPasscodeRewardEligible
+                        passcode
+                        campfireLiveEventId
+                        campfireLiveEvent {
+                            id
+                            checkInRadiusMeters
+                            eventName
+                            modalHeadingImageUrl
+                        }
+                        commentCount
+                        isSubscribed
+                        commentsPermissions
+                        commentsPreview {
+                            id
+                            body
+                            createdAt
+                            updatedAt
+                            author {
+                                id
+                                username
+                                displayName
+                                avatarUrl
+                                badges {
+                                    badgeType
+                                    alias
+                                }
+                                clubRoles(clubId: $clubId) {
+                                    id
+                                    name
+                                }
+                                clubRank(clubId: $clubId)
+                            }
+                        }
+                    }
+                }
+                cursor
+            }
+            pageInfo {
+                hasNextPage
+                startCursor
+                endCursor
+            }
+        }
+    }
+}
+
+

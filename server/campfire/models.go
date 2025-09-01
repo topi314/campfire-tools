@@ -23,7 +23,24 @@ type Error struct {
 }
 
 func (e Error) String() string {
-	return fmt.Sprintf("Error: %s, Path: %v", e.Message, strings.Join(e.Path, "."))
+	msg := fmt.Sprintf("Error: %s", e.Message)
+	if len(e.Path) > 0 {
+		msg += fmt.Sprintf(", Path: %v", strings.Join(e.Path, "."))
+	}
+	return msg
+}
+
+type Pagination[T any] struct {
+	TotalCount int `json:"totalCount"`
+	Edges      []struct {
+		Node   T      `json:"node"`
+		Cursor string `json:"cursor"`
+	}
+	PageInfo struct {
+		HasNextPage bool   `json:"hasNextPage"`
+		StartCursor string `json:"startCursor"`
+		EndCursor   string `json:"endCursor"`
+	} `json:"pageInfo"`
 }
 
 type Events struct {
@@ -54,33 +71,29 @@ type fullEvent struct {
 }
 
 type Event struct {
-	ID                           string    `json:"id"`
-	Name                         string    `json:"name"`
-	Address                      string    `json:"address"`
-	CoverPhotoURL                string    `json:"coverPhotoUrl"`
-	Details                      string    `json:"details"`
-	EventTime                    time.Time `json:"eventTime"`
-	EventEndTime                 time.Time `json:"eventEndTime"`
-	RSVPStatus                   string    `json:"rsvpStatus"`
-	CreatedByCommunityAmbassador bool      `json:"createdByCommunityAmbassador"`
-	BadgeGrants                  []string  `json:"badgeGrants"`
-	TopicID                      string    `json:"topicId"`
-	CommentCount                 int       `json:"commentCount"`
-	DiscordInterested            int       `json:"discordInterested"`
-	Creator                      Member    `json:"creator"`
-	Club                         Club      `json:"club"`
-	Members                      struct {
-		TotalCount int `json:"totalCount"`
-		Edges      []struct {
-			Node Member `json:"node"`
-		} `json:"edges"`
-	}
-	IsPasscodeRewardEligible bool   `json:"isPasscodeRewardEligible"`
-	CommentsPermissions      string `json:"commentsPermissions"`
-	CommentsPreview          []any  `json:"commentsPreview"`
-	IsSubscribed             bool   `json:"isSubscribed"`
-	CampfireLiveEventID      string `json:"campfireLiveEventId"`
-	CampfireLiveEvent        struct {
+	ID                           string             `json:"id"`
+	Name                         string             `json:"name"`
+	Visibility                   string             `json:"visibility"`
+	Address                      string             `json:"address"`
+	CoverPhotoURL                string             `json:"coverPhotoUrl"`
+	Details                      string             `json:"details"`
+	EventTime                    time.Time          `json:"eventTime"`
+	EventEndTime                 time.Time          `json:"eventEndTime"`
+	RSVPStatus                   string             `json:"rsvpStatus"`
+	CreatedByCommunityAmbassador bool               `json:"createdByCommunityAmbassador"`
+	BadgeGrants                  []string           `json:"badgeGrants"`
+	TopicID                      string             `json:"topicId"`
+	CommentCount                 int                `json:"commentCount"`
+	DiscordInterested            int                `json:"discordInterested"`
+	Creator                      Member             `json:"creator"`
+	Club                         Club               `json:"club"`
+	Members                      Pagination[Member] `json:"members"`
+	IsPasscodeRewardEligible     bool               `json:"isPasscodeRewardEligible"`
+	CommentsPermissions          string             `json:"commentsPermissions"`
+	CommentsPreview              []any              `json:"commentsPreview"`
+	IsSubscribed                 bool               `json:"isSubscribed"`
+	CampfireLiveEventID          string             `json:"campfireLiveEventId"`
+	CampfireLiveEvent            struct {
 		EventName            string `json:"eventName"`
 		ModalHeadingImageURL string `json:"modalHeadingImageUrl"`
 		ID                   string `json:"id"`
@@ -96,7 +109,6 @@ type Event struct {
 	Game                  string `json:"game"`
 	ClubID                string `json:"clubId"`
 	CheckedInMembersCount int    `json:"checkedInMembersCount"`
-	Visibility            string `json:"visibility"`
 	Raw                   []byte `json:"-"`
 }
 
@@ -109,6 +121,10 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	*e = Event(a)
 	e.Raw = data
 	return nil
+}
+
+type clubResp struct {
+	Club Club `json:"club"`
 }
 
 type Club struct {
@@ -136,13 +152,40 @@ func (c *Club) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type ClubWithEvents struct {
+	Club
+	ArchivedFeed
+}
+
+type archivedFeedResp struct {
+	Club ArchivedFeed `json:"club"`
+}
+
+type ArchivedFeed struct {
+	ArchivedFeed Pagination[Event] `json:"archivedFeed"`
+	Raw          []byte            `json:"-"`
+}
+
+func (c *ArchivedFeed) UnmarshalJSON(data []byte) error {
+	type Alias ArchivedFeed
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*c = ArchivedFeed(a)
+	c.Raw = data
+	return nil
+}
+
 type Member struct {
-	ID          string  `json:"id"`
-	Username    string  `json:"username"`
-	DisplayName string  `json:"displayName"`
-	AvatarURL   string  `json:"avatarUrl"`
-	Badges      []Badge `json:"badges"`
-	Raw         []byte  `json:"-"`
+	ID          string     `json:"id"`
+	Username    string     `json:"username"`
+	DisplayName string     `json:"displayName"`
+	AvatarURL   string     `json:"avatarUrl"`
+	Badges      []Badge    `json:"badges"`
+	ClubRoles   []ClubRole `json:"clubRoles"`
+	ClubRank    int        `json:"clubRank"`
+	Raw         []byte     `json:"-"`
 }
 
 func (m *Member) UnmarshalJSON(data []byte) error {
@@ -154,6 +197,11 @@ func (m *Member) UnmarshalJSON(data []byte) error {
 	*m = Member(a)
 	m.Raw = data
 	return nil
+}
+
+type ClubRole struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type Badge struct {

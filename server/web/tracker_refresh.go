@@ -56,10 +56,10 @@ func (h *handler) refreshEvent(ctx context.Context, oldEvent database.Event) err
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	return h.processEvent(ctx, *event)
+	return h.processEvent(ctx, *event, false)
 }
 
-func (h *handler) processEvent(ctx context.Context, event campfire.Event) error {
+func (h *handler) processEvent(ctx context.Context, event campfire.Event, skipClub bool) error {
 	members := []database.Member{
 		{
 			ID:          event.Creator.ID,
@@ -71,7 +71,7 @@ func (h *handler) processEvent(ctx context.Context, event campfire.Event) error 
 	}
 	if !slices.ContainsFunc(members, func(item database.Member) bool {
 		return item.ID == event.Club.Creator.ID
-	}) {
+	}) && !skipClub {
 		members = append(members, database.Member{
 			ID:          event.Club.Creator.ID,
 			Username:    event.Club.Creator.Username,
@@ -85,33 +85,39 @@ func (h *handler) processEvent(ctx context.Context, event campfire.Event) error 
 		return fmt.Errorf("failed to insert creator member: %w", err)
 	}
 
-	if err := h.DB.InsertClub(ctx, database.Club{
-		ID:                           event.Club.ID,
-		Name:                         event.Club.Name,
-		AvatarURL:                    event.Club.AvatarURL,
-		CreatorID:                    event.Club.Creator.ID,
-		CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
-		RawJSON:                      event.Club.Raw,
-	}); err != nil {
-		return fmt.Errorf("failed to insert club: %w", err)
+	if !skipClub {
+		if err := h.DB.InsertClubs(ctx, []database.Club{
+			{
+				ID:                           event.Club.ID,
+				Name:                         event.Club.Name,
+				AvatarURL:                    event.Club.AvatarURL,
+				CreatorID:                    event.Club.Creator.ID,
+				CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
+				RawJSON:                      event.Club.Raw,
+			},
+		}); err != nil {
+			return fmt.Errorf("failed to insert club: %w", err)
+		}
 	}
 
-	if err := h.DB.InsertEvent(ctx, database.Event{
-		ID:                           event.ID,
-		Name:                         event.Name,
-		Details:                      event.Details,
-		Address:                      event.Address,
-		Location:                     event.Location,
-		CreatorID:                    event.Creator.ID,
-		CoverPhotoURL:                event.CoverPhotoURL,
-		Time:                         event.EventTime,
-		EndTime:                      event.EventEndTime,
-		DiscordInterested:            event.DiscordInterested,
-		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
-		CampfireLiveEventID:          event.CampfireLiveEventID,
-		CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
-		ClubID:                       event.ClubID,
-		RawJSON:                      event.Raw,
+	if err := h.DB.InsertEvents(ctx, []database.Event{
+		{
+			ID:                           event.ID,
+			Name:                         event.Name,
+			Details:                      event.Details,
+			Address:                      event.Address,
+			Location:                     event.Location,
+			CreatorID:                    event.Creator.ID,
+			CoverPhotoURL:                event.CoverPhotoURL,
+			Time:                         event.EventTime,
+			EndTime:                      event.EventEndTime,
+			DiscordInterested:            event.DiscordInterested,
+			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+			CampfireLiveEventID:          event.CampfireLiveEventID,
+			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
+			ClubID:                       event.ClubID,
+			RawJSON:                      event.Raw,
+		},
 	}); err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
 	}

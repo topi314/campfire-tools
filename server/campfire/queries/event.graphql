@@ -1,6 +1,6 @@
-query MeetupDetailsWrapperQR_Query(
-  $id: ID!
-  $pageSize: Int!
+query Event_Query(
+    $id: ID!
+    $first: Int!
 ) {
   event(id: $id) {
     id
@@ -51,7 +51,7 @@ query MeetupDetailsWrapperQR_Query(
         }
       }
     }
-    members(first: $pageSize) {
+    members(first: $first) {
       totalCount
       edges {
         node {
@@ -64,9 +64,11 @@ query MeetupDetailsWrapperQR_Query(
             alias
           }
         }
+        cursor
       }
       pageInfo {
         hasNextPage
+        startCursor
         endCursor
       }
     }
