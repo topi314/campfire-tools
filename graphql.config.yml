@@ -1,8 +1,7 @@
 # variables are defined in .env file
 schema:
-  - "https://niantic-social-api.nianticlabs.com/public/graphql":
   - "https://niantic-social-api.nianticlabs.com/graphql":
       headers:
         Authorization: Bearer ${TOKEN}
+  - "https://niantic-social-api.nianticlabs.com/public/graphql":
 documents: '**/*.graphql'
-

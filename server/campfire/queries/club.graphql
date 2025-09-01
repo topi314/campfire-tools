@@ -8,7 +8,6 @@ query Club_Query(
         visibility
         amIMember
         avatarUrl
-        myPermissions
         badgeGrants
         createdByCommunityAmbassador
         creator {
@@ -20,6 +19,11 @@ query Club_Query(
                 badgeType
                 alias
             }
+            clubRoles(clubId: $clubId) {
+                id
+                name
+            }
+            clubRank(clubId: $clubId)
         }
     }
 }

@@ -1,6 +1,6 @@
 query Event_Query(
-  $id: ID!
-  $pageSize: Int!
+    $id: ID!
+    $first: Int!
 ) {
   event(id: $id) {
     id
@@ -51,7 +51,7 @@ query Event_Query(
         }
       }
     }
-    members(first: $pageSize) {
+    members(first: $first) {
       totalCount
       edges {
         node {

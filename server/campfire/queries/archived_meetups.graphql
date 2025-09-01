@@ -1,29 +1,12 @@
 query ArchivedMeetups_Query(
-    $pageSize: Int!
-    $membersPageSize: Int!
+    $first: Int!
+    $after: String
+    $membersFirst: Int!
     $clubId: ID!
 ) {
     club(id: $clubId) {
         id
-        name
-        game
-        visibility
-        amIMember
-        avatarUrl
-        myPermissions
-        badgeGrants
-        createdByCommunityAmbassador
-        creator {
-            id
-            username
-            displayName
-            avatarUrl
-            badges {
-                badgeType
-                alias
-            }
-        }
-        archivedFeed(first: $pageSize) {
+        archivedFeed(first: $first, after: $after) {
             totalCount
             edges {
                 node {
@@ -32,7 +15,7 @@ query ArchivedMeetups_Query(
                         id
                         name
                         visibility
-            address
+                        address
                         location
                         coverPhotoUrl
                         mapPreviewUrl
@@ -54,6 +37,11 @@ query ArchivedMeetups_Query(
                                 badgeType
                                 alias
                             }
+                            clubRoles(clubId: $clubId) {
+                                id
+                                name
+                            }
+                            clubRank(clubId: $clubId)
                         }
                         clubId
                         club {
@@ -63,7 +51,6 @@ query ArchivedMeetups_Query(
                             visibility
                             amIMember
                             avatarUrl
-                            myPermissions
                             badgeGrants
                             createdByCommunityAmbassador
                             creator {
@@ -75,9 +62,14 @@ query ArchivedMeetups_Query(
                                     badgeType
                                     alias
                                 }
+                                clubRoles(clubId: $clubId) {
+                                    id
+                                    name
+                                }
+                                clubRank(clubId: $clubId)
                             }
                         }
-                        members(first: $membersPageSize) {
+                        members(first: $membersFirst) {
                             totalCount
                             edges {
                                 node {
@@ -89,10 +81,16 @@ query ArchivedMeetups_Query(
                                         badgeType
                                         alias
                                     }
+                                    clubRoles(clubId: $clubId) {
+                                        id
+                                        name
+                                    }
+                                    clubRank(clubId: $clubId)
                                 }
                             }
                             pageInfo {
                                 hasNextPage
+                                startCursor
                                 endCursor
                             }
                         }
@@ -120,12 +118,18 @@ query ArchivedMeetups_Query(
                             updatedAt
                             author {
                                 id
+                                username
                                 displayName
                                 avatarUrl
                                 badges {
                                     badgeType
                                     alias
                                 }
+                                clubRoles(clubId: $clubId) {
+                                    id
+                                    name
+                                }
+                                clubRank(clubId: $clubId)
                             }
                         }
                     }
