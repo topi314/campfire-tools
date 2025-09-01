@@ -347,16 +347,17 @@ const (
 )
 
 var AllEventCategories = map[string][]string{
-	"Raid Day":       {"Raid Day"},
+	"Raid Day":       {"Raid Day", "Mega Raid"},
 	"Raid Hour":      {"Raid Hour"},
 	"Max Monday":     {"Max Monday"},
 	"Research Day":   {"Research Day"},
 	"Hatch Day":      {"Hatch Day"},
-	"Community Day":  {"Community Day"},
+	"Community Day":  {"Community Day", "Community Classic Day"},
 	"Spotlight Hour": {"Spotlight Hour"},
-	"Max Battle":     {"Max Battle Weekend", "Max Weekend", "Gigantamax", "GMAX"},
+	"Max Battle":     {"Max Battle Weekend", "Max Battle Day", "Max Weekend", "Gigantamax", "GMAX"},
 	"GO Tour":        {"GO Tour"},
 	"GO Fest":        {"GO Fest"},
+	"GO Wild Area":   {"GOWA"},
 }
 
 func (h *handler) getEventCategories(eventName string) string {
