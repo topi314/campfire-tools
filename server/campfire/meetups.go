@@ -19,8 +19,8 @@ func (c *Client) GetPastMeetups(ctx context.Context, clubID string) ([]Event, er
 
 	for {
 		var club archivedFeedResp
-		if err := c.Do(ctx, token, archivedMeetupsQuery, map[string]any{
-			"first":        100,
+		if err = c.Do(ctx, token, archivedMeetupsQuery, map[string]any{
+			"first":        50,
 			"after":        cursor,
 			"membersFirst": 100000000, // Large enough to fetch all members
 			"clubId":       clubID,

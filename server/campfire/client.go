@@ -21,8 +21,9 @@ const (
 )
 
 var (
+	ErrTooManyRetries  = errors.New("too many retries, please try again later")
 	ErrTooManyRequests = errors.New("too many requests, please try again later")
-	ErrNotFound        = errors.New("not found")
+	ErrBadGateway      = errors.New("bad gateway, please try again later")
 	ErrEventNotFound   = errors.New("event not found")
 )
 
@@ -47,7 +48,8 @@ type Client struct {
 func (c *Client) Do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
 	for range c.cfg.MaxRetries {
 		if err := c.do(ctx, token, query, vars, rsBody); err != nil {
-			if errors.Is(err, ErrTooManyRequests) {
+			if errors.Is(err, ErrTooManyRequests) || errors.Is(err, ErrBadGateway) {
+				time.Sleep(time.Second)
 				continue
 			}
 			return err
@@ -55,7 +57,7 @@ func (c *Client) Do(ctx context.Context, token string, query string, vars map[st
 		return nil
 	}
 
-	return ErrTooManyRequests
+	return ErrTooManyRetries
 }
 
 func (c *Client) do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
@@ -77,6 +79,8 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 		rq.Header.Set("Authorization", "Bearer "+token)
 	}
 
+	slog.DebugContext(ctx, "GraphQL request", slog.String("query", query), slog.String("variables", fmt.Sprintf("%+v", vars)))
+
 	rs, err := c.httpClient.Do(rq)
 	if err != nil {
 		return err
@@ -86,8 +90,8 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 	switch rs.StatusCode {
 	case http.StatusTooManyRequests:
 		return ErrTooManyRequests
-	case http.StatusNotFound:
-		return ErrNotFound
+	case http.StatusBadGateway:
+		return ErrBadGateway
 	case http.StatusOK:
 		// All good
 	default:

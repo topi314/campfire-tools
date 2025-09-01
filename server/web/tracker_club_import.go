@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -101,13 +100,10 @@ func (h *handler) TrackerClubDoImport(w http.ResponseWriter, r *http.Request) {
 	slog.DebugContext(ctx, "Resolved club ID", slog.String("club_id", clubID))
 	club, err := h.Campfire.GetClub(ctx, clubID)
 	if err != nil {
-		if errors.Is(err, campfire.ErrNotFound) {
-			h.renderTrackerClubImport(w, r, "No club found for input")
-			return
-		}
 		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to get club: %s", err))
 		return
 	}
+
 	if club.ID == "" {
 		h.renderTrackerClubImport(w, r, "Failed to retrieve club")
 		return
