@@ -2,7 +2,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
+	"slices"
 	"time"
 )
 
@@ -24,20 +28,41 @@ func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, err
 // InsertMembers inserts or updates multiple members in the database.
 // Fields which are an empty string will not be updated.
 func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
-	query := `
-		INSERT INTO members (member_id, member_username, member_display_name, member_avatar_url, member_raw_json)
-		VALUES (:member_id, :member_username, :member_display_name, :member_avatar_url, :member_raw_json)
-		ON CONFLICT (member_id) DO UPDATE SET
-			member_username = COALESCE(NULLIF(EXCLUDED.member_username, ''), members.member_username),
-			member_display_name = COALESCE(NULLIF(EXCLUDED.member_display_name, ''), members.member_display_name),
-			member_avatar_url = COALESCE(NULLIF(EXCLUDED.member_avatar_url, ''), members.member_avatar_url),
-			member_imported_at = NOW(),
-			member_raw_json = COALESCE(NULLIF(EXCLUDED.member_raw_json, '{}'), members.member_raw_json)
-	`
+	if len(members) == 0 {
+		return nil
+	}
 
-	_, err := d.db.NamedExecContext(ctx, query, members)
+	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create or update members: %w", err)
+		return err
+	}
+
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			slog.ErrorContext(ctx, "failed to rollback transaction", "error", err)
+		}
+	}()
+
+	for chunk := range slices.Chunk(members, batchSize) {
+		query := `
+			INSERT INTO members (member_id, member_username, member_display_name, member_avatar_url, member_raw_json)
+			VALUES (:member_id, :member_username, :member_display_name, :member_avatar_url, :member_raw_json)
+			ON CONFLICT (member_id) DO UPDATE SET
+				member_username = COALESCE(NULLIF(EXCLUDED.member_username, ''), members.member_username),
+				member_display_name = COALESCE(NULLIF(EXCLUDED.member_display_name, ''), members.member_display_name),
+				member_avatar_url = COALESCE(NULLIF(EXCLUDED.member_avatar_url, ''), members.member_avatar_url),
+				member_imported_at = NOW(),
+				member_raw_json = COALESCE(NULLIF(EXCLUDED.member_raw_json, '{}'), members.member_raw_json)
+			`
+
+		_, err = d.db.NamedExecContext(ctx, query, chunk)
+		if err != nil {
+			return fmt.Errorf("failed to create or update members: %w", err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
