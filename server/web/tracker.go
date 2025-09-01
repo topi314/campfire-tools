@@ -34,13 +34,13 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 
 	var pinnedClub *ClubWithEvents
 	trackerClubs := make([]ClubWithEvents, 0, len(clubs))
-	for i, club := range clubs {
+	for _, club := range clubs {
 		if session.PinnedClubID != nil && *session.PinnedClubID == club.Club.ID {
 			c := newClubWithEvents(club)
 			pinnedClub = &c
 			continue
 		}
-		trackerClubs[i] = newClubWithEvents(club)
+		trackerClubs = append(trackerClubs, newClubWithEvents(club))
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker.gohtml", TrackerVars{
