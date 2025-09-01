@@ -33,7 +33,7 @@ func (h *handler) renderTracker(w http.ResponseWriter, r *http.Request, errorMes
 	session := auth.GetSession(r)
 
 	var pinnedClub *ClubWithEvents
-	trackerClubs := make([]ClubWithEvents, len(clubs))
+	trackerClubs := make([]ClubWithEvents, 0, len(clubs))
 	for i, club := range clubs {
 		if session.PinnedClubID != nil && *session.PinnedClubID == club.Club.ID {
 			c := newClubWithEvents(club)
