@@ -107,7 +107,7 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	slog.DebugContext(ctx, "GraphQL response", slog.String("query", query), slog.String("variables", fmt.Sprintf("%+v", vars)), slog.String("response", logBuf.String()))
+	slog.DebugContext(ctx, "GraphQL response", slog.String("response", logBuf.String()))
 
 	if len(resp.Errors) > 0 {
 		var errs []any

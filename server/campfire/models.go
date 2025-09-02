@@ -31,16 +31,20 @@ func (e Error) String() string {
 }
 
 type Pagination[T any] struct {
-	TotalCount int `json:"totalCount"`
-	Edges      []struct {
-		Node   T      `json:"node"`
-		Cursor string `json:"cursor"`
-	}
-	PageInfo struct {
-		HasNextPage bool   `json:"hasNextPage"`
-		StartCursor string `json:"startCursor"`
-		EndCursor   string `json:"endCursor"`
-	} `json:"pageInfo"`
+	TotalCount int       `json:"totalCount"`
+	Edges      []Edge[T] `json:"edges"`
+	PageInfo   PageInfo  `json:"pageInfo"`
+}
+
+type Edge[T any] struct {
+	Node   T      `json:"node"`
+	Cursor string `json:"cursor"`
+}
+
+type PageInfo struct {
+	HasNextPage bool   `json:"hasNextPage"`
+	StartCursor string `json:"startCursor"`
+	EndCursor   string `json:"endCursor"`
 }
 
 type Events struct {
@@ -66,7 +70,7 @@ type Events struct {
 	} `json:"publicMapObjectsById"`
 }
 
-type fullEvent struct {
+type eventResp struct {
 	Event Event `json:"event"`
 }
 
