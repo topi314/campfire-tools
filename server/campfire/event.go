@@ -99,7 +99,7 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 	logBuf := &bytes.Buffer{}
 	bodyReader := io.TeeReader(rs.Body, logBuf)
 
-	var resp Resp[fullEvent]
+	var resp Resp[eventResp]
 	if err = json.NewDecoder(bodyReader).Decode(&resp); err != nil {
 		slog.ErrorContext(ctx, "Failed to decode response", slog.String("response", logBuf.String()), slog.Any("error", err))
 		return nil, fmt.Errorf("failed to decode response: %w", err)
