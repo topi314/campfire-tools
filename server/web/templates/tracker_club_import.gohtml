@@ -11,11 +11,11 @@
         <div class="section-header">
             <h2>Import Club</h2>
         </div>
-        <form method="POST" action="/tracker/club/import" class="form">
+        <form id="import-form" method="POST" action="/tracker/club/import" class="form">
             <label for="club">Campfire Club</label>
             <textarea id="club" name="club" rows="10" required placeholder="Join Campfire! https://campfire.onelink.me/...">{{ .SelectedClubID }}</textarea>
             {{ if .Errors }}
-                <p class="error">
+                <p id="error-message" class="error">
                     {{ range $error := .Errors }}
                         {{ $error }}
                         <br/>
@@ -29,6 +29,13 @@
 
 </div>
 <script>
+    document.getElementById("import-form")?.addEventListener("submit", () => {
+        const err = document.getElementById("error-message");
+        if (err) {
+            err.remove();
+        }
+    });
+
     document.getElementById("club").addEventListener("input", (event) => {
         event.target.style.height = "auto";
         event.target.style.height = (event.target.scrollHeight + 4) + "px";
