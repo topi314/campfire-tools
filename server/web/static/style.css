@@ -449,6 +449,10 @@ h2 > img {
     background-color: var(--background-color);
 }
 
+.table-5 > *:nth-child(5n-4):not(:first-child) {
+    text-align: right;
+}
+
 .table-6 {
     grid-template-columns: auto 1fr auto auto auto auto;
 }
@@ -491,6 +495,10 @@ h2 > img {
 .table-7 > span:first-child, .table-7 > span:nth-child(2), .table-7 > span:nth-child(3), .table-7 > span:nth-child(4), .table-7 > span:nth-child(5), .table-7 > span:nth-child(6), .table-7 > span:nth-child(7) {
     font-weight: bold;
     background-color: var(--background-color);
+}
+
+.table-7 > *:nth-child(7n-6):not(:first-child) {
+    text-align: right;
 }
 
 #league-goals {
