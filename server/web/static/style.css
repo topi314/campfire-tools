@@ -524,3 +524,11 @@ h2 > img {
     background-color: var(--progress-red);
     color: #000000;
 }
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+.wrap {
+    word-wrap: anywhere;
+}

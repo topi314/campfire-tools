@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
@@ -83,6 +84,9 @@ func getCampfireToken(db *database.Database) func(ctx context.Context) (string, 
 	return func(ctx context.Context) (string, error) {
 		token, err := db.GetNextCampfireToken(ctx)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return "", errors.New("oooops, no valid token found. Please ping me on Discord with this error")
+			}
 			return "", fmt.Errorf("failed to get next campfire token: %w", err)
 		}
 

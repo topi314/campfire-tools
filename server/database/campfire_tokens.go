@@ -2,42 +2,37 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
 type CampfireToken struct {
-	ID        int       `db:"id"`
-	Token     string    `db:"token"`
-	ExpiresAt time.Time `db:"expires_at"`
-	Email     string    `db:"email"`
+	ID        int       `db:"campfire_token_id"`
+	Token     string    `db:"campfire_token_token"`
+	ExpiresAt time.Time `db:"campfire_token_expires_at"`
+	Email     string    `db:"campfire_token_email"`
 }
 
-func (d *Database) InsertCampfireToken(token string, expiresAt time.Time, email string) error {
-	query := `INSERT INTO campfire_tokens (token, expires_at, email) VALUES ($1, $2, $3) RETURNING id`
+func (d *Database) InsertCampfireToken(ctx context.Context, token CampfireToken) error {
+	query := `INSERT INTO campfire_tokens (campfire_token_token, campfire_token_expires_at, campfire_token_email) VALUES ($1, $2, $3) RETURNING campfire_token_id`
 
 	var id int
-	err := d.db.QueryRow(query, token, expiresAt, email).Scan(&id)
+	err := d.db.GetContext(ctx, &id, query, token.Token, token.ExpiresAt, token.Email)
 	return err
 }
 
-func (d *Database) GetCampfireToken(token string) (*CampfireToken, error) {
-	query := `SELECT id, token, expires_at, email FROM campfire_tokens WHERE token = $1`
+func (d *Database) GetCampfireTokens(ctx context.Context) ([]CampfireToken, error) {
+	query := `SELECT * FROM campfire_tokens ORDER BY campfire_token_expires_at DESC`
 
-	var campfireToken CampfireToken
-	if err := d.db.Get(&campfireToken, query, token); err != nil {
+	var tokens []CampfireToken
+	if err := d.db.SelectContext(ctx, &tokens, query); err != nil {
 		return nil, err
 	}
-	return &campfireToken, nil
-}
-
-func (d *Database) DeleteCampfireToken(id int) error {
-	query := `DELETE FROM campfire_tokens WHERE id = $1`
-	_, err := d.db.Exec(query, id)
-	return err
+	return tokens, nil
 }
 
 func (d *Database) GetNextCampfireToken(ctx context.Context) (*CampfireToken, error) {
-	query := `SELECT id, token, expires_at, email FROM campfire_tokens WHERE expires_at > $1 ORDER BY expires_at LIMIT 1`
+	query := `SELECT * FROM campfire_tokens WHERE campfire_token_expires_at > $1 ORDER BY campfire_token_expires_at LIMIT 1`
 
 	now := time.Now().Add(time.Minute)
 
@@ -47,4 +42,12 @@ func (d *Database) GetNextCampfireToken(ctx context.Context) (*CampfireToken, er
 	}
 
 	return &campfireToken, nil
+}
+
+func (d *Database) DeleteExpiredCampfireTokens(ctx context.Context) error {
+	_, err := d.db.ExecContext(ctx, "DELETE FROM campfire_tokens WHERE campfire_token_expires_at < NOW()")
+	if err != nil {
+		return fmt.Errorf("failed to cleanup expired campfire tokens: %w", err)
+	}
+	return nil
 }
