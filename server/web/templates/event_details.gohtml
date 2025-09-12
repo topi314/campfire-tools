@@ -17,7 +17,7 @@
             <h2>Details </h2>
 
             <div class="inline-form-control">
-                {{ if .Club.ImportedAt.IsZero}}
+                {{ if .Event.ImportedAt.IsZero }}
                     <a href="/export?event={{ .ID }}" class="button">Export</a>
                     <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
                 {{ else }}
