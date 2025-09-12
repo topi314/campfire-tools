@@ -92,7 +92,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
 			Creator:                      newMemberFromCampfire(event.Creator, event.ClubID, 32),
 			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
-			ImportedAt:                   time.Now(),
+			ImportedAt:                   time.Time{},
 		},
 		Club: Club{
 			ID:                           event.ClubID,

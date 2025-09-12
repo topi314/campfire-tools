@@ -123,6 +123,7 @@ type Session struct {
 	CreatedAt time.Time `db:"session_created_at"`
 	ExpiresAt time.Time `db:"session_expires_at"`
 	UserID    string    `db:"session_user_id"`
+	Admin     bool      `db:"session_admin"`
 }
 
 type UserSetting struct {

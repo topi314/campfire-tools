@@ -37,6 +37,9 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /event", h.ShowEvent)
 	mux.HandleFunc("GET  /event/{event_id}", h.GetEvent)
 
+	mux.HandleFunc("GET /admin", h.Admin)
+	mux.HandleFunc("POST /admin/tokens", h.AdminTokens)
+
 	mux.HandleFunc("GET  /tracker", h.Tracker)
 
 	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)

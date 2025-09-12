@@ -145,6 +145,11 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var admin bool
+	if slices.Contains(h.Cfg.Auth.Admins, user.ID) {
+		admin = true
+	}
+
 	now := time.Now()
 	expiration := now.AddDate(1, 0, 0)
 	session := auth.RandomStr(32)
@@ -153,6 +158,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: now,
 		ExpiresAt: expiration,
 		UserID:    user.ID,
+		Admin:     admin,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create session", slog.Any("error", err))
 		http.Error(w, "Failed to create session", http.StatusInternalServerError)

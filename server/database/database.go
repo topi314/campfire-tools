@@ -33,7 +33,7 @@ func New(cfg Config) (*Database, error) {
 		db: dbx,
 	}
 
-	go db.cleanupSessions()
+	go db.cleanup()
 
 	return db, nil
 }
@@ -49,18 +49,28 @@ func (d *Database) Close() error {
 	return nil
 }
 
-func (d *Database) cleanupSessions() {
+func (d *Database) cleanup() {
 	for {
 		d.doCleanupSessions()
-		time.Sleep(1 * time.Hour)
+		d.doCleanupCampfireTokens()
+		time.Sleep(5 * time.Minute)
 	}
 }
 
 func (d *Database) doCleanupSessions() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := d.DeleteExpiredSessions(ctx); err != nil {
 		slog.Error("failed to cleanup expired sessions", slog.Any("err", err))
+	}
+}
+
+func (d *Database) doCleanupCampfireTokens() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := d.DeleteExpiredCampfireTokens(ctx); err != nil {
+		slog.Error("failed to cleanup expired campfire tokens", slog.Any("err", err))
 	}
 }
