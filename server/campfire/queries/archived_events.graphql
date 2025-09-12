@@ -1,8 +1,8 @@
-query ArchivedMeetups_Query(
+query ArchivedEvents_Query(
+    $clubId: ID!
     $first: Int!
     $after: String
     $membersFirst: Int!
-    $clubId: ID!
 ) {
     club(id: $clubId) {
         id
@@ -37,11 +37,6 @@ query ArchivedMeetups_Query(
                                 badgeType
                                 alias
                             }
-                            clubRoles(clubId: $clubId) {
-                                id
-                                name
-                            }
-                            clubRank(clubId: $clubId)
                         }
                         clubId
                         club {
@@ -62,11 +57,6 @@ query ArchivedMeetups_Query(
                                     badgeType
                                     alias
                                 }
-                                clubRoles(clubId: $clubId) {
-                                    id
-                                    name
-                                }
-                                clubRank(clubId: $clubId)
                             }
                         }
                         members(first: $membersFirst) {
@@ -81,11 +71,6 @@ query ArchivedMeetups_Query(
                                         badgeType
                                         alias
                                     }
-                                    clubRoles(clubId: $clubId) {
-                                        id
-                                        name
-                                    }
-                                    clubRank(clubId: $clubId)
                                 }
                             }
                             pageInfo {
@@ -125,11 +110,6 @@ query ArchivedMeetups_Query(
                                     badgeType
                                     alias
                                 }
-                                clubRoles(clubId: $clubId) {
-                                    id
-                                    name
-                                }
-                                clubRank(clubId: $clubId)
                             }
                         }
                     }
