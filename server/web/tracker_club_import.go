@@ -170,39 +170,43 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 			}
 		}
 
-		events = append(events, database.Event{
-			ID:                           event.ID,
-			Name:                         event.Name,
-			Details:                      event.Details,
-			Address:                      event.Address,
-			Location:                     event.Location,
-			CreatorID:                    event.Creator.ID,
-			CoverPhotoURL:                event.CoverPhotoURL,
-			Time:                         event.EventTime,
-			EndTime:                      event.EventEndTime,
-			DiscordInterested:            event.DiscordInterested,
-			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
-			CampfireLiveEventID:          event.CampfireLiveEventID,
-			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
-			ClubID:                       event.ClubID,
-			RawJSON:                      event.Raw,
-		})
+		if !slices.ContainsFunc(events, func(e database.Event) bool {
+			return e.ID == event.ID
+		}) {
+			events = append(events, database.Event{
+				ID:                           event.ID,
+				Name:                         event.Name,
+				Details:                      event.Details,
+				Address:                      event.Address,
+				Location:                     event.Location,
+				CreatorID:                    event.Creator.ID,
+				CoverPhotoURL:                event.CoverPhotoURL,
+				Time:                         event.EventTime,
+				EndTime:                      event.EventEndTime,
+				DiscordInterested:            event.DiscordInterested,
+				CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+				CampfireLiveEventID:          event.CampfireLiveEventID,
+				CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
+				ClubID:                       event.ClubID,
+				RawJSON:                      event.Raw,
+			})
 
-		for _, rsvpStatus := range event.RSVPStatuses {
-			if !containsMember(members, rsvpStatus.UserID) {
-				members = append(members, database.Member{
-					ID:          rsvpStatus.UserID,
-					Username:    "",
-					DisplayName: "",
-					AvatarURL:   "",
-					RawJSON:     []byte("{}"),
+			for _, rsvpStatus := range event.RSVPStatuses {
+				if !containsMember(members, rsvpStatus.UserID) {
+					members = append(members, database.Member{
+						ID:          rsvpStatus.UserID,
+						Username:    "",
+						DisplayName: "",
+						AvatarURL:   "",
+						RawJSON:     []byte("{}"),
+					})
+				}
+				rsvps = append(rsvps, database.EventRSVP{
+					EventID:  event.ID,
+					MemberID: rsvpStatus.UserID,
+					Status:   rsvpStatus.RSVPStatus,
 				})
 			}
-			rsvps = append(rsvps, database.EventRSVP{
-				EventID:  event.ID,
-				MemberID: rsvpStatus.UserID,
-				Status:   rsvpStatus.RSVPStatus,
-			})
 		}
 	}
 
