@@ -53,7 +53,9 @@ func (h *handler) TrackerEventDoImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allEvents := strings.Fields(events)
+	allEvents := strings.FieldsFunc(events, func(r rune) bool {
+		return r == ',' || r == '\n' || r == ' ' || r == '\r' || r == ';'
+	})
 
 	var errs []error
 	if len(allEvents) > 50 {
