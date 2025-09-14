@@ -120,6 +120,8 @@ func (s *Server) Start(handler http.Handler) {
 			fmt.Printf("Server failed: %s\n", err)
 		}
 	}()
+
+	go s.importClubs()
 }
 
 func (s *Server) Stop() {

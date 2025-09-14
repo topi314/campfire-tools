@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+
+	"github.com/topi314/campfire-tools/internal/xpgtype"
 )
 
 type Club struct {
@@ -135,4 +137,41 @@ type SessionWithUserSetting struct {
 	Session
 	UserSettingUserID *string `db:"user_setting_user_id"`
 	PinnedClubID      *string `db:"user_setting_pinned_club_id"`
+}
+
+type ClubImportJobStatus string
+
+const (
+	ClubImportJobStatusPending   ClubImportJobStatus = "pending"
+	ClubImportJobStatusCompleted ClubImportJobStatus = "completed"
+	ClubImportJobStatusFailed    ClubImportJobStatus = "failed"
+)
+
+type ClubImportJob struct {
+	ID          int                              `db:"club_import_job_id"`
+	ClubID      string                           `db:"club_import_job_club_id"`
+	CreatedAt   time.Time                        `db:"club_import_job_created_at"`
+	CompletedAt time.Time                        `db:"club_import_job_completed_at"`
+	LastTriedAt time.Time                        `db:"club_import_job_last_tried_at"`
+	Status      ClubImportJobStatus              `db:"club_import_job_status"`
+	State       xpgtype.JSON[ClubImportJobState] `db:"club_import_job_state"`
+}
+
+type ClubImportJobWithClub struct {
+	ClubImportJob
+	Club
+}
+
+type ClubImportJobState struct {
+	Events       []EventState `json:"events"`
+	EventCursor  *string      `json:"event_cursor"`
+	Members      []Member     `json:"members"`
+	MemberCursor *string      `json:"member_cursor"`
+	Error        string       `json:"error"`
+}
+
+type EventState struct {
+	Event
+	Member
+	RSVPs []EventRSVP `json:"rsvps"`
 }

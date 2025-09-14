@@ -2,7 +2,6 @@ query ArchivedEvents_Query(
     $clubId: ID!
     $first: Int!
     $after: String
-    $membersFirst: Int!
 ) {
     club(id: $clubId) {
         id
@@ -57,26 +56,6 @@ query ArchivedEvents_Query(
                                     badgeType
                                     alias
                                 }
-                            }
-                        }
-                        members(first: $membersFirst) {
-                            totalCount
-                            edges {
-                                node {
-                                    id
-                                    username
-                                    displayName
-                                    avatarUrl
-                                    badges {
-                                        badgeType
-                                        alias
-                                    }
-                                }
-                            }
-                            pageInfo {
-                                hasNextPage
-                                startCursor
-                                endCursor
                             }
                         }
                         checkedInMembersCount
