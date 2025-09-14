@@ -1,0 +1,31 @@
+query ArchivedMeetupsMembers_Query(
+    $eventId: ID!
+    $first: Int!
+    $after: String
+) {
+    event(id: $eventId) {
+        id
+        members(first: $first, after: $after) {
+            totalCount
+            edges {
+                node {
+                    id
+                    username
+                    displayName
+                    avatarUrl
+                    badges {
+                        badgeType
+                        alias
+                    }
+                }
+            }
+            pageInfo {
+                hasNextPage
+                startCursor
+                endCursor
+            }
+        }
+    }
+}
+
+

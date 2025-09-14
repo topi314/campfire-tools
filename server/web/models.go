@@ -244,3 +244,31 @@ type Token struct {
 	ExpiresAt time.Time
 	Email     string
 }
+
+func newClubImportJob(job database.ClubImportJobWithClub) ClubImportJob {
+	return ClubImportJob{
+		ID: job.ClubImportJob.ID,
+		Club: newClub(database.ClubWithCreator{
+			Club: job.Club,
+			Member: database.Member{
+				ID:      job.Club.CreatorID,
+				RawJSON: []byte("{}"),
+			},
+		}),
+		CreatedAt:   job.CreatedAt,
+		CompletedAt: job.CompletedAt,
+		LastTriedAt: job.LastTriedAt,
+		Status:      string(job.Status),
+		State:       job.State.V,
+	}
+}
+
+type ClubImportJob struct {
+	ID          int
+	Club        Club
+	CreatedAt   time.Time
+	CompletedAt time.Time
+	LastTriedAt time.Time
+	Status      string
+	State       database.ClubImportJobState
+}

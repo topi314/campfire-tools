@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/topi314/campfire-tools/internal/xpgtype"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -20,6 +22,7 @@ var clubURLRegex = regexp.MustCompile(`https://campfire\.onelink\.me/[a-zA-Z0-9]
 
 type TrackerClubImportVars struct {
 	SelectedClubID string
+	ImportJobs     []ClubImportJob
 	Errors         []string
 }
 
@@ -31,13 +34,26 @@ func (h *handler) renderTrackerClubImport(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	query := r.URL.Query()
 
+	clubImportJobs, err := h.DB.GetClubImportJobs(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get club import jobs", slog.Any("err", err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	var jobs []ClubImportJob
+	for _, job := range clubImportJobs {
+		jobs = append(jobs, newClubImportJob(job))
+	}
+
 	selected := query.Get("club")
 	if selected == "" {
 		selected = r.FormValue("club")
 	}
 
-	if err := h.Templates().ExecuteTemplate(w, "tracker_club_import.gohtml", TrackerClubImportVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_import.gohtml", TrackerClubImportVars{
 		SelectedClubID: selected,
+		ImportJobs:     jobs,
 		Errors:         errorMessages,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker import template", slog.Any("err", err))
@@ -110,19 +126,43 @@ func (h *handler) TrackerClubDoImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.DebugContext(ctx, "Retrieved club info", slog.String("club_id", club.ID), slog.String("club_name", club.Name))
-	events, err := h.Campfire.GetPastMeetups(ctx, club.ID)
+
+	if err = h.DB.InsertMembers(ctx, []database.Member{{
+		ID:          club.Creator.ID,
+		Username:    club.Creator.Username,
+		DisplayName: club.Creator.DisplayName,
+		AvatarURL:   club.Creator.AvatarURL,
+		RawJSON:     club.Creator.Raw,
+	}}); err != nil {
+		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to insert club creator into database: %s", err))
+		return
+	}
+
+	if err = h.DB.InsertClubs(ctx, []database.Club{{
+		ID:                           club.ID,
+		Name:                         club.Name,
+		AvatarURL:                    club.AvatarURL,
+		CreatorID:                    club.Creator.ID,
+		CreatedByCommunityAmbassador: club.CreatedByCommunityAmbassador,
+		RawJSON:                      club.Raw,
+	}}); err != nil {
+		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to insert club into database: %s", err))
+		return
+	}
+
+	_, err = h.DB.InsertClubImportJob(ctx, database.ClubImportJob{
+		ClubID:      club.ID,
+		CompletedAt: time.Time{},
+		LastTriedAt: time.Time{},
+		Status:      database.ClubImportJobStatusPending,
+		State:       xpgtype.NewJSON(database.ClubImportJobState{}),
+	})
 	if err != nil {
-		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to get past meetups for %q: %s", club.ID, err))
+		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to create club import job: %s", err))
 		return
 	}
 
-	if err = h.bulkProcessEvents(ctx, events); err != nil {
-		h.renderTrackerClubImport(w, r, fmt.Sprintf("Failed to import club events: %s", err))
-		return
-	}
-
-	slog.InfoContext(ctx, "Successfully imported events", slog.Int("count", len(events)))
-	http.Redirect(w, r, fmt.Sprintf("/tracker/club/%s", club.ID), http.StatusFound)
+	http.Redirect(w, r, "/tracker/club/import", http.StatusFound)
 }
 
 func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Event) error {
