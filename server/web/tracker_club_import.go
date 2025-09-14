@@ -22,6 +22,7 @@ var clubURLRegex = regexp.MustCompile(`https://campfire\.onelink\.me/[a-zA-Z0-9]
 
 type TrackerClubImportVars struct {
 	SelectedClubID string
+	ImportJobs     []ClubImportJob
 	Errors         []string
 }
 
@@ -33,13 +34,26 @@ func (h *handler) renderTrackerClubImport(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	query := r.URL.Query()
 
+	clubImportJobs, err := h.DB.GetClubImportJobs(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get club import jobs", slog.Any("err", err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	var jobs []ClubImportJob
+	for _, job := range clubImportJobs {
+		jobs = append(jobs, newClubImportJob(job))
+	}
+
 	selected := query.Get("club")
 	if selected == "" {
 		selected = r.FormValue("club")
 	}
 
-	if err := h.Templates().ExecuteTemplate(w, "tracker_club_import.gohtml", TrackerClubImportVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_club_import.gohtml", TrackerClubImportVars{
 		SelectedClubID: selected,
+		ImportJobs:     jobs,
 		Errors:         errorMessages,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker import template", slog.Any("err", err))
@@ -136,7 +150,7 @@ func (h *handler) TrackerClubDoImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.DB.InsertClubImportJob(ctx, database.ClubImportJob{
+	_, err = h.DB.InsertClubImportJob(ctx, database.ClubImportJob{
 		ClubID:      club.ID,
 		CompletedAt: time.Time{},
 		LastTriedAt: time.Time{},
@@ -148,7 +162,7 @@ func (h *handler) TrackerClubDoImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/tracker/club/import/%d", id), http.StatusFound)
+	http.Redirect(w, r, "/tracker/club/import", http.StatusFound)
 }
 
 func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Event) error {
