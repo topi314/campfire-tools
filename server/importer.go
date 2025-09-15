@@ -96,7 +96,7 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 					ImportedAt:                   time.Now(),
 					RawJSON:                      event.Raw,
 				},
-				Member: database.Member{
+				Creator: database.Member{
 					ID:          event.Creator.ID,
 					Username:    event.Creator.Username,
 					DisplayName: event.Creator.DisplayName,
@@ -142,9 +142,9 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 		}
 
 		if !slices.ContainsFunc(state.Members, func(m database.Member) bool {
-			return m.ID == event.Member.ID
+			return m.ID == event.Creator.ID
 		}) {
-			state.Members = append(state.Members, event.Member)
+			state.Members = append(state.Members, event.Creator)
 		}
 		for _, rsvp := range event.RSVPs {
 			if !slices.ContainsFunc(state.Members, func(m database.Member) bool {

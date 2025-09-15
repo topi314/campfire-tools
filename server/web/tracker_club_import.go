@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/xpgtype"
+	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -24,6 +25,7 @@ type TrackerClubImportVars struct {
 	SelectedClubID string
 	ImportJobs     []ClubImportJob
 	Errors         []string
+	IsAdmin        bool
 }
 
 func (h *handler) TrackerClubImport(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +35,8 @@ func (h *handler) TrackerClubImport(w http.ResponseWriter, r *http.Request) {
 func (h *handler) renderTrackerClubImport(w http.ResponseWriter, r *http.Request, errorMessages ...string) {
 	ctx := r.Context()
 	query := r.URL.Query()
+
+	session := auth.GetSession(r)
 
 	clubImportJobs, err := h.DB.GetClubImportJobs(ctx)
 	if err != nil {
@@ -55,6 +59,7 @@ func (h *handler) renderTrackerClubImport(w http.ResponseWriter, r *http.Request
 		SelectedClubID: selected,
 		ImportJobs:     jobs,
 		Errors:         errorMessages,
+		IsAdmin:        session.Admin,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker import template", slog.Any("err", err))
 	}

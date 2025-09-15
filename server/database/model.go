@@ -171,7 +171,7 @@ type ClubImportJobState struct {
 }
 
 type EventState struct {
-	Event
-	Member
-	RSVPs []EventRSVP `json:"rsvps"`
+	Event   Event       `json:"event"`
+	Creator Member      `json:"creator"`
+	RSVPs   []EventRSVP `json:"rsvps"`
 }

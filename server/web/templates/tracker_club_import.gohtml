@@ -31,14 +31,16 @@
             <h2>Import Jobs</h2>
         </div>
 
-        <div class="table-7">
+        <div class="table-{{ if .IsAdmin }}7{{ else }}6{{ end }}">
             <div>ID</div>
             <div>Club</div>
             <div>Created At</div>
             <div>Completed At</div>
             <div>Last Tried At</div>
             <div>Status</div>
-            <div>Error</div>
+            {{ if .IsAdmin }}
+                <div>Error</div>
+            {{ end }}
             {{ range $job := .ImportJobs }}
                 <div>{{ $job.ID }}</div>
                 <div><a href="{{ $job.Club.URL }}">{{ $job.Club.Name }}</a></div>
@@ -46,7 +48,9 @@
                 <div>{{ if not $job.CompletedAt.IsZero }}{{ formatTimeToRelDayTime $job.CompletedAt }}{{ end }}</div>
                 <div>{{ if not $job.LastTriedAt.IsZero }}{{ formatTimeToRelDayTime $job.LastTriedAt }}{{ end }}</div>
                 <div>{{ $job.Status }}</div>
-                <div>{{ $job.Error }}</div>
+                {{ if $.IsAdmin }}
+                    <div>{{ $job.Error }}</div>
+                {{ end }}
             {{ end }}
         </div>
     </div>
