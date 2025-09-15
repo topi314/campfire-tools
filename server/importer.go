@@ -55,7 +55,7 @@ func (s *Server) doImportNextClub(ctx context.Context) error {
 	}
 	job.State.V = state
 
-	if updateErr := s.DB.UpdateClubImportJob(ctx, *job); updateErr != nil {
+	if updateErr := s.DB.UpdateClubImportJob(context.WithoutCancel(ctx), *job); updateErr != nil {
 		slog.ErrorContext(ctx, "Failed to update club import job after failure", slog.Any("err", updateErr))
 	}
 
@@ -70,9 +70,10 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 			var rsvps []database.EventRSVP
 			for _, rsvpStatus := range event.RSVPStatuses {
 				rsvps = append(rsvps, database.EventRSVP{
-					EventID:  event.ID,
-					MemberID: rsvpStatus.UserID,
-					Status:   rsvpStatus.RSVPStatus,
+					EventID:    event.ID,
+					MemberID:   rsvpStatus.UserID,
+					Status:     rsvpStatus.RSVPStatus,
+					ImportedAt: time.Now(),
 				})
 			}
 
@@ -155,7 +156,7 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 					DisplayName: "",
 					AvatarURL:   "",
 					RawJSON:     []byte("{}"),
-					ImportedAt:  time.Now(),
+					ImportedAt:  rsvp.ImportedAt,
 				})
 			}
 		}
