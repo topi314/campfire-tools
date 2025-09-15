@@ -155,6 +155,7 @@ type ClubImportJob struct {
 	LastTriedAt time.Time                        `db:"club_import_job_last_tried_at"`
 	Status      ClubImportJobStatus              `db:"club_import_job_status"`
 	State       xpgtype.JSON[ClubImportJobState] `db:"club_import_job_state"`
+	Error       string                           `db:"club_import_job_error"`
 }
 
 type ClubImportJobWithClub struct {
@@ -167,7 +168,6 @@ type ClubImportJobState struct {
 	EventCursor  *string      `json:"event_cursor"`
 	Members      []Member     `json:"members"`
 	MemberCursor *string      `json:"member_cursor"`
-	Error        string       `json:"error"`
 }
 
 type EventState struct {

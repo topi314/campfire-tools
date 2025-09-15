@@ -10,7 +10,7 @@ func (d *Database) GetClubImportJobs(ctx context.Context) ([]ClubImportJobWithCl
 		SELECT *
 		FROM club_import_jobs
 		LEFT JOIN clubs ON club_import_job_club_id = club_id
-		ORDER BY club_import_job_last_tried_at DESC, club_import_job_created_at DESC
+		ORDER BY club_import_job_created_at DESC
 	`
 
 	var jobs []ClubImportJobWithClub
@@ -40,8 +40,8 @@ func (d *Database) GetNextPendingClubImportJob(ctx context.Context) (*ClubImport
 
 func (d *Database) InsertClubImportJob(ctx context.Context, job ClubImportJob) (int, error) {
 	query := `
-		INSERT INTO club_import_jobs (club_import_job_club_id, club_import_job_created_at, club_import_job_completed_at, club_import_job_last_tried_at, club_import_job_status, club_import_job_state)
-		VALUES (:club_import_job_club_id, now(), :club_import_job_completed_at, :club_import_job_last_tried_at, :club_import_job_status, :club_import_job_state)
+		INSERT INTO club_import_jobs (club_import_job_club_id, club_import_job_created_at, club_import_job_completed_at, club_import_job_last_tried_at, club_import_job_status, club_import_job_state, club_import_job_error)
+		VALUES (:club_import_job_club_id, now(), :club_import_job_completed_at, :club_import_job_last_tried_at, :club_import_job_status, :club_import_job_state, :club_import_job_error)
 		RETURNING club_import_job_id
 	`
 
@@ -65,7 +65,8 @@ func (d *Database) UpdateClubImportJob(ctx context.Context, job ClubImportJob) e
 			club_import_job_completed_at = :club_import_job_completed_at,
 			club_import_job_last_tried_at = :club_import_job_last_tried_at,
 			club_import_job_status = :club_import_job_status,
-			club_import_job_state = :club_import_job_state
+			club_import_job_state = :club_import_job_state,
+			club_import_job_error = :club_import_job_error
 		WHERE club_import_job_id = :club_import_job_id
 	`
 

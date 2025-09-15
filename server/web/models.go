@@ -260,6 +260,7 @@ func newClubImportJob(job database.ClubImportJobWithClub) ClubImportJob {
 		LastTriedAt: job.LastTriedAt,
 		Status:      string(job.Status),
 		State:       job.State.V,
+		Error:       job.Error,
 	}
 }
 
@@ -271,4 +272,5 @@ type ClubImportJob struct {
 	LastTriedAt time.Time
 	Status      string
 	State       database.ClubImportJobState
+	Error       string
 }

@@ -18,14 +18,18 @@ type Resp[T any] struct {
 }
 
 type Error struct {
-	Message string   `json:"message"`
-	Path    []string `json:"path"`
+	Message string `json:"message"`
+	Path    []any  `json:"path"`
 }
 
 func (e Error) String() string {
 	msg := fmt.Sprintf("Error: %s", e.Message)
 	if len(e.Path) > 0 {
-		msg += fmt.Sprintf(", Path: %v", strings.Join(e.Path, "."))
+		var path []string
+		for _, p := range e.Path {
+			path = append(path, fmt.Sprint(p))
+		}
+		msg += fmt.Sprintf(", Path: %v", strings.Join(path, "."))
 	}
 	return msg
 }

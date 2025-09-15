@@ -47,6 +47,7 @@ func (s *Server) doImportNextClub(ctx context.Context) error {
 			job.Status = database.ClubImportJobStatusPending
 		} else {
 			job.Status = database.ClubImportJobStatusFailed
+			job.Error = err.Error()
 		}
 	} else {
 		job.Status = database.ClubImportJobStatusCompleted
