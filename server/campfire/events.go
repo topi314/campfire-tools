@@ -14,6 +14,9 @@ var (
 	//go:embed queries/archived_events.graphql
 	archivedEventsQuery string
 
+	//go:embed queries/active_events.graphql
+	activeEventsQuery string
+
 	//go:embed queries/event_members.graphql
 	eventMembersQuery string
 )
@@ -48,6 +51,41 @@ func (c *Client) GetPastEvents(ctx context.Context, clubID string, initialCursor
 			break
 		}
 		cursor = &club.Club.ArchivedFeed.PageInfo.EndCursor
+	}
+
+	return allEvents, nil, nil
+}
+
+func (c *Client) GetFutureEvents(ctx context.Context, clubID string, initialCursor *string) ([]Event, *string, error) {
+	token, err := c.token(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var allEvents []Event
+	var cursor *string
+	if initialCursor != nil {
+		cursor = initialCursor
+	}
+
+	for {
+		var club activeFeedResp
+		if err = c.Do(ctx, token, activeEventsQuery, map[string]any{
+			"clubId": clubID,
+			"first":  eventsPerPage,
+			"after":  cursor,
+		}, &club); err != nil {
+			return allEvents, cursor, err
+		}
+
+		for _, edge := range club.Club.ActiveFeed.Edges {
+			allEvents = append(allEvents, edge.Node)
+		}
+
+		if !club.Club.ActiveFeed.PageInfo.HasNextPage {
+			break
+		}
+		cursor = &club.Club.ActiveFeed.PageInfo.EndCursor
 	}
 
 	return allEvents, nil, nil

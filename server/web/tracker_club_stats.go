@@ -74,13 +74,8 @@ var quarters = []Quarter{
 
 type TrackerClubStatsVars struct {
 	Club
-
 	EventsFilter
 
-	TopCounts []int
-
-	TopMembers      TopMembers
-	TopEvents       TopEvents
 	EventCategories EventCategories
 	LeagueGoals     LeagueGoals
 }
@@ -131,11 +126,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		to = to.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
 	}
 
-	membersCount := parseIntQuery(query, "members", 10)
-	eventsCount := parseIntQuery(query, "events", 10)
 	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
-	topMembersClosed := parseBoolQuery(query, "members-closed", false)
-	topEventsClosed := parseBoolQuery(query, "events-closed", false)
 	categoriesClosed := parseBoolQuery(query, "event-categories-closed", false)
 	leagueGoalsClosed := parseBoolQuery(query, "league-goals-closed", false)
 	leagueGoalQuarter := query.Get("league-goal-quarter")
@@ -150,54 +141,11 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topMembers, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, membersCount)
-	if err != nil {
-		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	trackerTopMembers := make([]TopMember, len(topMembers))
-	for i, member := range topMembers {
-		trackerTopMembers[i] = TopMember{
-			Member: Member{
-				ID:          member.ID,
-				Username:    member.Username,
-				DisplayName: getDisplayName(member.DisplayName, member.Username),
-				AvatarURL:   imageURL(member.AvatarURL, 60),
-				URL:         fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
-			},
-			Accepted:    member.Accepted,
-			CheckIns:    member.CheckIns,
-			CheckInRate: calcCheckInRate(member.Accepted, member.CheckIns),
-		}
-	}
-
-	topEvents, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, onlyCAEvents, eventsCount)
-	if err != nil {
-		http.Error(w, "Failed to fetch top events: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	trackerTopEvents := make([]TopEvent, len(topEvents))
-	for i, event := range topEvents {
-		trackerTopEvents[i] = TopEvent{
-			Event: Event{
-				ID:            event.ID,
-				Name:          event.Name,
-				URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
-				CoverPhotoURL: imageURL(event.CoverPhotoURL, 60),
-			},
-			Accepted:    event.Accepted,
-			CheckIns:    event.CheckIns,
-			CheckInRate: calcCheckInRate(event.Accepted, event.CheckIns),
-		}
-	}
-
-	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents)
+	_, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	totalCheckInRate := calcCheckInRate(totalAccepted, totalCheckIns)
 
 	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents)
 	if err != nil {
@@ -305,20 +253,6 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			To:           to,
 			OnlyCAEvents: onlyCAEvents,
 			Quarters:     quarters,
-		},
-		TopCounts: []int{10, 25, 50, 75, 100},
-		TopMembers: TopMembers{
-			Count:   membersCount,
-			Open:    !topMembersClosed,
-			Members: trackerTopMembers,
-		},
-		TopEvents: TopEvents{
-			Count:            eventsCount,
-			Open:             !topEventsClosed,
-			Events:           trackerTopEvents,
-			TotalCheckIns:    totalCheckIns,
-			TotalAccepted:    totalAccepted,
-			TotalCheckInRate: totalCheckInRate,
 		},
 		EventCategories: EventCategories{
 			Open:       !categoriesClosed,

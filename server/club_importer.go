@@ -16,7 +16,7 @@ var ErrContinueLater = errors.New("continue later")
 func (s *Server) importClubs() {
 	for {
 		s.doImportClubs()
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 

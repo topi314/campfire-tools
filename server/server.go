@@ -122,6 +122,8 @@ func (s *Server) Start(handler http.Handler) {
 	}()
 
 	go s.importClubs()
+	go s.importEvents()
+	go s.updateEvents()
 }
 
 func (s *Server) Stop() {

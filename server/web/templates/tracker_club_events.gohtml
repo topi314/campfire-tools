@@ -1,0 +1,51 @@
+{{ template "head" addStr "Tracker - " .Name " - Events" }}
+<div class="container">
+    <div class="container-header">
+        <a href="/tracker/club/{{ .Club.ID }}" class="back">
+            <img src="/static/back.svg" alt="Back">
+        </a>
+        <h1>
+            <img src="{{ .AvatarURL }}">
+            {{ .Name }}
+        </h1>
+    </div>
+
+    <div class="section">
+        {{ template "events_filter" . }}
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Events ({{ len .Events }})</h2>
+        </div>
+
+        <div class="table-5">
+            <span>Position</span>
+            <span>Event</span>
+            <span>Accepted</span>
+            <span>Check-Ins</span>
+            <span>Rate</span>
+            {{ range $index, $event := .Events }}
+                <span>{{ add $index 1 }}</span>
+                <a href="{{ $event.URL }}">{{ $event.Name }}</a>
+                <span>{{ $event.Accepted }}</span>
+                <span>{{ $event.CheckIns }}</span>
+                <span>{{ $event.CheckInRate }}%</span>
+            {{ else }}
+                <span>No events found.</span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            {{ end }}
+            {{ if gt .TopEvents.TotalAccepted 0 }}
+                <span></span>
+                <span></span>
+                <span>{{ .TopEvents.TotalAccepted }}</span>
+                <span>{{ .TopEvents.TotalCheckIns }}</span>
+                <span>{{ .TopEvents.TotalCheckInRate }}%</span>
+            {{ end }}
+        </div>
+    </div>
+</div>
+{{ template "footer" }}
