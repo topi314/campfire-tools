@@ -17,6 +17,8 @@ func newClub(club database.ClubWithCreator) Club {
 		AvatarURL:                    imageURL(club.Club.AvatarURL, 48),
 		Creator:                      newMember(club.Member, club.Club.ID, 32),
 		CreatedByCommunityAmbassador: club.Club.CreatedByCommunityAmbassador,
+		AutoEventImport:              club.Club.AutoEventImport,
+		LastAutoEventImportAt:        club.Club.LastAutoEventImportAt,
 		ImportedAt:                   club.Club.ImportedAt,
 		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
 	}
@@ -28,6 +30,8 @@ type Club struct {
 	AvatarURL                    string
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
+	AutoEventImport              bool
+	LastAutoEventImportAt        time.Time
 	ImportedAt                   time.Time
 	URL                          string
 }
@@ -58,6 +62,7 @@ func newEvent(event database.Event, iconSize int) Event {
 		Details:                      event.Details,
 		Time:                         event.Time,
 		EndTime:                      event.EndTime,
+		Finished:                     event.Finished,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEventName,
 		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
@@ -86,6 +91,7 @@ type Event struct {
 	Details                      string
 	Time                         time.Time
 	EndTime                      time.Time
+	Finished                     bool
 	CampfireLiveEventID          string
 	CampfireLiveEventName        string
 	Creator                      Member
@@ -93,21 +99,6 @@ type Event struct {
 	ImportedAt                   time.Time
 	Accepted                     int
 	CheckIns                     int
-}
-
-type TopMembers struct {
-	Count   int
-	Open    bool
-	Members []TopMember
-}
-
-type TopEvents struct {
-	Count            int
-	Open             bool
-	Events           []TopEvent
-	TotalAccepted    int
-	TotalCheckIns    int
-	TotalCheckInRate float64
 }
 
 type EventCategories struct {
@@ -164,11 +155,29 @@ type Badge struct {
 	BadgeType string
 }
 
+func newTopMember(member database.TopMember, clubID string, size int) TopMember {
+	return TopMember{
+		Member:      newMember(member.Member, clubID, size),
+		Accepted:    member.Accepted,
+		CheckIns:    member.CheckIns,
+		CheckInRate: calcCheckInRate(member.Accepted, member.CheckIns),
+	}
+}
+
 type TopMember struct {
 	Member
 	Accepted    int
 	CheckIns    int
 	CheckInRate float64
+}
+
+func newTopEvent(event database.EventWithCheckIns, iconSize int) TopEvent {
+	return TopEvent{
+		Event:       newEvent(event.Event, iconSize),
+		Accepted:    event.Accepted,
+		CheckIns:    event.CheckIns,
+		CheckInRate: calcCheckInRate(event.Accepted, event.CheckIns),
+	}
 }
 
 type TopEvent struct {

@@ -134,7 +134,7 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
 		GROUP BY m.member_id, m.member_username, m.member_display_name, m.member_avatar_url
 		ORDER BY check_ins DESC, accepted DESC, m.member_display_name, m.member_username, m.member_id
-		LIMIT $5
+		LIMIT CASE WHEN $5 < 0 THEN NULL ELSE $5 END
 	`
 
 	var members []TopMember

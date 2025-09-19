@@ -11,8 +11,8 @@ import (
 
 func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 	query := `
-		INSERT INTO events (event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, event_time, event_end_time, event_discord_interested, event_created_by_community_ambassador, event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_raw_json)
-		VALUES (:event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, :event_time, :event_end_time, :event_discord_interested, :event_created_by_community_ambassador, :event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, :event_raw_json)
+		INSERT INTO events (event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, event_time, event_end_time, event_finished, event_discord_interested, event_created_by_community_ambassador, event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_raw_json)
+		VALUES (:event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, :event_time, :event_end_time, :event_finished, :event_discord_interested, :event_created_by_community_ambassador, :event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, :event_raw_json)
 		ON CONFLICT (event_id) DO UPDATE SET
 			event_name = EXCLUDED.event_name,
 			event_details = EXCLUDED.event_details,
@@ -22,6 +22,7 @@ func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 			event_cover_photo_url = EXCLUDED.event_cover_photo_url,
 			event_time = EXCLUDED.event_time,
 			event_end_time = EXCLUDED.event_end_time,
+			event_finished = EXCLUDED.event_finished,
 			event_discord_interested = EXCLUDED.event_discord_interested,
 			event_created_by_community_ambassador = EXCLUDED.event_created_by_community_ambassador,
 			event_campfire_live_event_id = EXCLUDED.event_campfire_live_event_id,
@@ -134,7 +135,7 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
         GROUP BY e.event_id, e.event_time, e.event_name
         ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id
-        LIMIT $5
+        LIMIT CASE WHEN $5 < 0 THEN NULL ELSE $5 END
 	`
 
 	var events []EventWithCheckIns
@@ -177,4 +178,23 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 	}
 
 	return events, nil
+}
+
+func (d *Database) GetNextUpdateEvent(ctx context.Context) (*Event, error) {
+	// get the first event which has not finished yet and the club is set to auto import events
+	query := `
+			SELECT events.*
+			FROM events
+			JOIN clubs ON event_club_id = club_id
+			WHERE event_finished = FALSE AND club_auto_event_import = TRUE AND event_imported_at < NOW() - INTERVAL '1 hour'
+			ORDER BY event_imported_at, event_end_time
+			LIMIT 1
+		`
+
+	var event Event
+	if err := d.db.GetContext(ctx, &event, query); err != nil {
+		return nil, fmt.Errorf("failed to get next event to update: %w", err)
+	}
+
+	return &event, nil
 }

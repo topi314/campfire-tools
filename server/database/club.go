@@ -64,3 +64,48 @@ func (d *Database) InsertClubs(ctx context.Context, clubs []Club) error {
 
 	return nil
 }
+
+func (d *Database) UpdateClubAutoEventImport(ctx context.Context, clubID string, autoImport bool) error {
+	query := `
+		UPDATE clubs
+		SET club_auto_event_import = $1
+		WHERE club_id = $2
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, autoImport, clubID); err != nil {
+		return fmt.Errorf("failed to update club auto import: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) UpdateClubLastAutoEventImport(ctx context.Context, clubID string) error {
+	query := `
+		UPDATE clubs
+		SET club_last_auto_event_import_at = NOW()
+		WHERE club_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, clubID); err != nil {
+		return fmt.Errorf("failed to update club last auto event import: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) GetNextClubImport(ctx context.Context) (*Club, error) {
+	query := `
+		SELECT *
+		FROM clubs
+		WHERE club_auto_event_import = TRUE AND (club_last_auto_event_import_at < NOW() - INTERVAL '1 hour')
+		ORDER BY club_last_auto_event_import_at
+		LIMIT 1
+	`
+
+	var club Club
+	if err := d.db.GetContext(ctx, &club, query); err != nil {
+		return nil, fmt.Errorf("failed to get next club to import: %w", err)
+	}
+
+	return &club, nil
+}

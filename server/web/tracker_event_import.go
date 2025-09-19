@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/topi314/campfire-tools/internal/tsync"
 	"github.com/topi314/campfire-tools/internal/xerrors"
@@ -89,7 +88,6 @@ func (h *handler) importAllEvents(ctx context.Context, eventIDs []string) error 
 		mu     sync.Mutex
 	)
 
-	now := time.Now()
 	var eg tsync.ErrorGroup
 	for _, eventID := range eventIDs {
 		eg.Go(func() error {
@@ -99,10 +97,6 @@ func (h *handler) importAllEvents(ctx context.Context, eventIDs []string) error 
 			}
 			if event.ID == "" {
 				return nil
-			}
-
-			if event.EventEndTime.After(now) {
-				return fmt.Errorf("event has not ended yet: %s", event.Name)
 			}
 
 			mu.Lock()

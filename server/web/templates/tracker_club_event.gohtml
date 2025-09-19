@@ -19,6 +19,7 @@
             <div class="inline-form-control">
                 <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
                 <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+                <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
             </div>
         </div>
         <p>
@@ -46,6 +47,10 @@
         <p>
             <strong>End:</strong>
             {{ formatTimeToRelDayTime .EndTime }}
+        </p>
+        <p>
+            <strong>Finished:</strong>
+            {{ template "checkbox" .Finished }}
         </p>
         {{ if .CampfireLiveEventID }}
             <p>

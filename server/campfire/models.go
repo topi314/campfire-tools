@@ -185,6 +185,26 @@ func (c *ArchivedFeed) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type activeFeedResp struct {
+	Club ActiveFeed `json:"club"`
+}
+
+type ActiveFeed struct {
+	ActiveFeed Pagination[Event] `json:"activeFeed"`
+	Raw        []byte            `json:"-"`
+}
+
+func (c *ActiveFeed) UnmarshalJSON(data []byte) error {
+	type Alias ActiveFeed
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*c = ActiveFeed(a)
+	c.Raw = data
+	return nil
+}
+
 type Member struct {
 	ID          string     `json:"id"`
 	Username    string     `json:"username"`

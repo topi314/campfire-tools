@@ -48,11 +48,11 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /tracker/club/import", h.TrackerClubDoImport)
 
 	mux.HandleFunc("GET /tracker/club/{club_id}", h.TrackerClub)
+	mux.HandleFunc("POST /tracker/club/{club_id}", h.TrackerClubUpdate)
 	mux.HandleFunc("GET /tracker/club/{club_id}/stats", h.TrackerClubStats)
+	mux.HandleFunc("GET /tracker/club/{club_id}/events", h.TrackerClubEvents)
+	mux.HandleFunc("GET /tracker/club/{club_id}/members", h.TrackerClubMembers)
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
-
-	mux.HandleFunc("POST /tracker/club/{club_id}/pin", h.TrackerClubPin)
-	mux.HandleFunc("POST /tracker/club/{club_id}/unpin", h.TrackerClubPin)
 
 	mux.HandleFunc("GET  /tracker/club/{club_id}/export", h.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", h.DoExport)
@@ -66,7 +66,8 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/event/import", h.TrackerEventImport)
 	mux.HandleFunc("POST /tracker/event/import", h.TrackerEventDoImport)
 
-	mux.HandleFunc("GET  /tracker/event/{event_id}", h.TrackerClubEvent)
+	mux.HandleFunc("GET /tracker/event/{event_id}", h.TrackerClubEvent)
+	mux.HandleFunc("GET /tracker/event/{event_id}/refresh", h.TrackerClubEventRefresh)
 
 	mux.HandleFunc("GET  /api/docs", h.APIDocs)
 	mux.HandleFunc("GET  /api/events", h.APIExportEvents)

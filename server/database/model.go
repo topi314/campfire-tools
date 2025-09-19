@@ -17,6 +17,8 @@ type Club struct {
 	CreatedByCommunityAmbassador bool            `db:"club_created_by_community_ambassador"`
 	ImportedAt                   time.Time       `db:"club_imported_at"`
 	RawJSON                      json.RawMessage `db:"club_raw_json"`
+	AutoEventImport              bool            `db:"club_auto_event_import"`
+	LastAutoEventImportAt        time.Time       `db:"club_last_auto_event_import_at"`
 }
 
 type Event struct {
@@ -29,6 +31,7 @@ type Event struct {
 	CoverPhotoURL                string          `db:"event_cover_photo_url"`
 	Time                         time.Time       `db:"event_time"`
 	EndTime                      time.Time       `db:"event_end_time"`
+	Finished                     bool            `db:"event_finished"`
 	DiscordInterested            int             `db:"event_discord_interested"`
 	CreatedByCommunityAmbassador bool            `db:"event_created_by_community_ambassador"`
 	CampfireLiveEventID          string          `db:"event_campfire_live_event_id"`

@@ -171,6 +171,7 @@ func (h *handler) TrackerClubDoImport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Event) error {
+	now := time.Now()
 	var (
 		members []database.Member
 		clubs   []database.Club
@@ -228,6 +229,7 @@ func (h *handler) bulkProcessEvents(ctx context.Context, allEvents []campfire.Ev
 				CoverPhotoURL:                event.CoverPhotoURL,
 				Time:                         event.EventTime,
 				EndTime:                      event.EventEndTime,
+				Finished:                     event.EventEndTime.Before(now),
 				DiscordInterested:            event.DiscordInterested,
 				CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 				CampfireLiveEventID:          event.CampfireLiveEventID,
