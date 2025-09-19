@@ -38,12 +38,12 @@
                 <span></span>
                 <span></span>
             {{ end }}
-            {{ if gt .TopEvents.TotalAccepted 0 }}
+            {{ if gt .TotalAccepted 0 }}
                 <span></span>
                 <span></span>
-                <span>{{ .TopEvents.TotalAccepted }}</span>
-                <span>{{ .TopEvents.TotalCheckIns }}</span>
-                <span>{{ .TopEvents.TotalCheckInRate }}%</span>
+                <span>{{ .TotalAccepted }}</span>
+                <span>{{ .TotalCheckIns }}</span>
+                <span>{{ .TotalCheckInRate }}%</span>
             {{ end }}
         </div>
     </div>

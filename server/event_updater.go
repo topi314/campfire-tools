@@ -137,13 +137,12 @@ func (s *Server) importEvent(ctx context.Context, eventID string) error {
 
 	if err = s.DB.InsertEvents(ctx, []database.Event{dbEvent}); err != nil {
 		return err
-
 	}
 
 	if err = s.DB.InsertEventRSVPs(ctx, dbRSVPs); err != nil {
 		return err
-
 	}
+
 	slog.InfoContext(ctx, "Updated event",
 		slog.String("club_id", event.Club.ID),
 		slog.String("event_id", event.ID),
