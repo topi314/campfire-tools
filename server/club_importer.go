@@ -109,6 +109,7 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
+				slog.ErrorContext(ctx, "Timeout reached while fetching past events, continuing later", slog.String("club_id", job.ClubID))
 				return state, ErrContinueLater
 			}
 			return state, err
@@ -140,6 +141,7 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 			})
 		}
 		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get event members, continuing later", slog.String("event_id", event.Event.ID), slog.Any("err", err))
 			return state, ErrContinueLater
 		}
 
