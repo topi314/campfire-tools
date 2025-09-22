@@ -1,4 +1,6 @@
 # variables are defined in .env file
+projects:
+  
 schema:
   - "https://niantic-social-api.nianticlabs.com/graphql":
       headers:

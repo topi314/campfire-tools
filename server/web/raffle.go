@@ -443,14 +443,56 @@ func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event
 	}
 
 	dbEvent, err := h.DB.GetEvent(ctx, event)
-	if err == nil {
-		var fullEvent *campfire.Event
-		if err = json.Unmarshal(dbEvent.Event.RawJSON, &fullEvent); err == nil {
+	if err == nil && dbEvent.Finished {
+		fullEvent, err := h.unmarshalEvent(ctx, *dbEvent)
+		if err == nil {
 			return fullEvent, nil
 		}
 	}
 
-	return h.Campfire.GetEvent(ctx, event)
+	fullEvent, err := h.Campfire.GetEvent(ctx, event)
+	if err == nil && dbEvent != nil && !dbEvent.Finished {
+		if err = h.ProcessFullEventImport(ctx, *fullEvent, true); err != nil {
+			slog.ErrorContext(ctx, "Failed to update event in database", slog.String("event_id", event), slog.Any("err", err))
+		}
+	}
+
+	return fullEvent, nil
+}
+
+func (h *handler) unmarshalEvent(ctx context.Context, event database.EventWithCreator) (*campfire.Event, error) {
+	var fullEvent campfire.Event
+	if err := json.Unmarshal(event.Event.RawJSON, &fullEvent); err != nil {
+		return nil, err
+	}
+
+	if len(fullEvent.Members.Edges) > 0 {
+		return &fullEvent, nil
+	}
+
+	members, err := h.DB.GetEventMembers(ctx, event.Event.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, member := range members {
+		fullEvent.RSVPStatuses = append(fullEvent.RSVPStatuses, campfire.RSVPStatus{
+			UserID:     member.ID,
+			RSVPStatus: member.Status,
+		})
+		fullEvent.Members.TotalCount++
+
+		var fullMember campfire.Member
+		if err = json.Unmarshal(member.RawJSON, &fullMember); err != nil {
+			return nil, err
+		}
+		fullEvent.Members.Edges = append(fullEvent.Members.Edges, campfire.Edge[campfire.Member]{
+			Node:   fullMember,
+			Cursor: "",
+		})
+	}
+
+	return &fullEvent, nil
 }
 
 func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, raffles []Raffle, errorMessage string) {

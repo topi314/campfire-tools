@@ -94,7 +94,7 @@ func (c *Client) getEvents(ctx context.Context, eventIDs []string, try int) (*Ev
 	if try >= c.cfg.MaxRetries {
 		return nil, fmt.Errorf("failed to fetch events after %d retries: %w", c.cfg.MaxRetries, ErrTooManyRequests)
 	}
-	buf := &bytes.Buffer{}
+	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: publicEventsQuery,
 		Variables: map[string]any{
@@ -124,7 +124,7 @@ func (c *Client) getEvents(ctx context.Context, eventIDs []string, try int) (*Ev
 		return nil, fmt.Errorf("request failed with status code: %d", rs.StatusCode)
 	}
 
-	logBuf := &bytes.Buffer{}
+	logBuf := new(bytes.Buffer)
 	bodyReader := io.TeeReader(rs.Body, logBuf)
 
 	var resp Resp[Events]

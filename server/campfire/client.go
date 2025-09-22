@@ -98,7 +98,7 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 		return fmt.Errorf("request failed with status: %s", rs.Status)
 	}
 
-	logBuf := &bytes.Buffer{}
+	logBuf := new(bytes.Buffer)
 	bodyReader := io.TeeReader(rs.Body, logBuf)
 
 	var resp Resp[json.RawMessage]

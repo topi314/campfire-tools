@@ -6,7 +6,7 @@ CREATE TABLE raffles
     raffle_winner_count    INTEGER   NOT NULL DEFAULT 1,
     raffle_only_checked_in BOOLEAN   NOT NULL DEFAULT TRUE,
     raffle_single_entry    BOOLEAN   NOT NULL DEFAULT TRUE,
-    raffle_created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+    raffle_created_at      TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE raffle_winners
@@ -15,7 +15,7 @@ CREATE TABLE raffle_winners
     raffle_winner_member_id  VARCHAR   NOT NULL REFERENCES members (member_id),
     raffle_winner_confirmed  BOOLEAN   NOT NULL DEFAULT FALSE,
     raffle_winner_past       BOOLEAN   NOT NULL DEFAULT FALSE,
-    raffle_winner_created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    raffle_winner_created_at TIMESTAMP NOT NULL DEFAULT now(),
     PRIMARY KEY (raffle_winner_raffle_id, raffle_winner_member_id)
 );
 

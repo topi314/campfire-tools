@@ -45,13 +45,13 @@ func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 
 	for chunk := range slices.Chunk(members, batchSize) {
 		query := `
-			INSERT INTO members (member_id, member_username, member_display_name, member_avatar_url, member_raw_json)
-			VALUES (:member_id, :member_username, :member_display_name, :member_avatar_url, :member_raw_json)
+			INSERT INTO members (member_id, member_username, member_display_name, member_avatar_url, member_imported_at, member_raw_json)
+			VALUES (:member_id, :member_username, :member_display_name, :member_avatar_url, now(), :member_raw_json)
 			ON CONFLICT (member_id) DO UPDATE SET
 				member_username = COALESCE(NULLIF(EXCLUDED.member_username, ''), members.member_username),
 				member_display_name = COALESCE(NULLIF(EXCLUDED.member_display_name, ''), members.member_display_name),
 				member_avatar_url = COALESCE(NULLIF(EXCLUDED.member_avatar_url, ''), members.member_avatar_url),
-				member_imported_at = NOW(),
+				member_imported_at = now(),
 				member_raw_json = COALESCE(NULLIF(EXCLUDED.member_raw_json, '{}'), members.member_raw_json)
 			`
 
@@ -70,12 +70,11 @@ func (d *Database) InsertMembers(ctx context.Context, members []Member) error {
 
 func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]EventMember, error) {
 	query := `
-		SELECT e.*, er.*, m.*
-		FROM events e
-		JOIN event_rsvps er ON e.event_id = er.event_rsvp_event_id
-		JOIN members m ON er.event_rsvp_member_id = m.member_id
-		WHERE e.event_id = $1
-		ORDER BY m.member_display_name, m.member_username, m.member_id
+		SELECT event_rsvps.*, members.*
+		FROM event_rsvps
+		JOIN members ON event_rsvp_member_id = member_id
+		WHERE event_rsvp_event_id = $1
+		ORDER BY member_display_name, member_username, member_id
 	`
 
 	var members []EventMember

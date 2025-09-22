@@ -47,15 +47,16 @@ func (d *Database) GetClub(ctx context.Context, clubID string) (*ClubWithCreator
 
 func (d *Database) InsertClubs(ctx context.Context, clubs []Club) error {
 	query := `
-		INSERT INTO clubs (club_id, club_name, club_avatar_url, club_creator_id, club_created_by_community_ambassador, club_raw_json)
-		VALUES (:club_id, :club_name, :club_avatar_url, :club_creator_id, :club_created_by_community_ambassador, :club_raw_json)
+		INSERT INTO clubs (club_id, club_name, club_avatar_url, club_creator_id, club_created_by_community_ambassador, club_raw_json, club_last_auto_event_imported_at)
+		VALUES (:club_id, :club_name, :club_avatar_url, :club_creator_id, :club_created_by_community_ambassador, :club_raw_json, now())
 		ON CONFLICT (club_id) DO UPDATE SET
 			club_name = EXCLUDED.club_name,
 			club_avatar_url = EXCLUDED.club_avatar_url,
 			club_creator_id = EXCLUDED.club_creator_id,
 			club_created_by_community_ambassador = EXCLUDED.club_created_by_community_ambassador,
-			club_imported_at = NOW(),
-			club_raw_json = EXCLUDED.club_raw_json
+			club_imported_at = now(),
+			club_raw_json = EXCLUDED.club_raw_json,
+			club_last_auto_event_imported_at = now()
 	`
 
 	if _, err := d.db.NamedExecContext(ctx, query, clubs); err != nil {
@@ -79,15 +80,15 @@ func (d *Database) UpdateClubAutoEventImport(ctx context.Context, clubID string,
 	return nil
 }
 
-func (d *Database) UpdateClubLastAutoEventImport(ctx context.Context, clubID string) error {
+func (d *Database) UpdateClubLastAutoEventImported(ctx context.Context, clubID string) error {
 	query := `
 		UPDATE clubs
-		SET club_last_auto_event_import_at = NOW()
+		SET club_last_auto_event_imported_at = now()
 		WHERE club_id = $1
 	`
 
 	if _, err := d.db.ExecContext(ctx, query, clubID); err != nil {
-		return fmt.Errorf("failed to update club last auto event import: %w", err)
+		return fmt.Errorf("failed to update club last auto event imported: %w", err)
 	}
 
 	return nil
@@ -97,8 +98,8 @@ func (d *Database) GetNextClubImport(ctx context.Context) (*Club, error) {
 	query := `
 		SELECT *
 		FROM clubs
-		WHERE club_auto_event_import = TRUE AND (club_last_auto_event_import_at < NOW() - INTERVAL '1 hour')
-		ORDER BY club_last_auto_event_import_at
+		WHERE club_auto_event_import = TRUE AND (club_last_auto_event_imported_at < now() - INTERVAL '1 hour')
+		ORDER BY club_last_auto_event_imported_at
 		LIMIT 1
 	`
 

@@ -44,7 +44,7 @@ func (d *Database) CreateSession(ctx context.Context, session Session) error {
 }
 
 func (d *Database) DeleteExpiredSessions(ctx context.Context) error {
-	_, err := d.db.ExecContext(ctx, "DELETE FROM sessions WHERE session_expires_at < NOW()")
+	_, err := d.db.ExecContext(ctx, "DELETE FROM sessions WHERE session_expires_at < now()")
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
 	}

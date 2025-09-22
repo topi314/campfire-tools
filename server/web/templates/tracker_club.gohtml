@@ -42,10 +42,10 @@
                 {{ formatTimeToRelDayTime .ImportedAt }}
             {{ end }}
         </p>
-        {{ if not .LastAutoEventImportAt.IsZero }}
+        {{ if not .LastAutoEventImportedAt.IsZero }}
             <p>
                 <strong>Last Auto Event Import At:</strong>
-                {{ formatTimeToRelDayTime .LastAutoEventImportAt }}
+                {{ formatTimeToRelDayTime .LastAutoEventImportedAt }}
             </p>
         {{ end }}
     </div>

@@ -45,7 +45,7 @@ func (d *Database) GetNextCampfireToken(ctx context.Context) (*CampfireToken, er
 }
 
 func (d *Database) DeleteExpiredCampfireTokens(ctx context.Context) error {
-	_, err := d.db.ExecContext(ctx, "DELETE FROM campfire_tokens WHERE campfire_token_expires_at < NOW()")
+	_, err := d.db.ExecContext(ctx, "DELETE FROM campfire_tokens WHERE campfire_token_expires_at < now()")
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired campfire tokens: %w", err)
 	}

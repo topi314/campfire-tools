@@ -11,8 +11,16 @@ import (
 
 func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 	query := `
-		INSERT INTO events (event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, event_time, event_end_time, event_finished, event_discord_interested, event_created_by_community_ambassador, event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_raw_json)
-		VALUES (:event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, :event_time, :event_end_time, :event_finished, :event_discord_interested, :event_created_by_community_ambassador, :event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, :event_raw_json)
+		INSERT INTO events (
+            event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, 
+			event_time, event_end_time, event_finished, event_discord_interested, event_created_by_community_ambassador, 
+			event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_imported_at, event_raw_json, event_last_auto_imported_at
+    	)
+		VALUES (
+	        :event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, 
+			:event_time, :event_end_time, :event_finished, :event_discord_interested, :event_created_by_community_ambassador, 
+			:event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, now(), :event_raw_json, now()
+        )
 		ON CONFLICT (event_id) DO UPDATE SET
 			event_name = EXCLUDED.event_name,
 			event_details = EXCLUDED.event_details,
@@ -28,12 +36,26 @@ func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 			event_campfire_live_event_id = EXCLUDED.event_campfire_live_event_id,
 			event_campfire_live_event_name = EXCLUDED.event_campfire_live_event_name,
 			event_club_id = EXCLUDED.event_club_id,
-			event_imported_at = NOW(),
-			event_raw_json = EXCLUDED.event_raw_json
+			event_imported_at = now(),
+			event_raw_json = EXCLUDED.event_raw_json,
+			event_last_auto_imported_at = now()
 	`
 
 	if _, err := d.db.NamedExecContext(ctx, query, events); err != nil {
 		return fmt.Errorf("failed to update event: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) DeleteEvent(ctx context.Context, eventID string) error {
+	query := `
+		DELETE FROM events
+		WHERE event_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, eventID); err != nil {
+		return fmt.Errorf("failed to delete event: %w", err)
 	}
 
 	return nil
@@ -180,14 +202,28 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 	return events, nil
 }
 
+func (d *Database) UpdateEventLastAutoImported(ctx context.Context, eventID string) error {
+	query := `
+		UPDATE events
+		SET event_last_auto_imported_at = now()
+		WHERE event_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, eventID); err != nil {
+		return fmt.Errorf("failed to update event last auto imported: %w", err)
+	}
+
+	return nil
+}
+
 func (d *Database) GetNextUpdateEvent(ctx context.Context) (*Event, error) {
 	// get the first event which has not finished yet and the club is set to auto import events
 	query := `
 			SELECT events.*
 			FROM events
 			JOIN clubs ON event_club_id = club_id
-			WHERE event_finished = FALSE AND club_auto_event_import = TRUE AND event_imported_at < NOW() - INTERVAL '1 hour'
-			ORDER BY event_imported_at, event_end_time
+			WHERE event_finished = FALSE AND club_auto_event_import = TRUE AND event_last_auto_imported_at < now() - INTERVAL '1 hour'
+			ORDER BY event_last_auto_imported_at, event_end_time
 			LIMIT 1
 		`
 

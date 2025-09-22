@@ -29,11 +29,11 @@ func (d *Database) InsertEventRSVPs(ctx context.Context, rsvps []EventRSVP) erro
 
 	for chunk := range slices.Chunk(rsvps, batchSize) {
 		query := `
-			INSERT INTO event_rsvps (event_rsvp_event_id, event_rsvp_member_id, event_rsvp_status)
-			VALUES (:event_rsvp_event_id, :event_rsvp_member_id, :event_rsvp_status)
+			INSERT INTO event_rsvps (event_rsvp_event_id, event_rsvp_member_id, event_rsvp_status, event_rsvp_imported_at)
+			VALUES (:event_rsvp_event_id, :event_rsvp_member_id, :event_rsvp_status, now())
 			ON CONFLICT (event_rsvp_event_id, event_rsvp_member_id) DO UPDATE SET
 				event_rsvp_status = EXCLUDED.event_rsvp_status,
-				event_rsvp_imported_at = NOW()
+				event_rsvp_imported_at = now()
 			`
 
 		_, err = d.db.NamedExecContext(ctx, query, chunk)

@@ -5,6 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,7 +17,7 @@ import (
 //go:embed queries/event.graphql
 var eventQuery string
 
-var MeetupURLRegex = regexp.MustCompile(`https://niantic-social.nianticlabs.com/public/meetup(-without-location)?/[a-zA-Z0-9-]+`)
+var meetupURLRegex = regexp.MustCompile(`https://niantic-social.nianticlabs.com/public/meetup(-without-location)?/[a-zA-Z0-9-]+`)
 
 func (c *Client) ResolveShortURL(ctx context.Context, shortURL string) (string, error) {
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, shortURL, nil)
@@ -38,7 +39,7 @@ func (c *Client) ResolveShortURL(ctx context.Context, shortURL string) (string, 
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	url := MeetupURLRegex.FindString(string(html))
+	url := meetupURLRegex.FindString(string(html))
 	if url == "" {
 		return "", fmt.Errorf("no valid meetup URL found in response")
 	}
@@ -55,7 +56,7 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		return nil, fmt.Errorf("failed to fetch full event after %d retries: %w", c.cfg.MaxRetries, ErrTooManyRequests)
 	}
 
-	buf := &bytes.Buffer{}
+	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(Req{
 		Query: eventQuery,
 		Variables: map[string]any{
@@ -96,7 +97,7 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		return nil, fmt.Errorf("request failed with status code: %d", rs.StatusCode)
 	}
 
-	logBuf := &bytes.Buffer{}
+	logBuf := new(bytes.Buffer)
 	bodyReader := io.TeeReader(rs.Body, logBuf)
 
 	var resp Resp[eventResp]
@@ -105,13 +106,26 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	slog.DebugContext(ctx, "Fetched full event", slog.String("event_id", resp.Data.Event.ID), slog.String("response", logBuf.String()))
-	if len(resp.Errors) > 0 {
-		var errs []any
-		for _, e := range resp.Errors {
-			errs = append(errs, slog.String("message", e.String()))
-		}
-		slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errs...)...)
+
+	if len(resp.Errors) == 0 {
+		return &resp.Data.Event, nil
 	}
 
-	return &resp.Data.Event, nil
+	var (
+		errArgs []any
+		errs    error
+	)
+	for _, e := range resp.Errors {
+		errArgs = append(errArgs, slog.String("message", e.String()))
+
+		switch e.Message {
+		case "event not found":
+			err = fmt.Errorf("%w: %w", ErrEventNotFound, e)
+		default:
+			err = e
+		}
+		errs = errors.Join(errs, err)
+	}
+	slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errArgs...)...)
+	return nil, fmt.Errorf("graphql errors: %v", errs)
 }

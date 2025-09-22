@@ -18,7 +18,7 @@ type Club struct {
 	ImportedAt                   time.Time       `db:"club_imported_at"`
 	RawJSON                      json.RawMessage `db:"club_raw_json"`
 	AutoEventImport              bool            `db:"club_auto_event_import"`
-	LastAutoEventImportAt        time.Time       `db:"club_last_auto_event_import_at"`
+	LastAutoEventImportedAt      time.Time       `db:"club_last_auto_event_imported_at"`
 }
 
 type Event struct {
@@ -39,6 +39,7 @@ type Event struct {
 	ClubID                       string          `db:"event_club_id"`
 	ImportedAt                   time.Time       `db:"event_imported_at"`
 	RawJSON                      json.RawMessage `db:"event_raw_json"`
+	LastAutoImportedAt           time.Time       `db:"event_last_auto_imported_at"`
 }
 
 type Member struct {
@@ -78,7 +79,6 @@ type TopMember struct {
 }
 
 type EventMember struct {
-	Event
 	Member
 	EventRSVP
 }

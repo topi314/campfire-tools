@@ -66,14 +66,14 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 	if len(state.Events) == 0 || state.EventCursor != nil {
 		pastEvents, cursor, err := s.Campfire.GetPastEvents(ctx, job.ClubID, state.EventCursor)
 		state.EventCursor = cursor
+		now := time.Now()
 		for _, event := range pastEvents {
 			var rsvps []database.EventRSVP
 			for _, rsvpStatus := range event.RSVPStatuses {
 				rsvps = append(rsvps, database.EventRSVP{
-					EventID:    event.ID,
-					MemberID:   rsvpStatus.UserID,
-					Status:     rsvpStatus.RSVPStatus,
-					ImportedAt: time.Now(),
+					EventID:  event.ID,
+					MemberID: rsvpStatus.UserID,
+					Status:   rsvpStatus.RSVPStatus,
 				})
 			}
 
@@ -88,12 +88,12 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 					CoverPhotoURL:                event.CoverPhotoURL,
 					Time:                         event.EventTime,
 					EndTime:                      event.EventEndTime,
+					Finished:                     event.EventEndTime.Before(now),
 					DiscordInterested:            event.DiscordInterested,
 					CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 					CampfireLiveEventID:          event.CampfireLiveEventID,
 					CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
 					ClubID:                       event.ClubID,
-					ImportedAt:                   time.Now(),
 					RawJSON:                      event.Raw,
 				},
 				Creator: database.Member{
@@ -101,7 +101,6 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 					Username:    event.Creator.Username,
 					DisplayName: event.Creator.DisplayName,
 					AvatarURL:   event.Creator.AvatarURL,
-					ImportedAt:  time.Now(),
 					RawJSON:     event.Creator.Raw,
 				},
 				RSVPs: rsvps,

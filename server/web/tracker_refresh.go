@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
 	"time"
 
-	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -56,112 +54,5 @@ func (h *handler) refreshEvent(ctx context.Context, oldEvent database.Event) err
 		return fmt.Errorf("failed to fetch full event: %w", err)
 	}
 
-	return h.processEvent(ctx, *event, false)
-}
-
-func (h *handler) processEvent(ctx context.Context, event campfire.Event, skipClub bool) error {
-	members := []database.Member{
-		{
-			ID:          event.Creator.ID,
-			Username:    event.Creator.Username,
-			DisplayName: event.Creator.DisplayName,
-			AvatarURL:   event.Creator.AvatarURL,
-			RawJSON:     event.Creator.Raw,
-		},
-	}
-	if !slices.ContainsFunc(members, func(item database.Member) bool {
-		return item.ID == event.Club.Creator.ID
-	}) && !skipClub {
-		members = append(members, database.Member{
-			ID:          event.Club.Creator.ID,
-			Username:    event.Club.Creator.Username,
-			DisplayName: event.Club.Creator.DisplayName,
-			AvatarURL:   event.Club.Creator.AvatarURL,
-			RawJSON:     event.Club.Creator.Raw,
-		})
-	}
-
-	if err := h.DB.InsertMembers(ctx, members); err != nil {
-		return fmt.Errorf("failed to insert creator member: %w", err)
-	}
-
-	if !skipClub {
-		if err := h.DB.InsertClubs(ctx, []database.Club{
-			{
-				ID:                           event.Club.ID,
-				Name:                         event.Club.Name,
-				AvatarURL:                    event.Club.AvatarURL,
-				CreatorID:                    event.Club.Creator.ID,
-				CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
-				RawJSON:                      event.Club.Raw,
-			},
-		}); err != nil {
-			return fmt.Errorf("failed to insert club: %w", err)
-		}
-	}
-
-	if err := h.DB.InsertEvents(ctx, []database.Event{
-		{
-			ID:                           event.ID,
-			Name:                         event.Name,
-			Details:                      event.Details,
-			Address:                      event.Address,
-			Location:                     event.Location,
-			CreatorID:                    event.Creator.ID,
-			CoverPhotoURL:                event.CoverPhotoURL,
-			Time:                         event.EventTime,
-			EndTime:                      event.EventEndTime,
-			DiscordInterested:            event.DiscordInterested,
-			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
-			CampfireLiveEventID:          event.CampfireLiveEventID,
-			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
-			ClubID:                       event.ClubID,
-			RawJSON:                      event.Raw,
-		},
-	}); err != nil {
-		return fmt.Errorf("failed to create event: %w", err)
-	}
-
-	slog.InfoContext(ctx, "Event added", slog.String("name", event.Name), slog.String("id", event.ID))
-
-	var eventMembers []database.Member
-	for _, member := range event.Members.Edges {
-		eventMembers = append(eventMembers, database.Member{
-			ID:          member.Node.ID,
-			Username:    member.Node.Username,
-			DisplayName: member.Node.DisplayName,
-			AvatarURL:   member.Node.AvatarURL,
-			RawJSON:     member.Node.Raw,
-		})
-	}
-	var rsvps []database.EventRSVP
-	for _, rsvpStatus := range event.RSVPStatuses {
-		if i := slices.IndexFunc(eventMembers, func(member database.Member) bool {
-			return member.ID == rsvpStatus.UserID
-		}); i == -1 {
-			eventMembers = append(eventMembers, database.Member{
-				ID:          rsvpStatus.UserID,
-				Username:    "",
-				DisplayName: "",
-				AvatarURL:   "",
-				RawJSON:     []byte("{}"),
-			})
-		}
-		rsvps = append(rsvps, database.EventRSVP{
-			EventID:  event.ID,
-			MemberID: rsvpStatus.UserID,
-			Status:   rsvpStatus.RSVPStatus,
-		})
-	}
-
-	if err := h.DB.InsertMembers(ctx, eventMembers); err != nil {
-		return fmt.Errorf("failed to add members: %w", err)
-	}
-
-	if err := h.DB.InsertEventRSVPs(ctx, rsvps); err != nil {
-		return fmt.Errorf("failed to add event RSVPs: %w", err)
-	}
-
-	slog.InfoContext(ctx, "Members added for event", slog.String("name", event.Name), slog.String("id", event.ID), slog.Int("members", len(members)), slog.Int("rsvps", len(rsvps)))
-	return nil
+	return h.ProcessFullEventImport(ctx, *event, false)
 }

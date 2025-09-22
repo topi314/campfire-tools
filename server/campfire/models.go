@@ -23,6 +23,10 @@ type Error struct {
 }
 
 func (e Error) String() string {
+	return e.Error()
+}
+
+func (e Error) Error() string {
 	msg := fmt.Sprintf("Error: %s", e.Message)
 	if len(e.Path) > 0 {
 		var path []string
@@ -107,17 +111,14 @@ type Event struct {
 		ID                   string `json:"id"`
 		CheckInRadiusMeters  int    `json:"checkInRadiusMeters"`
 	} `json:"campfireLiveEvent"`
-	MapPreviewURL string `json:"mapPreviewUrl"`
-	Location      string `json:"location"`
-	Passcode      string `json:"passcode"`
-	RSVPStatuses  []struct {
-		UserID     string `json:"userId"`
-		RSVPStatus string `json:"rsvpStatus"`
-	} `json:"rsvpStatuses"`
-	Game                  string `json:"game"`
-	ClubID                string `json:"clubId"`
-	CheckedInMembersCount int    `json:"checkedInMembersCount"`
-	Raw                   []byte `json:"-"`
+	MapPreviewURL         string       `json:"mapPreviewUrl"`
+	Location              string       `json:"location"`
+	Passcode              string       `json:"passcode"`
+	RSVPStatuses          []RSVPStatus `json:"rsvpStatuses"`
+	Game                  string       `json:"game"`
+	ClubID                string       `json:"clubId"`
+	CheckedInMembersCount int          `json:"checkedInMembersCount"`
+	Raw                   []byte       `json:"-"`
 }
 
 func (e *Event) UnmarshalJSON(data []byte) error {
@@ -129,6 +130,11 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	*e = Event(a)
 	e.Raw = data
 	return nil
+}
+
+type RSVPStatus struct {
+	UserID     string `json:"userId"`
+	RSVPStatus string `json:"rsvpStatus"`
 }
 
 type clubResp struct {

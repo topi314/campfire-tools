@@ -18,7 +18,7 @@ func newClub(club database.ClubWithCreator) Club {
 		Creator:                      newMember(club.Member, club.Club.ID, 32),
 		CreatedByCommunityAmbassador: club.Club.CreatedByCommunityAmbassador,
 		AutoEventImport:              club.Club.AutoEventImport,
-		LastAutoEventImportAt:        club.Club.LastAutoEventImportAt,
+		LastAutoEventImportedAt:      club.Club.LastAutoEventImportedAt,
 		ImportedAt:                   club.Club.ImportedAt,
 		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
 	}
@@ -31,7 +31,7 @@ type Club struct {
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	AutoEventImport              bool
-	LastAutoEventImportAt        time.Time
+	LastAutoEventImportedAt      time.Time
 	ImportedAt                   time.Time
 	URL                          string
 }

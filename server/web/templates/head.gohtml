@@ -1,67 +1,72 @@
 {{ define "head" }}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ . }}</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" href="/static/favicon.png" type="image/png">
-    <meta name="darkreader-lock">
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ . }}</title>
+        <link rel="stylesheet" href="/static/style.css">
+        <link rel="icon" href="/static/favicon.png" type="image/png">
+        <meta name="darkreader-lock">
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
 
-        :root {
-            --font-family: Arial;
-            --primary-color: #007bff;
-            --primary-color-hover: #0056b3;
-            --error-color: #ef5656;
-
-            --progress-green: #4caf50;
-            --progress-yellow: #ffeb3b;
-            --progress-orange: #ff9800;
-            --progress-red: #ff6155;
-        }
-
-        @media (prefers-color-scheme: dark) {
             :root {
-                --background-color: #1e1e1e;
-                --background2-color: #2c2c2c;
-                --text-color: #ffffff;
-                --text2-color: #b0b0b0;
-                --border-color: #444444;
+                --font-family: Arial;
+                --primary-color: #007bff;
+                --primary-color-hover: #0056b3;
+                --error-color: #ef5656;
+
+                --progress-green: #4caf50;
+                --progress-yellow: #ffeb3b;
+                --progress-orange: #ff9800;
+                --progress-red: #ff6155;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --background-color: #1e1e1e;
+                    --background2-color: #2c2c2c;
+                    --text-color: #ffffff;
+                    --text2-color: #b0b0b0;
+                    --border-color: #444444;
+                }
+
+                html {
+                    color-scheme: dark;
+                }
+            }
+
+            @media (prefers-color-scheme: light) {
+                :root {
+                    --background-color: #ffffff;
+                    --background2-color: #f0f0f0;
+                    --text-color: #000000;
+                    --text2-color: #333333;
+                    --border-color: #cccccc;
+                }
+
+                html {
+                    color-scheme: light;
+                }
             }
 
             html {
-                color-scheme: dark;
+                background-color: var(--background-color);
+                color: var(--text-color);
+                font-family: var(--font-family), sans-serif;
             }
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --background-color: #ffffff;
-                --background2-color: #f0f0f0;
-                --text-color: #000000;
-                --text2-color: #333333;
-                --border-color: #cccccc;
-            }
-
-            html {
-                color-scheme: light;
-            }
-        }
-
-        html {
-            background-color: var(--background-color);
-            color: var(--text-color);
-            font-family: var(--font-family), sans-serif;
-        }
-    </style>
-</head>
-<body>
-<div class="main">
+        </style>
+    </head>
+    <body>
+    <div class="main">
+    {{ if false }}
+        </div>
+        </body>
+        </html>
     {{ end }}
+{{ end }}
