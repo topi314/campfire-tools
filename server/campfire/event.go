@@ -127,5 +127,5 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 		errs = errors.Join(errs, err)
 	}
 	slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errArgs...)...)
-	return nil, fmt.Errorf("graphql errors: %v", errs)
+	return nil, fmt.Errorf("graphql errors: %w", errs)
 }
