@@ -108,6 +108,9 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 		}
 
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return state, ErrContinueLater
+			}
 			return state, err
 		}
 
