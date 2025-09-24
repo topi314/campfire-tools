@@ -1,9 +1,7 @@
 {{ template "head" addStr "Event - " .Name }}
 <div class="container">
     <div class="container-header">
-        <a href="/event" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" "/event" }}
         <h1>
             {{ if .CoverPhotoURL }}
                 <img src="{{ .CoverPhotoURL }}">
@@ -16,7 +14,7 @@
         <div class="section-header">
             <h2>Details </h2>
 
-            <div class="inline-form-control">
+            <div class="inline-form-control" hx-boost="true">
                 {{ if .Event.ImportedAt.IsZero }}
                     <a href="/export?event={{ .ID }}" class="button">Export</a>
                     <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
@@ -35,7 +33,9 @@
             {{ else }}
                 <img class="icon-32" src="/static/default_avatar.png">
             {{ end }}
-            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}">{{ .Creator.DisplayName }}</a>
+            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
+                {{ .Creator.DisplayName }}
+            </a>
         </p>
         <p>
             <strong>Club:</strong>
@@ -45,7 +45,9 @@
             {{ else }}
                 <img class="icon-32" src="/static/default_avatar.png">
             {{ end }}
-            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}">{{ .Club.Name }}</a>
+            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
+                {{ .Club.Name }}
+            </a>
         </p>
     </div>
 
@@ -59,7 +61,9 @@
                     {{ else }}
                         <img src="/static/default_avatar.png">
                     {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
+                        {{ $member.DisplayName }}
+                    </a>
                 </li>
             {{ else }}
                 <span>No members have accepted and not checked in.</span>
@@ -77,14 +81,14 @@
                     {{ else }}
                         <img src="/static/default_avatar.png">
                     {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}">{{ $member.DisplayName }}</a>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
+                        {{ $member.DisplayName }}
+                    </a>
                 </li>
             {{ else }}
                 <span>No members have checked in.</span>
             {{ end }}
-
         </ul>
     </div>
-
 </div>
 {{ template "footer" }}

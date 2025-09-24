@@ -1,9 +1,7 @@
 {{ template "head" addStr "Tracker - " .Name " - Events" }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker/club/{{ .Club.ID }}" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" addStr "/tracker/club/" .Club.ID }}
         <h1>
             <img src="{{ .AvatarURL }}">
             {{ .Name }}
@@ -27,7 +25,11 @@
             <span>Rate</span>
             {{ range $index, $event := .Events }}
                 <span>{{ add $index 1 }}</span>
-                <a href="{{ $event.URL }}">{{ $event.Name }}</a>
+                <div>
+                    <a href="{{ $event.URL }}" hx-boost="true">
+                        {{ $event.Name }}
+                    </a>
+                </div>
                 <span>{{ $event.Accepted }}</span>
                 <span>{{ $event.CheckIns }}</span>
                 <span>{{ $event.CheckInRate }}%</span>

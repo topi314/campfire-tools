@@ -1,9 +1,7 @@
 {{ template "head" addStr "Tracker - " .Name " - Statistics" }}
 <div class="container">
     <div class="container-header">
-        <a href="{{ .URL }}" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" .URL }}
         <h1>
             <img src="{{ .AvatarURL }}">
             {{ .Name }} Statistics
@@ -67,7 +65,7 @@
 
             {{ if .LeagueGoals.BiggestEvent }}
                 <p>
-                    Your biggest event was <a href="{{ .LeagueGoals.BiggestEvent.URL }}"><strong>{{ .LeagueGoals.BiggestEvent.Name }}</strong></a> with
+                    Your biggest event was <a href="{{ .LeagueGoals.BiggestEvent.URL }}" hx-boost="true"><strong>{{ .LeagueGoals.BiggestEvent.Name }}</strong></a> with
                     <strong>{{ .LeagueGoals.BiggestEvent.CheckIns }}</strong> check-ins.
                 </p>
 

@@ -1,10 +1,7 @@
 {{ template "head" addStr "Tracker - " .DisplayName }}
 <div class="container">
     <div class="container-header">
-        <a href="{{ .Club.URL }}" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
-
+        {{ template "back_button" .Club.URL }}
         <h1>
             {{ if .AvatarURL }}
                 <img src="{{ .AvatarURL }}">
@@ -45,7 +42,7 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $event.URL }}" title="{{ .ID }}">
+                    <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
                         {{ $event.Name }}
                     </a>
                 </li>
@@ -67,7 +64,9 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $event.URL }}" title="{{ .ID }}">{{ $event.Name }}</a>
+                    <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
+                        {{ $event.Name }}
+                    </a>
                 </li>
             {{ else }}
                 <span>No events found.</span>

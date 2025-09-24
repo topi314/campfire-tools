@@ -1,16 +1,14 @@
 {{ template "head" addStr "Tracker - " .Name }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" "/tracker" }}
         <h1>
             <img src="{{ .AvatarURL }}">
             {{ .Name }}
         </h1>
     </div>
 
-    <div class="buttons">
+    <div class="buttons" hx-boost="true">
         <a href="{{ .URL }}/stats" class="button">Statistics</a>
         <a href="{{ .URL }}/events" class="button">Events</a>
         <a href="{{ .URL }}/members" class="button">Members</a>
@@ -30,7 +28,9 @@
             {{ else }}
                 <img class="icon-32" src="/static/default_avatar.png">
             {{ end }}
-            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}">{{ .Creator.DisplayName }}</a>
+            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
+                {{ .Creator.DisplayName }}
+            </a>
         </p>
         <p>
             <strong>Community Ambassador:</strong>
@@ -88,7 +88,9 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $event.URL }}">{{ $event.Name }} ({{ $event.CheckIns }})</a>
+                    <a href="{{ $event.URL }}" hx-boost="true">
+                        {{ $event.Name }} ({{ $event.CheckIns }})
+                    </a>
                 </li>
             {{ else }}
                 <span>No events tracked yet.</span>

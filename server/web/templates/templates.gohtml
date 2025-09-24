@@ -160,3 +160,9 @@
         })
     </script>
 {{ end }}
+
+{{ define "back_button" }}
+    <a href="{{ . }}" class="back" hx-boost="true">
+        <img src="/static/back.svg" alt="Back">
+    </a>
+{{ end }}

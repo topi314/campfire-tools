@@ -1,9 +1,7 @@
 {{ template "head" "Campfire Tracker Club Import" }}
 <div class="container">
     <div class="container-header">
-        <a href="/tracker" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" "/tracker" }}
         <h1>Tracker Club Import</h1>
     </div>
 
@@ -43,7 +41,7 @@
             {{ end }}
             {{ range $job := .ImportJobs }}
                 <div>{{ $job.ID }}</div>
-                <div><a href="{{ $job.Club.URL }}">{{ $job.Club.Name }}</a></div>
+                <div><a href="{{ $job.Club.URL }}" hx-boost="true">{{ $job.Club.Name }}</a></div>
                 <div>{{ formatTimeToRelDayTime $job.CreatedAt }}</div>
                 <div>{{ if not $job.CompletedAt.IsZero }}{{ formatTimeToRelDayTime $job.CompletedAt }}{{ end }}</div>
                 <div>{{ if not $job.LastTriedAt.IsZero }}{{ formatTimeToRelDayTime $job.LastTriedAt }}{{ end }}</div>

@@ -1,9 +1,7 @@
 {{ template "head" "Campfire Raffle Result" }}
 <div class="container">
     <div class="container-header">
-        <a href="{{ .BackURL }}" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" .BackURL }}
         <h1>Raffle Result</h1>
     </div>
 
@@ -78,7 +76,7 @@
             <ol>
                 {{ range $event := .Events }}
                     <li>
-                        <a href="/event/{{ $event}}">{{ $event }}</a>
+                        <a href="/event/{{ $event}}" hx-boost="true">{{ $event }}</a>
                     </li>
                 {{ end }}
             </ol>
