@@ -80,7 +80,7 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*EventWithCrea
 	return &event, nil
 }
 
-func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool) ([]EventWithCheckIns, error) {
+func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string) ([]EventWithCheckIns, error) {
 	query := `
 		SELECT events.*, 
 			COUNT(event_rsvp_member_id) FILTER (WHERE event_rsvp_status = 'ACCEPTED' OR event_rsvp_status = 'CHECKED_IN') AS accepted,
@@ -90,12 +90,13 @@ func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time,
 		AND ($2 = '0001-01-01 00:00:00'::timestamp OR event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR event_time <= $3)
 		AND (NOT $4 OR event_created_by_community_ambassador = TRUE)
+		AND ($5 = '' OR event_creator_id = $5)
 		GROUP BY event_id, event_time, event_name
 		ORDER BY event_time DESC, event_name DESC
 	`
 
 	var events []EventWithCheckIns
-	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator); err != nil {
 		return nil, fmt.Errorf("failed to get events in range: %w", err)
 	}
 

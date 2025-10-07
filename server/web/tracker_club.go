@@ -31,7 +31,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false)
+	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false, "")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)

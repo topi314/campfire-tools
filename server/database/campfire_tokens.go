@@ -44,10 +44,25 @@ func (d *Database) GetNextCampfireToken(ctx context.Context) (*CampfireToken, er
 	return &campfireToken, nil
 }
 
-func (d *Database) DeleteExpiredCampfireTokens(ctx context.Context) error {
-	_, err := d.db.ExecContext(ctx, "DELETE FROM campfire_tokens WHERE campfire_token_expires_at < now()")
+func (d *Database) DeleteExpiredCampfireTokens(ctx context.Context) (int, error) {
+	res, err := d.db.ExecContext(ctx, "DELETE FROM campfire_tokens WHERE campfire_token_expires_at < now()")
 	if err != nil {
-		return fmt.Errorf("failed to cleanup expired campfire tokens: %w", err)
+		return 0, fmt.Errorf("failed to cleanup expired campfire tokens: %w", err)
 	}
-	return nil
+
+	rows, err := res.RowsAffected()
+	return int(rows), err
+}
+
+func (d *Database) GetCampfireTokensExpiringSoon(ctx context.Context, within time.Duration) ([]CampfireToken, error) {
+	query := `SELECT * FROM campfire_tokens WHERE campfire_token_expires_at > $1 AND campfire_token_expires_at < $2 ORDER BY campfire_token_expires_at`
+
+	now := time.Now()
+	later := now.Add(within)
+
+	var tokens []CampfireToken
+	if err := d.db.SelectContext(ctx, &tokens, query, now, later); err != nil {
+		return nil, err
+	}
+	return tokens, nil
 }

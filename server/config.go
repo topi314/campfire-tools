@@ -57,17 +57,18 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	Dev                        bool            `toml:"dev"`
-	WarnUnknownEventCategories bool            `toml:"warn_unknown_event_categorie"`
-	Log                        LogConfig       `toml:"log"`
-	Server                     ServerConfig    `toml:"server"`
-	Database                   database.Config `toml:"database"`
-	Campfire                   campfire.Config `toml:"campfire"`
-	Auth                       auth.Config     `toml:"auth"`
+	Dev                        bool                `toml:"dev"`
+	WarnUnknownEventCategories bool                `toml:"warn_unknown_event_categorie"`
+	Log                        LogConfig           `toml:"log"`
+	Server                     ServerConfig        `toml:"server"`
+	Database                   database.Config     `toml:"database"`
+	Campfire                   campfire.Config     `toml:"campfire"`
+	Auth                       auth.Config         `toml:"auth"`
+	Notifications              NotificationsConfig `toml:"notifications"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nWarnUnknownEventCategories: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s",
+	return fmt.Sprintf("Dev: %t\nWarnUnknownEventCategories: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s\nNotifications: %s",
 		c.Dev,
 		c.WarnUnknownEventCategories,
 		c.Log,
@@ -75,6 +76,7 @@ func (c Config) String() string {
 		c.Database,
 		c.Campfire,
 		c.Auth,
+		c.Notifications,
 	)
 }
 
@@ -106,5 +108,17 @@ type ServerConfig struct {
 func (c ServerConfig) String() string {
 	return fmt.Sprintf("\n Address: %s",
 		c.Addr,
+	)
+}
+
+type NotificationsConfig struct {
+	Enabled    bool   `toml:"enabled"`
+	WebhookURL string `toml:"webhook_url"`
+}
+
+func (c NotificationsConfig) String() string {
+	return fmt.Sprintf("\n Enabled: %t\n WebhookURL: %s",
+		c.Enabled,
+		c.WebhookURL,
 	)
 }

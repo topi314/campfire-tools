@@ -14,6 +14,10 @@ import (
 	"path"
 	"time"
 
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/rest"
+	"github.com/disgoorg/disgo/webhook"
+
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
@@ -63,19 +67,36 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
+	var webhookClient *webhook.Client
+	if cfg.Notifications.Enabled {
+		webhookClient, err = webhook.NewWithURL(cfg.Notifications.WebhookURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create webhook client: %w", err)
+		}
+
+		wh, err := webhookClient.GetWebhook()
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify webhook URL: %w", err)
+		}
+		slog.Info("Discord webhook notifications enabled", slog.String("name", wh.Name()), slog.String("guild_id", wh.GuildID.String()), slog.String("channel_id", wh.ChannelID.String()))
+	}
+
 	httpClient := &http.Client{}
 	s := &Server{
 		Cfg: cfg,
 		Server: &http.Server{
 			Addr: cfg.Server.Addr,
 		},
-		HttpClient: httpClient,
-		Campfire:   campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
-		DB:         db,
-		Auth:       auth.New(cfg.Auth, db),
-		Templates:  t,
-		StaticFS:   staticFS,
+		HttpClient:    httpClient,
+		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
+		DB:            db,
+		Auth:          auth.New(cfg.Auth, db),
+		Templates:     t,
+		StaticFS:      staticFS,
+		WebhookClient: webhookClient,
 	}
+
+	go s.cleanup()
 
 	return s, nil
 }
@@ -103,14 +124,16 @@ func cleanPathMiddleware(next http.Handler) http.Handler {
 }
 
 type Server struct {
-	Cfg        Config
-	Server     *http.Server
-	HttpClient *http.Client
-	Campfire   *campfire.Client
-	DB         *database.Database
-	Auth       *auth.Auth
-	Templates  func() *template.Template
-	StaticFS   http.FileSystem
+	Cfg                    Config
+	Server                 *http.Server
+	HttpClient             *http.Client
+	Campfire               *campfire.Client
+	DB                     *database.Database
+	Auth                   *auth.Auth
+	Templates              func() *template.Template
+	StaticFS               http.FileSystem
+	WebhookClient          *webhook.Client
+	SentTokenNotifications []int
 }
 
 func (s *Server) Start(handler http.Handler) {
@@ -133,5 +156,26 @@ func (s *Server) Stop() {
 	if err := s.Server.Shutdown(ctx); err != nil {
 		slog.Error("Server shutdown failed", slog.Any("err", err))
 		return
+	}
+}
+
+func (s *Server) SendNotification(ctx context.Context, content string) {
+	if s.WebhookClient == nil {
+		slog.WarnContext(ctx, content)
+		return
+	}
+
+	if _, err := s.WebhookClient.CreateMessage(discord.WebhookMessageCreate{
+		Flags: discord.MessageFlagIsComponentsV2,
+		Components: []discord.LayoutComponent{
+			discord.NewContainer(
+				discord.NewTextDisplay(content),
+			).WithAccentColor(0xfe812e),
+		},
+	}, rest.CreateWebhookMessageParams{
+		WithComponents: true,
+		Wait:           false,
+	}); err != nil {
+		slog.ErrorContext(ctx, "Failed to send notification", slog.Any("err", err), slog.String("content", content))
 	}
 }
