@@ -27,6 +27,7 @@ var templateFuncs = template.FuncMap{
 	"safeJSStr":              safeJSStr,
 	"safeSrcset":             safeSrcset,
 	"formatDate":             formatDate,
+	"formatDateNice":         formatDateNice,
 	"formatTimeToDayTime":    formatTimeToDayTime,
 	"formatTimeToRelDayTime": formatTimeToRelDayTime,
 }
@@ -141,6 +142,10 @@ func parseTime(s string) (time.Time, error) {
 
 func formatDate(t time.Time) string {
 	return t.Format("2006-01-02")
+}
+
+func formatDateNice(t time.Time) string {
+	return t.Format("2 Jan 2006")
 }
 
 func formatTimeToDayTime(t time.Time) string {

@@ -17,12 +17,13 @@
             <h2>Events ({{ len .Events }})</h2>
         </div>
 
-        <div class="table-5">
+        <div class="table-6">
             <span>Position</span>
             <span>Event</span>
             <span>Accepted</span>
             <span>Check-Ins</span>
             <span>Rate</span>
+            <span>Date</span>
             {{ range $index, $event := .Events }}
                 <span>{{ add $index 1 }}</span>
                 <div>
@@ -33,8 +34,10 @@
                 <span>{{ $event.Accepted }}</span>
                 <span>{{ $event.CheckIns }}</span>
                 <span>{{ $event.CheckInRate }}%</span>
+                <span>{{ formatDateNice $event.Time }}</span>
             {{ else }}
                 <span>No events found.</span>
+                <span></span>
                 <span></span>
                 <span></span>
                 <span></span>
@@ -46,6 +49,7 @@
                 <span>{{ .TotalAccepted }}</span>
                 <span>{{ .TotalCheckIns }}</span>
                 <span>{{ .TotalCheckInRate }}%</span>
+                <span></span>
             {{ end }}
         </div>
     </div>
