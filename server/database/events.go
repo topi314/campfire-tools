@@ -144,7 +144,7 @@ func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, fr
 	return &event, nil
 }
 
-func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, limit int) ([]EventWithCheckIns, error) {
+func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, limit int) ([]EventWithCheckIns, error) {
 	query := `
         SELECT
             e.*, 
@@ -156,13 +156,14 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
         AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+        AND ($5 = '' OR e.event_creator_id = $5)
         GROUP BY e.event_id, e.event_time, e.event_name
         ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id
-        LIMIT CASE WHEN $5 < 0 THEN NULL ELSE $5 END
+        LIMIT CASE WHEN $6 < 0 THEN NULL ELSE $6 END
 	`
 
 	var events []EventWithCheckIns
-	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, limit); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top club events in range: %w", err)
 	}
 

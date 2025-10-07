@@ -32,7 +32,7 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 		to = to.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
 	}
 	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
-	eventCreator := query.Get("creator")
+	eventCreator := query.Get("event-creator")
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {

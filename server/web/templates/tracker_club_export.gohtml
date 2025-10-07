@@ -18,7 +18,7 @@
         <form action="/tracker/club/{{ .ID }}/export" method="POST" id="export-form">
             <label class="form-control" for="ids" title="Select events to export. You can select multiple events.">
                 <div class="section-header">
-                    Events
+                    Events({{ len .Events }})
                     <button id="select-all" class="button">Select All</button>
                 </div>
                 <select class="form-control" id="ids" name="ids" size="10" required multiple>
