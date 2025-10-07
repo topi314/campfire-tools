@@ -10,7 +10,7 @@ add_source = false
 addr = ":8085"
 
 [database]
-host = "db"
+host = "localhost" # replace with db in case you run with the compose.yml
 port = 5432
 username = "campfire-tools"
 password = "password"
