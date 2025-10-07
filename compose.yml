@@ -1,0 +1,26 @@
+services:
+  campfire-tools:
+    build: .
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./config.toml:/var/lib/config.toml
+    networks:
+      - db
+  db:
+    image: postgres:17
+    environment:
+      - POSTGRES_USER=campfire-tools
+      - POSTGRES_PASSWORD=password
+      - PGDATA=/data/postgres
+    volumes:
+      - db:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - db
+networks:
+  db:
+
+volumes:
+  db:
