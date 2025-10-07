@@ -30,3 +30,7 @@ discord_guild_id = "123456789012345678"
 refresh_password = "youshallnotpass"
 whitelist = ["123456789012345678"]
 admins = ["123456789012345678"]
+
+[notifications]
+enabled = true
+webhook_url = "https://discord.com/api/webhooks/<ID>/<TOKEN>"

@@ -110,3 +110,20 @@ func (d *Database) GetNextClubImport(ctx context.Context) (*Club, error) {
 
 	return &club, nil
 }
+
+func (d *Database) GetClubEventCreators(ctx context.Context, clubID string) ([]Member, error) {
+	query := `
+		SELECT DISTINCT members.*
+		FROM events
+		JOIN members ON events.event_creator_id = members.member_id
+		WHERE events.event_club_id = $1
+		ORDER BY members.member_username ASC
+	`
+
+	var creators []Member
+	if err := d.db.SelectContext(ctx, &creators, query, clubID); err != nil {
+		return nil, fmt.Errorf("failed to get club event creators: %w", err)
+	}
+
+	return creators, nil
+}

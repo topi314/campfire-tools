@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/xstrconv"
+	"github.com/topi314/campfire-tools/internal/xtime"
 )
 
 const (
@@ -25,68 +26,12 @@ const (
 	LegendaryLeagueGoal = 1500
 )
 
-var quarters = []Quarter{
-	{
-		Name:  "Q3 2025",
-		Value: "q3-2025",
-	},
-	{
-		Name:  "Q2 2025",
-		Value: "q2-2025",
-	},
-	{
-		Name:  "Q1 2025",
-		Value: "q1-2025",
-	},
-	{
-		Name:  "Q4 2024",
-		Value: "q4-2024",
-	},
-	{
-		Name:  "Q3 2024",
-		Value: "q3-2024",
-	},
-	{
-		Name:  "Q2 2024",
-		Value: "q2-2024",
-	},
-	{
-		Name:  "Q1 2024",
-		Value: "q1-2024",
-	},
-	{
-		Name:  "Q4 2023",
-		Value: "q4-2023",
-	},
-	{
-		Name:  "Q3 2023",
-		Value: "q3-2023",
-	},
-	{
-		Name:  "Q2 2023",
-		Value: "q2-2023",
-	},
-	{
-		Name:  "Q1 2023",
-		Value: "q1-2023",
-	},
-}
-
 type TrackerClubStatsVars struct {
 	Club
 	EventsFilter
 
 	EventCategories EventCategories
 	LeagueGoals     LeagueGoals
-}
-
-type EventsFilter struct {
-	FilterURL    string
-	From         time.Time
-	To           time.Time
-	OnlyCAEvents bool
-
-	Quarters []Quarter
 }
 
 type LeagueGoals struct {
@@ -100,11 +45,6 @@ type LeagueGoals struct {
 	DaysRemaining      int
 	DaysElapsedPercent float64
 	BiggestEvent       *TopEvent
-}
-
-type Quarter struct {
-	Name  string
-	Value string
 }
 
 type LeagueGoal struct {
@@ -127,6 +67,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
+	eventCreator := query.Get("event-creator")
 	categoriesClosed := parseBoolQuery(query, "event-categories-closed", false)
 	leagueGoalsClosed := parseBoolQuery(query, "league-goals-closed", false)
 	leagueGoalQuarter := query.Get("league-goal-quarter")
@@ -141,13 +82,13 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents)
+	_, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents)
+	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents, eventCreator)
 	if err != nil {
 		http.Error(w, "Failed to fetch event check-in and accepted counts: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -182,9 +123,16 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return b.CheckIns - a.CheckIns
 	})
 
-	quarterFrom, quarterTo := getRangeFromQuarter(leagueGoalQuarter)
+	quarterFrom, quarterTo := xtime.GetRangeFromQuarter(leagueGoalQuarter)
 
-	_, totalCACheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, quarterFrom, quarterTo, true)
+	eventCreators, err := h.getEventCreators(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event creators for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event creators: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, totalCACheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, quarterFrom, quarterTo, true, eventCreator)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -248,11 +196,13 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
 		Club: newClub(*club),
 		EventsFilter: EventsFilter{
-			FilterURL:    r.URL.Path,
-			From:         from,
-			To:           to,
-			OnlyCAEvents: onlyCAEvents,
-			Quarters:     quarters,
+			FilterURL:            r.URL.Path,
+			From:                 from,
+			To:                   to,
+			OnlyCAEvents:         onlyCAEvents,
+			Quarters:             xtime.GetQuarters(),
+			EventCreators:        eventCreators,
+			SelectedEventCreator: eventCreator,
 		},
 		EventCategories: EventCategories{
 			Open:       !categoriesClosed,
@@ -429,61 +379,4 @@ func parseStringSliceQuery(query url.Values, name string, defaultValue []string)
 		result = append(result, part)
 	}
 	return result
-}
-
-func getRangeFromQuarter(value string) (time.Time, time.Time) {
-	value = strings.ToLower(value)
-
-	parts := strings.SplitN(value, "-", 2)
-	if len(parts) != 2 {
-		return getCurrentQuarter()
-	}
-
-	quarter := parts[0]
-	yearStr := parts[1]
-	year, err := strconv.Atoi(yearStr)
-	if err != nil {
-		return getCurrentQuarter()
-	}
-
-	var startMonth time.Month
-	switch quarter {
-	case "q1":
-		startMonth = time.January
-	case "q2":
-		startMonth = time.April
-	case "q3":
-		startMonth = time.July
-	case "q4":
-		startMonth = time.October
-	default:
-		return getCurrentQuarter()
-	}
-	start := time.Date(year, startMonth, 1, 0, 0, 0, 0, time.UTC)
-	end := start.AddDate(0, 3, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the quarter
-
-	return start, end
-}
-
-func getCurrentQuarter() (time.Time, time.Time) {
-	now := time.Now()
-	year := now.Year()
-	month := now.Month()
-
-	var startMonth time.Month
-	switch month {
-	case time.January, time.February, time.March:
-		startMonth = time.January
-	case time.April, time.May, time.June:
-		startMonth = time.April
-	case time.July, time.August, time.September:
-		startMonth = time.July
-	default:
-		startMonth = time.October
-	}
-
-	start := time.Date(year, startMonth, 1, 0, 0, 0, 0, now.Location())
-	end := start.AddDate(0, 3, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the quarter
-
-	return start, end
 }

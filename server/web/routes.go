@@ -54,6 +54,8 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/club/{club_id}/members", h.TrackerClubMembers)
 	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
 
+	mux.HandleFunc("GET /quarter-filters", h.GetQuarterFilters)
+
 	mux.HandleFunc("GET  /tracker/club/{club_id}/export", h.TrackerClubExport)
 	mux.HandleFunc("POST /tracker/club/{club_id}/export", h.DoExport)
 

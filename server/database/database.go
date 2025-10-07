@@ -52,7 +52,6 @@ func (d *Database) Close() error {
 func (d *Database) cleanup() {
 	for {
 		d.doCleanupSessions()
-		d.doCleanupCampfireTokens()
 		time.Sleep(5 * time.Minute)
 	}
 }
@@ -63,14 +62,5 @@ func (d *Database) doCleanupSessions() {
 
 	if err := d.DeleteExpiredSessions(ctx); err != nil {
 		slog.Error("failed to cleanup expired sessions", slog.Any("err", err))
-	}
-}
-
-func (d *Database) doCleanupCampfireTokens() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := d.DeleteExpiredCampfireTokens(ctx); err != nil {
-		slog.Error("failed to cleanup expired campfire tokens", slog.Any("err", err))
 	}
 }

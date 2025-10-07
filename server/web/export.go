@@ -292,7 +292,7 @@ func (h *handler) exportRecords(ctx context.Context, w http.ResponseWriter, allR
 		}
 	}
 	if err := zw.Close(); err != nil {
-		slog.ErrorContext(ctx, "Failed to close zip writer: %s", err.Error())
+		slog.ErrorContext(ctx, "Failed to close zip writer", slog.Any("err", err.Error()))
 		return
 	}
 

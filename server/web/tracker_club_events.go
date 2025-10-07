@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/topi314/campfire-tools/internal/xtime"
 )
 
 type TrackerClubEventsVars struct {
@@ -29,6 +31,7 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 		to = to.Add(time.Hour*23 + time.Minute*59 + time.Second*59) // End of the day
 	}
 	onlyCAEvents := parseBoolQuery(query, "only-ca-events", false)
+	eventCreator := query.Get("event-creator")
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -37,6 +40,13 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	eventCreators, err := h.getEventCreators(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event creators for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event creators: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -52,7 +62,7 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 		trackerEvents[i] = newTopEvent(event, 32)
 	}
 
-	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents)
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -63,11 +73,13 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_events.gohtml", TrackerClubEventsVars{
 		Club: newClub(*club),
 		EventsFilter: EventsFilter{
-			FilterURL:    r.URL.Path,
-			From:         from,
-			To:           to,
-			OnlyCAEvents: onlyCAEvents,
-			Quarters:     quarters,
+			FilterURL:            r.URL.Path,
+			From:                 from,
+			To:                   to,
+			OnlyCAEvents:         onlyCAEvents,
+			Quarters:             xtime.GetQuarters(),
+			EventCreators:        eventCreators,
+			SelectedEventCreator: eventCreator,
 		},
 		Events:           trackerEvents,
 		TotalCheckIns:    totalCheckIns,

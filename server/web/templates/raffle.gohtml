@@ -1,9 +1,7 @@
 {{ template "head" "Campfire Raffle" }}
 <div class="container">
     <div class="container-header">
-        <a href="/" class="back">
-            <img src="/static/back.svg" alt="Back">
-        </a>
+        {{ template "back_button" "/" }}
         <h1>Raffle</h1>
     </div>
 
@@ -39,7 +37,7 @@ https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
             <ul class="list">
                 {{ range $raffle := .Raffles }}
                     <li class="list-item">
-                        <a href="{{ $raffle.URL }}">#{{ $raffle.ID }}</a> <span class="small-text">{{ formatTimeToRelDayTime $raffle.CreatedAt }}</span>
+                        <a href="{{ $raffle.URL }}" hx-boost="true">#{{ $raffle.ID }}</a> <span class="small-text">{{ formatTimeToRelDayTime $raffle.CreatedAt }}</span>
                     </li>
                 {{ end }}
             </ul>
