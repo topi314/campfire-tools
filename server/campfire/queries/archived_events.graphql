@@ -36,6 +36,17 @@ query ArchivedEvents_Query(
                                 badgeType
                                 alias
                             }
+                            gameProfiles {
+                                id
+                                game
+                                codename
+                                displayName
+                                level
+                                faction
+                                factionColor
+                                visibility
+                                lastPlayedTimestampMs
+                            }
                         }
                         clubId
                         club {
@@ -56,6 +67,17 @@ query ArchivedEvents_Query(
                                     badgeType
                                     alias
                                 }
+                                gameProfiles {
+                                    id
+                                    game
+                                    codename
+                                    displayName
+                                    level
+                                    faction
+                                    factionColor
+                                    visibility
+                                    lastPlayedTimestampMs
+                                }
                             }
                         }
                         checkedInMembersCount
@@ -71,6 +93,18 @@ query ArchivedEvents_Query(
                             checkInRadiusMeters
                             eventName
                             modalHeadingImageUrl
+                            startTimestamp
+                            endTimestamp
+                            eventName
+                            id
+                            localEndTime
+                            localStartTime
+                            location {
+                                latitude
+                                longitude
+                            }
+                            restrictTaggingByLocation
+                            geofenceRadiusMeters
                         }
                         commentCount
                         isSubscribed
@@ -88,6 +122,17 @@ query ArchivedEvents_Query(
                                 badges {
                                     badgeType
                                     alias
+                                }
+                                gameProfiles {
+                                    id
+                                    game
+                                    codename
+                                    displayName
+                                    level
+                                    faction
+                                    factionColor
+                                    visibility
+                                    lastPlayedTimestampMs
                                 }
                             }
                         }

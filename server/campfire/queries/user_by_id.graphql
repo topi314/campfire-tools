@@ -1,0 +1,25 @@
+query UserByID_Query(
+    $id: ID!
+) {
+    userById(id: $id) {
+        id
+        username
+        displayName
+        avatarUrl
+        badges {
+            badgeType
+            alias
+        }
+        gameProfiles {
+            id
+            game
+            codename
+            displayName
+            level
+            faction
+            factionColor
+            visibility
+            lastPlayedTimestampMs
+        }
+    }
+}

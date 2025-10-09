@@ -24,6 +24,17 @@ query Club_Query(
                 name
             }
             clubRank(clubId: $clubId)
+            gameProfiles {
+                id
+                game
+                codename
+                displayName
+                level
+                faction
+                factionColor
+                visibility
+                lastPlayedTimestampMs
+            }
         }
     }
 }

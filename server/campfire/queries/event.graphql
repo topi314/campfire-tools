@@ -1,6 +1,6 @@
 query Event_Query(
-    $id: ID!
-    $first: Int!
+  $id: ID!
+  $first: Int!
 ) {
   event(id: $id) {
     id
@@ -28,6 +28,17 @@ query Event_Query(
         badgeType
         alias
       }
+      gameProfiles {
+        id
+        game
+        codename
+        displayName
+        level
+        faction
+        factionColor
+        visibility
+        lastPlayedTimestampMs
+      }
     }
     clubId
     club {
@@ -49,6 +60,17 @@ query Event_Query(
           badgeType
           alias
         }
+        gameProfiles {
+          id
+          game
+          codename
+          displayName
+          level
+          faction
+          factionColor
+          visibility
+          lastPlayedTimestampMs
+        }
       }
     }
     members(first: $first) {
@@ -62,6 +84,17 @@ query Event_Query(
           badges {
             badgeType
             alias
+          }
+          gameProfiles {
+            id
+            game
+            codename
+            displayName
+            level
+            faction
+            factionColor
+            visibility
+            lastPlayedTimestampMs
           }
         }
         cursor
@@ -85,6 +118,18 @@ query Event_Query(
       checkInRadiusMeters
       eventName
       modalHeadingImageUrl
+      startTimestamp
+      endTimestamp
+      eventName
+      id
+      localEndTime
+      localStartTime
+      location {
+        latitude
+        longitude
+      }
+      restrictTaggingByLocation
+      geofenceRadiusMeters
     }
     commentCount
     isSubscribed
@@ -101,6 +146,17 @@ query Event_Query(
         badges {
           badgeType
           alias
+        }
+        gameProfiles {
+          id
+          game
+          codename
+          displayName
+          level
+          faction
+          factionColor
+          visibility
+          lastPlayedTimestampMs
         }
       }
     }
