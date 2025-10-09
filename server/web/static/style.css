@@ -9,7 +9,6 @@ body, html {
 
 a {
     color: var(--text-color);
-    text-decoration: none;
 }
 
 input, textarea {
@@ -535,4 +534,21 @@ h2 > img {
 
 .wrap {
     word-wrap: anywhere;
+}
+
+.qr-code {
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    background-color: var(--static-background-color);
+}
+
+.center {
+    text-align: center;
+}
+
+.manual-code {
+    font-size: 1.5em;
+    font-weight: bold;
+    letter-spacing: 0.1em;
 }

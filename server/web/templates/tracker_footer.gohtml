@@ -1,4 +1,4 @@
-{{ define "footer" }}
+{{ define "tracker_footer" }}
     {{ if false }}
         <html lang="en">
         <body>
@@ -8,12 +8,14 @@
     <footer>
         <p hx-boost="true">
             <a href="/">Home</a> &bullet;
+            <a href="/raffle">Raffle</a> &bullet;
+            <a href="/export">Export</a> &bullet;
+            <a href="/event">Event</a> &bullet;
             <a href="/tracker">Tracker</a> &bullet;
-            <a href="/codes">Codes</a>
+            <a href="/api/docs">API Docs</a>
         </p>
         <p>Made with ❤️ by <a href="https://github.com/topi314">topi314</a> &bullet; Source code available on <a href="https://github.com/topi314/campfire-tools">GitHub</a></p>
     </footer>
-    {{ template "live_reload_script" }}
     </body>
     </html>
 {{ end }}
