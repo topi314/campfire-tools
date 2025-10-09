@@ -1,0 +1,24 @@
+{{ template "head" "Code Request" }}
+<div class="container">
+    <div class="container-header">
+        <h1>Code Request</h1>
+    </div>
+
+    <div class="section">
+        <div id="code" hx-get="/code/{{ .Code }}" hx-trigger="load delay:2s" hx-swap="outerHTML" hx-select-oob="#code">
+            <p class="center">Let your Community Ambassador scan this QR code to receive a bonus code</p>
+            <img class="qr-code" src="/code/{{ .Code }}/qr" alt="QR Code"/>
+            <p class="center">Manual Code: <code class="manual-code">{{ .Code }}</code></p>
+        </div>
+    </div>
+
+    <div class="section">
+        How does this work?
+        <ul>
+            <li>A Community Ambassador can scan the QR code or enter the manual code</li>
+            <li>They can then choose to accept or decline your code request</li>
+            <li>If they accept, you will receive a bonus code to use in the Pokémon GO webstore</li>
+        </ul>
+    </div>
+</div>
+{{ template "footer" }}

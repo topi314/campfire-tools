@@ -1,0 +1,14 @@
+{{ template "head" "Code Request" }}
+<div class="container">
+    <div class="container-header">
+        <h1>Code Request</h1>
+    </div>
+
+    <div class="section">
+        <form hx-post="/tracker/code/{{ .Code }}">
+            <button type="submit" class="btn btn-primary">Grant Code</button>
+        </form>
+    </div>
+
+</div>
+{{ template "footer" }}

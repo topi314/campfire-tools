@@ -1,12 +1,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
+	"image/png"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -32,6 +35,9 @@ var (
 
 	//go:embed web/templates/*.gohtml
 	templates embed.FS
+
+	//go:embed web/static/campfire-tools-mini.png
+	logo []byte
 )
 
 func New(cfg Config) (*Server, error) {
@@ -93,6 +99,11 @@ func New(cfg Config) (*Server, error) {
 		slog.Info("Discord webhook notifications enabled", slog.String("name", wh.Name()), slog.String("guild_id", wh.GuildID.String()), slog.String("channel_id", wh.ChannelID.String()))
 	}
 
+	logoPNG, err := png.Decode(bytes.NewReader(logo))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode logo: %w", err)
+	}
+
 	httpClient := &http.Client{}
 	s := &Server{
 		Cfg: cfg,
@@ -107,6 +118,7 @@ func New(cfg Config) (*Server, error) {
 		StaticFS:      staticFS,
 		WebhookClient: webhookClient,
 		Reloader:      reloader,
+		Logo:          logoPNG,
 	}
 
 	go s.cleanup()
@@ -148,6 +160,7 @@ type Server struct {
 	WebhookClient          *webhook.Client
 	SentTokenNotifications []int
 	Reloader               *goreload.Reloader
+	Logo                   image.Image
 }
 
 func (s *Server) Start(handler http.Handler) {
