@@ -113,7 +113,7 @@ func New(cfg Config) (*Server, error) {
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:            db,
-		Auth:          auth.New(cfg.Auth, db),
+		Auth:          auth.New(cfg.Auth),
 		Templates:     t,
 		StaticFS:      staticFS,
 		WebhookClient: webhookClient,
@@ -172,8 +172,8 @@ func (s *Server) Start(handler http.Handler) {
 	}()
 
 	go s.importClubs()
-	go s.importEvents()
-	go s.updateEvents()
+	// go s.importEvents()
+	// go s.updateEvents()
 }
 
 func (s *Server) Stop() {

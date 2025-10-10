@@ -45,9 +45,16 @@ func newClubWithEvents(club database.ClubWithEvents) ClubWithEvents {
 	}
 }
 
+func newPinnedClubWithEvents(club database.ClubWithEvents) ClubWithEvents {
+	c := newClubWithEvents(club)
+	c.Pinned = true
+	return c
+}
+
 type ClubWithEvents struct {
 	Club
 	Events int
+	Pinned bool
 }
 
 func newEvent(event database.Event, iconSize int) Event {
@@ -196,7 +203,7 @@ func newRaffle(raffle database.Raffle) Raffle {
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
 		SingleEntry:   raffle.SingleEntry,
 		CreatedAt:     raffle.CreatedAt,
-		URL:           fmt.Sprintf("/raffle/%d", raffle.ID),
+		URL:           fmt.Sprintf("/tracker/raffle/%d", raffle.ID),
 	}
 }
 
@@ -216,7 +223,7 @@ func newWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
 	if clubID != "" {
 		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/confirm/%s", clubID, winner.RaffleID, winner.Member.ID)
 	} else {
-		confirmURL = fmt.Sprintf("/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/tracker/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
 	}
 
 	return Winner{

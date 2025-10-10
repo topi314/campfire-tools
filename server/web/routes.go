@@ -52,12 +52,12 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/club/import", h.TrackerClubImport)
 	mux.HandleFunc("POST /tracker/club/import", h.TrackerClubDoImport)
 
-	mux.HandleFunc("GET /tracker/club/{club_id}", h.TrackerClub)
+	mux.HandleFunc("GET  /tracker/club/{club_id}", h.TrackerClub)
 	mux.HandleFunc("POST /tracker/club/{club_id}", h.TrackerClubUpdate)
-	mux.HandleFunc("GET /tracker/club/{club_id}/stats", h.TrackerClubStats)
-	mux.HandleFunc("GET /tracker/club/{club_id}/events", h.TrackerClubEvents)
-	mux.HandleFunc("GET /tracker/club/{club_id}/members", h.TrackerClubMembers)
-	mux.HandleFunc("GET /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
+	mux.HandleFunc("GET  /tracker/club/{club_id}/stats", h.TrackerClubStats)
+	mux.HandleFunc("GET  /tracker/club/{club_id}/events", h.TrackerClubEvents)
+	mux.HandleFunc("GET  /tracker/club/{club_id}/members", h.TrackerClubMembers)
+	mux.HandleFunc("GET  /tracker/club/{club_id}/member/{member_id}", h.TrackerClubMember)
 
 	mux.HandleFunc("GET /tracker/quarter-filters", h.GetQuarterFilters)
 

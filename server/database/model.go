@@ -123,6 +123,14 @@ type RaffleWinnerWithMember struct {
 	CheckIns int `db:"check_ins"`
 }
 
+type DiscordUser struct {
+	ID          string    `db:"discord_user_id"`
+	Username    string    `db:"discord_user_username"`
+	DisplayName string    `db:"discord_user_display_name"`
+	AvatarURL   string    `db:"discord_user_avatar_url"`
+	ImportedAt  time.Time `db:"discord_user_imported_at"`
+}
+
 type Session struct {
 	ID        string    `db:"session_id"`
 	CreatedAt time.Time `db:"session_created_at"`
@@ -131,15 +139,9 @@ type Session struct {
 	Admin     bool      `db:"session_admin"`
 }
 
-type UserSetting struct {
-	UserID       string  `db:"user_setting_user_id"`
-	PinnedClubID *string `db:"user_setting_pinned_club_id"`
-}
-
-type SessionWithUserSetting struct {
+type SessionWithUser struct {
 	Session
-	UserSettingUserID *string `db:"user_setting_user_id"`
-	PinnedClubID      *string `db:"user_setting_pinned_club_id"`
+	DiscordUser
 }
 
 type ClubImportJobStatus string

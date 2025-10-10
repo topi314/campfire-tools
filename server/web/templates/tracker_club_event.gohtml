@@ -38,7 +38,7 @@
             {{ else }}
                 <img class="icon-32" src="/static/default_avatar.png">
             {{ end }}
-            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">\
+            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
                 {{ .Club.Name }}
             </a>
         </p>
@@ -116,4 +116,4 @@
         </ul>
     </div>
 </div>
-{{ template "footer" }}
+{{ template "tracker_footer" }}

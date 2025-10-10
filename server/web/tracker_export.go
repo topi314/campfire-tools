@@ -66,7 +66,7 @@ func (h *handler) renderExport(w http.ResponseWriter, r *http.Request, errorMess
 
 	eventID := query.Get("event")
 
-	if err := h.Templates().ExecuteTemplate(w, "export.gohtml", ExportVars{
+	if err := h.Templates().ExecuteTemplate(w, "tracker_export.gohtml", ExportVars{
 		SelectedEventID: eventID,
 		Error:           errorMessage,
 	}); err != nil {
