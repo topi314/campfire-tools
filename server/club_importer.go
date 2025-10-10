@@ -131,6 +131,12 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 		members, cursor, err := s.Campfire.GetEventMembers(ctx, event.Event.ID, state.MemberCursor)
 		state.MemberCursor = cursor
 		for _, member := range members {
+			if slices.ContainsFunc(state.Members, func(m database.Member) bool {
+				return m.ID == member.ID
+			}) {
+				continue
+			}
+
 			state.Members = append(state.Members, database.Member{
 				ID:          member.ID,
 				Username:    member.Username,
@@ -151,18 +157,20 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 			state.Members = append(state.Members, event.Creator)
 		}
 		for _, rsvp := range event.RSVPs {
-			if !slices.ContainsFunc(state.Members, func(m database.Member) bool {
+			if slices.ContainsFunc(state.Members, func(m database.Member) bool {
 				return m.ID == rsvp.MemberID
 			}) {
-				state.Members = append(state.Members, database.Member{
-					ID:          rsvp.MemberID,
-					Username:    "",
-					DisplayName: "",
-					AvatarURL:   "",
-					RawJSON:     []byte("{}"),
-					ImportedAt:  rsvp.ImportedAt,
-				})
+				continue
 			}
+
+			state.Members = append(state.Members, database.Member{
+				ID:          rsvp.MemberID,
+				Username:    "",
+				DisplayName: "",
+				AvatarURL:   "",
+				RawJSON:     []byte("{}"),
+				ImportedAt:  rsvp.ImportedAt,
+			})
 		}
 
 		if err = s.DB.InsertMembers(ctx, state.Members); err != nil {

@@ -48,7 +48,7 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := auth.GetSession(r)
-	if raffle.UserID != "" && raffle.UserID != session.UserID {
+	if raffle.UserID != nil && *raffle.UserID != session.UserID {
 		h.NotFound(w, r)
 		return
 	}

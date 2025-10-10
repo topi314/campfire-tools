@@ -209,7 +209,7 @@ func newRaffle(raffle database.Raffle) Raffle {
 
 type Raffle struct {
 	ID            int
-	UserID        string
+	UserID        *string
 	Events        []string
 	WinnerCount   int
 	OnlyCheckedIn bool

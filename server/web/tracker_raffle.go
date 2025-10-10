@@ -129,8 +129,12 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 
 	session := auth.GetSession(r)
 
+	var userID *string
+	if session.UserID != "" {
+		userID = &session.UserID
+	}
 	raffle := database.Raffle{
-		UserID:        session.UserID,
+		UserID:        userID,
 		Events:        allEventIDs,
 		WinnerCount:   winnerCount,
 		OnlyCheckedIn: onlyCheckedIn,
@@ -194,7 +198,7 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := auth.GetSession(r)
-	if raffle.UserID != "" && raffle.UserID != session.UserID {
+	if raffle.UserID != nil && *raffle.UserID != session.UserID {
 		h.NotFound(w, r)
 		return
 	}
@@ -256,7 +260,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := auth.GetSession(r)
-	if raffle.UserID != "" && raffle.UserID != session.UserID {
+	if raffle.UserID != nil && *raffle.UserID != session.UserID {
 		h.NotFound(w, r)
 		return
 	}

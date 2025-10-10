@@ -100,7 +100,7 @@ type EventRSVP struct {
 
 type Raffle struct {
 	ID            int            `db:"raffle_id"`
-	UserID        string         `db:"raffle_user_id"`
+	UserID        *string        `db:"raffle_user_id"`
 	Events        pq.StringArray `db:"raffle_events"`
 	WinnerCount   int            `db:"raffle_winner_count"`
 	OnlyCheckedIn bool           `db:"raffle_only_checked_in"`

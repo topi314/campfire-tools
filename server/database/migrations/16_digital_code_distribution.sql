@@ -7,6 +7,10 @@ CREATE TABLE discord_users
     discord_user_imported_at  TIMESTAMP      NOT NULL DEFAULT now()
 );
 
+-- DROP TABLE user_settings;
+-- DROP TABLE events_old;
+-- DROP TABLE members_old;
+
 CREATE TABLE discord_user_pinned_clubs
 (
     discord_user_pinned_club_user_id   VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
@@ -62,3 +66,13 @@ ALTER TABLE sessions
 
 ALTER TABLE sessions
     ADD COLUMN session_user_id VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE;
+
+ALTER TABLE raffles
+    ALTER COLUMN raffle_user_id DROP NOT NULL;
+
+UPDATE raffles
+SET raffle_user_id = NULL
+WHERE raffle_user_id = '';
+
+-- ALTER TABLE raffles
+--     ADD CONSTRAINT fk_raffle_user_id FOREIGN KEY (raffle_user_id) REFERENCES discord_users (discord_user_id) ON DELETE SET NULL;

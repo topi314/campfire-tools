@@ -23,7 +23,7 @@ func (d *Database) UpsertDiscordUser(ctx context.Context, user DiscordUser) erro
 	return nil
 }
 
-func (d *Database) AddDiscordUserPinnedClub(ctx context.Context, userID, clubID string) error {
+func (d *Database) AddDiscordUserPinnedClub(ctx context.Context, userID string, clubID string) error {
 	query := `
 		INSERT INTO discord_user_pinned_clubs (discord_user_pinned_club_user_id, discord_user_pinned_club_club_id)
 		VALUES ($1, $2)
@@ -37,7 +37,7 @@ func (d *Database) AddDiscordUserPinnedClub(ctx context.Context, userID, clubID 
 	return nil
 }
 
-func (d *Database) RemoveDiscordUserPinnedClub(ctx context.Context, userID, clubID string) error {
+func (d *Database) RemoveDiscordUserPinnedClub(ctx context.Context, userID string, clubID string) error {
 	query := `
 		DELETE FROM discord_user_pinned_clubs
 		WHERE discord_user_pinned_club_user_id = $1 AND discord_user_pinned_club_club_id = $2

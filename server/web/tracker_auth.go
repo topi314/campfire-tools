@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/disgoorg/disgo/discord"
 	"golang.org/x/oauth2"
 
 	"github.com/topi314/campfire-tools/server/auth"
@@ -20,10 +21,10 @@ import (
 )
 
 type discordUser struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Avatar      string `json:"avatar"`
+	ID         string `json:"id"`
+	Username   string `json:"username"`
+	GlobalName string `json:"global_name"`
+	Avatar     string `json:"avatar"`
 }
 
 type discordGuild struct {
@@ -136,7 +137,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !slices.Contains(h.Cfg.Auth.Whitelist, user.ID) {
+	if !slices.Contains(h.Cfg.Auth.Whitelist, user.ID.String()) {
 		guilds, err := h.getDiscordUserGuilds(ctx, token.AccessToken)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to get user guilds from Discord", slog.Any("error", err))
@@ -144,8 +145,8 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if i := slices.IndexFunc(guilds, func(g discordGuild) bool {
-			return g.ID == h.Cfg.Auth.DiscordGuildID
+		if i := slices.IndexFunc(guilds, func(g discord.OAuth2Guild) bool {
+			return g.ID.String() == h.Cfg.Auth.DiscordGuildID
 		}); i == -1 {
 			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.Auth.DiscordGuildID))
 			http.Error(w, "You are not whitelisted or a member of the required Discord guild", http.StatusForbidden)
@@ -154,18 +155,19 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var admin bool
-	if slices.Contains(h.Cfg.Auth.Admins, user.ID) {
+	if slices.Contains(h.Cfg.Auth.Admins, user.ID.String()) {
 		admin = true
 	}
 
 	now := time.Now()
 	expiration := now.AddDate(1, 0, 0)
 	session := auth.RandomStr(32)
+
 	if err = h.DB.UpsertDiscordUser(ctx, database.DiscordUser{
-		ID:          user.ID,
+		ID:          user.ID.String(),
 		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		AvatarURL:   user.Avatar,
+		DisplayName: user.EffectiveName(),
+		AvatarURL:   user.EffectiveAvatarURL(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to upsert discord user", slog.Any("error", err))
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
@@ -176,7 +178,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		ID:        session,
 		CreatedAt: now,
 		ExpiresAt: expiration,
-		UserID:    user.ID,
+		UserID:    user.ID.String(),
 		Admin:     admin,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create session", slog.Any("error", err))
@@ -188,7 +190,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*discordUser, error) {
+func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*discord.OAuth2User, error) {
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -205,7 +207,7 @@ func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*disc
 		return nil, fmt.Errorf("unexpected status code: %d", rs.StatusCode)
 	}
 
-	var user discordUser
+	var user discord.OAuth2User
 	if err = json.NewDecoder(rs.Body).Decode(&user); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -213,7 +215,7 @@ func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*disc
 	return &user, nil
 }
 
-func (h *handler) getDiscordUserGuilds(ctx context.Context, accessToken string) ([]discordGuild, error) {
+func (h *handler) getDiscordUserGuilds(ctx context.Context, accessToken string) ([]discord.OAuth2Guild, error) {
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me/guilds", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -230,7 +232,7 @@ func (h *handler) getDiscordUserGuilds(ctx context.Context, accessToken string) 
 		return nil, fmt.Errorf("unexpected status code: %d", rs.StatusCode)
 	}
 
-	var guilds []discordGuild
+	var guilds []discord.OAuth2Guild
 	if err = json.NewDecoder(rs.Body).Decode(&guilds); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
