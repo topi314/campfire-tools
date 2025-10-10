@@ -27,7 +27,7 @@ func (h *handler) GetQuarterFilters(w http.ResponseWriter, r *http.Request) {
 
 	from, to := xtime.GetRangeFromQuarter(quarter)
 
-	if err := h.Templates().ExecuteTemplate(w, "quarter_filters.gohtml", EventsFilter{
+	if err := h.Templates().ExecuteTemplate(w, "tracker_quarter_filters.gohtml", EventsFilter{
 		FilterURL: r.URL.Path,
 		From:      from,
 		To:        to,

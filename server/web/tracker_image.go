@@ -54,7 +54,7 @@ func imageURL(imageURL string, size int) string {
 		return ""
 	}
 
-	imageURL = path.Join("/images", path.Base(imageURL))
+	imageURL = path.Join("/tracker/images", path.Base(imageURL))
 	if size > 0 {
 		imageURL = fmt.Sprintf("%s?size=%d", imageURL, size)
 	}

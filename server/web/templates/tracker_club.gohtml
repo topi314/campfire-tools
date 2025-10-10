@@ -1,7 +1,7 @@
 {{ template "head" addStr "Tracker - " .Name }}
 <div class="container">
     <div class="container-header">
-        {{ template "back_button" "/tracker" }}
+        {{ template "back_button" "/tracker/clubs" }}
         <h1>
             <img src="{{ .AvatarURL }}">
             {{ .Name }}
@@ -59,17 +59,15 @@
             <summary>Show Settings</summary>
             <form action="/tracker/club/{{ .ID }}" method="post" class="form-control">
                 <div class="stacked-form-control">
-
-                    <label>
+                    <label class="form-control">
                         Pinned
                         <input type="checkbox" name="pinned" {{ if .Pinned }}checked{{end}}>
                     </label>
 
-                    <label>
+                    <label class="form-control">
                         Auto Event Import
                         <input type="checkbox" name="auto_event_import" {{ if .AutoEventImport }}checked{{end}}>
                     </label>
-
                     <button type="submit" class="button">Save</button>
                 </div>
             </form>
@@ -98,4 +96,4 @@
         </ul>
     </div>
 </div>
-{{ template "footer" }}
+{{ template "tracker_footer" }}

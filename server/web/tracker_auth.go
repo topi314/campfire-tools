@@ -20,8 +20,10 @@ import (
 )
 
 type discordUser struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Avatar      string `json:"avatar"`
 }
 
 type discordGuild struct {
@@ -33,8 +35,8 @@ func (h *handler) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		var session *database.SessionWithUserSetting
-		if !strings.HasPrefix(r.URL.Path, "/login") {
+		var session *database.SessionWithUser
+		if !strings.HasPrefix(r.URL.Path, "/tracker/login") {
 			for _, cookie := range r.CookiesNamed("session") {
 				var err error
 				session, err = h.DB.GetSession(ctx, cookie.Value)
@@ -54,14 +56,20 @@ func (h *handler) auth(next http.Handler) http.Handler {
 		}
 
 		if session == nil {
-			session = &database.SessionWithUserSetting{
+			session = &database.SessionWithUser{
 				Session: database.Session{
 					ID:        "",
 					CreatedAt: time.Time{},
 					ExpiresAt: time.Time{},
 					UserID:    "",
 				},
-				PinnedClubID: nil,
+				DiscordUser: database.DiscordUser{
+					ID:          "",
+					Username:    "",
+					DisplayName: "",
+					AvatarURL:   "",
+					ImportedAt:  time.Time{},
+				},
 			}
 		}
 
@@ -72,7 +80,7 @@ func (h *handler) auth(next http.Handler) http.Handler {
 
 func (h *handler) forceLogin(w http.ResponseWriter, r *http.Request) {
 	u := url.URL{
-		Path:     "/login",
+		Path:     "/tracker/login",
 		RawQuery: url.Values{"rd": {r.URL.Path}}.Encode(),
 	}
 	http.Redirect(w, r, u.String(), http.StatusFound)
@@ -121,7 +129,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.getUser(ctx, token.AccessToken)
+	user, err := h.getDiscordUser(ctx, token.AccessToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user info from Discord", slog.Any("error", err))
 		http.Error(w, "Failed to get user info from Discord", http.StatusInternalServerError)
@@ -129,7 +137,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !slices.Contains(h.Cfg.Auth.Whitelist, user.ID) {
-		guilds, err := h.getUserGuilds(ctx, token.AccessToken)
+		guilds, err := h.getDiscordUserGuilds(ctx, token.AccessToken)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to get user guilds from Discord", slog.Any("error", err))
 			http.Error(w, "Failed to get user guilds from Discord", http.StatusInternalServerError)
@@ -153,6 +161,17 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	expiration := now.AddDate(1, 0, 0)
 	session := auth.RandomStr(32)
+	if err = h.DB.UpsertDiscordUser(ctx, database.DiscordUser{
+		ID:          user.ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.Avatar,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to upsert discord user", slog.Any("error", err))
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
+
 	if err = h.DB.CreateSession(ctx, database.Session{
 		ID:        session,
 		CreatedAt: now,
@@ -162,13 +181,14 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create session", slog.Any("error", err))
 		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		return
 	}
 
 	addSessionCookie(w, session, expiration)
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *handler) getUser(ctx context.Context, accessToken string) (*discordUser, error) {
+func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*discordUser, error) {
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -193,7 +213,7 @@ func (h *handler) getUser(ctx context.Context, accessToken string) (*discordUser
 	return &user, nil
 }
 
-func (h *handler) getUserGuilds(ctx context.Context, accessToken string) ([]discordGuild, error) {
+func (h *handler) getDiscordUserGuilds(ctx context.Context, accessToken string) ([]discordGuild, error) {
 	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me/guilds", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -226,7 +246,7 @@ func addOauthCookie(w http.ResponseWriter, state string, expiration time.Time) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   false, // Can use via http reqs
 		HttpOnly: true,  // Can't be accessed by JS
-		Path:     "/login/callback",
+		Path:     "/tracker/login/callback",
 	}
 
 	http.SetCookie(w, &cookie)
@@ -241,7 +261,7 @@ func removeOauthCookie(w http.ResponseWriter) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   false, // Can use via http reqs
 		HttpOnly: true,  // Can't be accessed by JS
-		Path:     "/login/callback",
+		Path:     "/tracker/login/callback",
 	}
 
 	http.SetCookie(w, &cookie)

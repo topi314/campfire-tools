@@ -22,7 +22,7 @@ func (h *handler) TrackerCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) PostTrackerCode(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	code := r.PathValue("code")
+	// ctx := r.Context()
+	// code := r.PathValue("code")
 
 }

@@ -52,7 +52,7 @@ func (h *handler) ShowEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/event/%s", campfireEvent.ID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/tracker/event/%s", campfireEvent.ID), http.StatusSeeOther)
 }
 
 func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +113,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 func (h *handler) renderCheckIns(w http.ResponseWriter, r *http.Request, event string, errorMessage string) {
 	ctx := r.Context()
 
-	if err := h.Templates().ExecuteTemplate(w, "event.gohtml", TrackerCheckIns{
+	if err := h.Templates().ExecuteTemplate(w, "tracker_event.gohtml", TrackerCheckIns{
 		Event: event,
 		Error: errorMessage,
 	}); err != nil {

@@ -14,12 +14,12 @@ type sessionKey struct{}
 
 var sessionContextKey = &sessionKey{}
 
-func SetSession(ctx context.Context, session database.SessionWithUserSetting) context.Context {
+func SetSession(ctx context.Context, session database.SessionWithUser) context.Context {
 	return context.WithValue(ctx, sessionContextKey, session)
 }
 
-func GetSession(r *http.Request) database.SessionWithUserSetting {
-	return r.Context().Value(sessionContextKey).(database.SessionWithUserSetting)
+func GetSession(r *http.Request) database.SessionWithUser {
+	return r.Context().Value(sessionContextKey).(database.SessionWithUser)
 }
 
 func RandomStr(length int) string {

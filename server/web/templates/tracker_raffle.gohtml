@@ -1,12 +1,12 @@
 {{ template "head" "Campfire Raffle" }}
 <div class="container">
     <div class="container-header">
-        {{ template "back_button" "/" }}
+        {{ template "back_button" "/tracker" }}
         <h1>Raffle</h1>
     </div>
 
     <div class="section">
-        <form action="/raffle" method="POST">
+        <form action="/tracker/raffle" method="POST">
             <label class="form-control" for="events" title="Enter event links for the raffle. Each link should be on a new line.">
                 Event Links
                 <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
@@ -50,4 +50,4 @@ https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
         event.target.style.height = (event.target.scrollHeight + 4) + "px";
     });
 </script>
-{{ template "footer" }}
+{{ template "tracker_footer" }}

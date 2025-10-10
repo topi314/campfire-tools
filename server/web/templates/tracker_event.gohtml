@@ -1,12 +1,12 @@
 {{ template "head" "Campfire Check-Ins" }}
 <div class="container">
     <div class="container-header">
-        {{ template "back_button" "/" }}
+        {{ template "back_button" "/tracker" }}
         <h1>Event</h1>
     </div>
 
     <div class="section">
-        <form action="/event" method="POST">
+        <form action="/tracker/event" method="POST">
             <label class="form-control" for="event" title="Enter the event link to show check-ins for.">
                 Event Link
                 <input class="form-control" id="event" name="event" placeholder="https://cmpf.re/..." {{ if .Event }}value="{{ .Event }}" {{ end }}required autofocus/>
@@ -18,4 +18,4 @@
         </form>
     </div>
 </div>
-{{ template "footer" }}
+{{ template "tracker_footer" }}
