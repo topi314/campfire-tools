@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/topi314/campfire-tools/server/auth"
-	"github.com/topi314/campfire-tools/server/database"
 )
 
 func (h *handler) TrackerClubUpdate(w http.ResponseWriter, r *http.Request) {
@@ -40,17 +39,18 @@ func (h *handler) TrackerClubUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var pinnedClubID *string
 	if pinned {
-		pinnedClubID = &clubID
-	}
-
-	if err = h.DB.SetUserSetting(ctx, database.UserSetting{
-		UserID:       session.UserID,
-		PinnedClubID: pinnedClubID,
-	}); err != nil {
-		http.Error(w, "Failed to set pinned club: "+err.Error(), http.StatusInternalServerError)
-		return
+		if err = h.DB.AddDiscordUserPinnedClub(ctx, session.UserID, clubID); err != nil {
+			slog.ErrorContext(ctx, "Failed to pin club for user", slog.String("user_id", session.UserID), slog.String("club_id", clubID), slog.Any("err", err))
+			http.Error(w, "Failed to pin club", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err = h.DB.RemoveDiscordUserPinnedClub(ctx, session.UserID, clubID); err != nil {
+			slog.ErrorContext(ctx, "Failed to unpin club for user", slog.String("user_id", session.UserID), slog.String("club_id", clubID), slog.Any("err", err))
+			http.Error(w, "Failed to unpin club", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err = h.DB.UpdateClubAutoEventImport(ctx, clubID, autoEventImport); err != nil {

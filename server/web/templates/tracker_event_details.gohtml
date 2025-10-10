@@ -16,8 +16,8 @@
 
             <div class="inline-form-control" hx-boost="true">
                 {{ if .Event.ImportedAt.IsZero }}
-                    <a href="/export?event={{ .ID }}" class="button">Export</a>
-                    <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
+                    <a href="/tracker/export?event={{ .ID }}" class="button">Export</a>
+                    <a href="/tracker/raffle?event={{ .ID }}" class="button">Raffle</a>
                 {{ else }}
                     <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
                     <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
@@ -91,4 +91,4 @@
         </ul>
     </div>
 </div>
-{{ template "footer" }}
+{{ template "tracker_footer" }}

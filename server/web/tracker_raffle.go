@@ -282,10 +282,10 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 	if clubID != "" {
 		backURL = fmt.Sprintf("/tracker/club/%s/raffle", clubID)
 	} else {
-		backURL = "/raffle"
+		backURL = "/tracker/raffle"
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
+	if err = h.Templates().ExecuteTemplate(w, "tracker_raffle_result.gohtml", RaffleResultVars{
 		Raffle:          newRaffle(*raffle),
 		ClubID:          clubID,
 		RerunRaffleURL:  r.URL.Path,
@@ -506,7 +506,7 @@ func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, raffles [
 
 	eventID := query.Get("event")
 
-	if err := h.Templates().ExecuteTemplate(w, "raffle.gohtml", RaffleVars{
+	if err := h.Templates().ExecuteTemplate(w, "tracker_raffle.gohtml", RaffleVars{
 		Raffles:         raffles,
 		SelectedEventID: eventID,
 		Error:           errorMessage,
@@ -518,7 +518,7 @@ func (h *handler) renderRaffle(w http.ResponseWriter, r *http.Request, raffles [
 func (h *handler) renderRaffleResult(w http.ResponseWriter, r *http.Request, raffle database.Raffle, clubID string, errorMessage string) {
 	ctx := r.Context()
 
-	if err := h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
+	if err := h.Templates().ExecuteTemplate(w, "tracker_raffle_result.gohtml", RaffleResultVars{
 		Raffle: newRaffle(raffle),
 		ClubID: clubID,
 		Error:  errorMessage,

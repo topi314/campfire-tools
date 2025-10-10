@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/auth"
@@ -44,7 +45,13 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := auth.GetSession(r)
-	pinned := session.PinnedClubID != nil && *session.PinnedClubID == clubID
+	pinnedClubs, err := h.DB.GetDiscordUserPinnedClubs(ctx, session.UserID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch pinned clubs for user", slog.String("user_id", session.UserID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch pinned clubs: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	pinned := slices.Contains(pinnedClubs, clubID)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
 		Club:   newClub(*club),
