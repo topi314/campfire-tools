@@ -28,17 +28,6 @@ query Event_Query(
         badgeType
         alias
       }
-      gameProfiles {
-        id
-        game
-        codename
-        displayName
-        level
-        faction
-        factionColor
-        visibility
-        lastPlayedTimestampMs
-      }
     }
     clubId
     club {
@@ -60,17 +49,6 @@ query Event_Query(
           badgeType
           alias
         }
-        gameProfiles {
-          id
-          game
-          codename
-          displayName
-          level
-          faction
-          factionColor
-          visibility
-          lastPlayedTimestampMs
-        }
       }
     }
     members(first: $first) {
@@ -84,17 +62,6 @@ query Event_Query(
           badges {
             badgeType
             alias
-          }
-          gameProfiles {
-            id
-            game
-            codename
-            displayName
-            level
-            faction
-            factionColor
-            visibility
-            lastPlayedTimestampMs
           }
         }
         cursor
@@ -147,17 +114,7 @@ query Event_Query(
           badgeType
           alias
         }
-        gameProfiles {
-          id
-          game
-          codename
-          displayName
-          level
-          faction
-          factionColor
-          visibility
-          lastPlayedTimestampMs
-        }
+
       }
     }
   }

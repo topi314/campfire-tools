@@ -17,17 +17,6 @@ query ArchivedMeetupsMembers_Query(
                         badgeType
                         alias
                     }
-                    gameProfiles {
-                        id
-                        game
-                        codename
-                        displayName
-                        level
-                        faction
-                        factionColor
-                        visibility
-                        lastPlayedTimestampMs
-                    }
                 }
             }
             pageInfo {
