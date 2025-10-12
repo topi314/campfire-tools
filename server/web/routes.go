@@ -28,6 +28,11 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /code/{code}", h.GetCode)
 	mux.Handle("GET /code/{code}/qr", cache(http.HandlerFunc(h.QRCode)))
 
+	mux.HandleFunc("GET  /tracker/rewards", h.TrackerRewards)
+	mux.HandleFunc("GET  /tracker/rewards/new", h.TrackerRewardsNew)
+	mux.HandleFunc("POST /tracker/rewards/new", h.PostTrackerRewardsNew)
+	mux.HandleFunc("GET /tracker/reward-pool/{pool_id}", h.TrackerRewardPool)
+
 	mux.HandleFunc("GET  /tracker/code/{code}", h.TrackerCode)
 	mux.HandleFunc("POST /tracker/code/{code}", h.PostTrackerCode)
 

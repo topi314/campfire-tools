@@ -1,0 +1,30 @@
+{{ template "head" "Code Request" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker" }}
+        <h1>Rewards</h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Your Reward Pools</h2>
+            <div class="buttons">
+                <a href="/tracker/rewards/new" class="button button-primary">New</a>
+            </div>
+        </div>
+        <ul class="list">
+            {{ range .RewardPools }}
+                <li class="list-item list-item-group">
+                    <a href="{{ .URL }}">{{ .Name }}</a>{{ .UsedCodes }}/{{ .TotalCodes }} codes)
+                    <div class="buttons">
+                        <a href="{{ .CodesURL }}" class="button">Show Codes</a>
+                    </div>
+                </li>
+            {{ else }}
+                <li>No reward pools found. Create one by clicking the "New" button above.</li>
+            {{ end }}
+        </ul>
+    </div>
+
+</div>
+{{ template "tracker_footer" }}

@@ -1,0 +1,38 @@
+{{ template "head" "Reward Pool Codes" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker/rewards" }}
+        <h1>{{ .Name }} Codes</h1>
+    </div>
+
+    {{ if .Description }}
+        <div class="section">
+            <p>{{ .Description }}</p>
+        </div>
+    {{ end }}
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Codes</h2>
+        </div>
+        {{ if .Codes }}
+            <div class="table-5">
+                <div>Code</div>
+                <div>Imported At</div>
+                <div>Imported By</div>
+                <div>Redeemed At</div>
+                <div>Redeemed By</div>
+                {{ range $code := .Codes }}
+                    <span><a href="{{ $code.RedeemCodeURL }}">{{ $code.Code }}</a></span>
+                    <span>{{ formatTimeToRelDayTime $code.ImportedAt }}</span>
+                    <span>{{ $code.ImportedBy.DisplayName }}</span>
+                    <span>{{ if $code.RedeemedAt }}{{ formatTimeToRelDayTime $code.RedeemedAt }}{{ else }}-{{ end }}</span>
+                    <span>{{ if $code.RedeemedBy }}{{ $code.RedeemedBy }}{{ else }}-{{ end }}</span>
+                {{ end }}
+            </div>
+        {{ else }}
+            <p>No codes available in this reward pool.</p>
+        {{ end }}
+    </div>
+</div>
+{{ template "tracker_footer" }}

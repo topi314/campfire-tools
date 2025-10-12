@@ -1,0 +1,33 @@
+{{ template "head" "Code Request" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker/rewards" }}
+        <h1>New Reward Pool</h1>
+    </div>
+
+    <div class="section">
+        <form hx-post="/tracker/rewards/new" hx-encoding='multipart/form-data' hx-target="body" hx-push-url="true">
+            <label class="form-control" for="name" title="Name of the reward pool">
+                Name
+                <input class="form-control" type="text" id="name" name="name" required>
+            </label>
+            <label class="form-control" for="description" title="Description of the reward pool">
+                Description
+                <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+            </label>
+
+            <label class="form-control" for="codes" title="">
+                Codes
+                <input type="file" id="codes" name="codes" required>
+            </label>
+
+            {{ if .Error }}
+                <div class="error-message">{{ .Error }}</div>
+            {{ end }}
+
+            <button class="form-control" type="submit">Create</button>
+        </form>
+    </div>
+
+</div>
+{{ template "tracker_footer" }}
