@@ -15,31 +15,21 @@ CREATE TABLE discord_user_pinned_clubs
     PRIMARY KEY (discord_user_pinned_club_user_id, discord_user_pinned_club_club_id)
 );
 
-CREATE TABLE reward_groups
-(
-    reward_group_id          BIGSERIAL PRIMARY KEY,
-    reward_group_name        VARCHAR   NOT NULL,
-    reward_group_description TEXT      NOT NULL,
-    reward_group_created_by  VARCHAR   REFERENCES discord_users (discord_user_id) ON DELETE SET NULL,
-    reward_group_created_at  TIMESTAMP NOT NULL DEFAULT now()
-);
-
-CREATE TABLE reward_group_users
-(
-    reward_group_user_reward_group_id BIGINT REFERENCES reward_groups (reward_group_id) ON DELETE CASCADE,
-    reward_group_user_user_id         VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
-    reward_group_user_assigned_at     TIMESTAMP NOT NULL DEFAULT now(),
-    PRIMARY KEY (reward_group_user_reward_group_id, reward_group_user_user_id)
-);
-
 CREATE TABLE reward_pools
 (
-    reward_pool_id              BIGSERIAL PRIMARY KEY,
-    reward_pool_name            VARCHAR   NOT NULL,
-    reward_pool_description     TEXT      NOT NULL,
-    reward_pool_reward_group_id BIGINT REFERENCES reward_groups (reward_group_id) ON DELETE CASCADE,
-    reward_pool_created_by      VARCHAR   REFERENCES discord_users (discord_user_id) ON DELETE SET NULL,
-    reward_pool_created_at      TIMESTAMP NOT NULL DEFAULT now()
+    reward_pool_id          BIGSERIAL PRIMARY KEY,
+    reward_pool_name        VARCHAR   NOT NULL,
+    reward_pool_description TEXT      NOT NULL,
+    reward_pool_created_by  VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
+    reward_pool_created_at  TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE reward_pool_users
+(
+    reward_pool_user_reward_pool_id BIGINT REFERENCES reward_pools (reward_pool_id) ON DELETE CASCADE,
+    reward_pool_user_user_id        VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
+    reward_pool_user_added_at       TIMESTAMP NOT NULL DEFAULT now(),
+    PRIMARY KEY (reward_pool_user_reward_pool_id, reward_pool_user_user_id)
 );
 
 CREATE TABLE reward_codes

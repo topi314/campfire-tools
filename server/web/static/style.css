@@ -333,6 +333,14 @@ form label {
     border-bottom: none;
 }
 
+.list-item-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    
+}
+
 h1 > img, h2 > img {
     width: 48px;
     height: 48px;
