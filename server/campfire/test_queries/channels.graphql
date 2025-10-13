@@ -1,0 +1,34 @@
+query ClubChannelsConnectionLoaderQuery(
+  $first: Int!
+  $after: String
+  $clubId: ID!
+) {
+  club(id: $clubId) {
+    ...ClubChannelsConnectionLoader_club
+    id
+  }
+}
+
+fragment ClubChannelsConnectionLoader_club on Club {
+  channels(first: $first, after: $after) {
+    edges {
+      node {
+        id
+        name
+        type
+        chatV2TopicId
+        unreadMentionsCount
+        userSettings {
+          isMuted
+        }
+        isReadOnly
+        __typename
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

@@ -1,0 +1,58 @@
+query fetchMessagesFromChatv2_Query(
+  $input: MessagesFromHistoryV2Input!
+  $hasClubId: Boolean!
+  $clubId: ID!
+) {
+  messagesFromHistoryV2(input: $input) {
+    messages {
+      hasBeenEdited
+      moderationStatus
+      messageId
+      isPinned
+      pinnedByUser {
+        id
+        displayName
+      }
+      message {
+        id
+        sender {
+          color
+          senderId
+          name
+          avatar
+          user {
+            id
+            displayName
+            username
+            avatarUrl
+            isMyFriend
+            badges {
+              badgeType
+              alias
+            }
+            clubRoles(clubId: $clubId) @include(if: $hasClubId) {
+              id
+              name
+            }
+          }
+        }
+        sentAt
+        version
+        category
+        messageType
+        content
+        metadata
+        reactions {
+          me
+          count
+          emoji {
+            name
+            id
+          }
+        }
+        attachments
+        isHiddenByServer
+      }
+    }
+  }
+}
