@@ -1,0 +1,7 @@
+query fetchMostRecentMessageForChannels_Query(
+  $input: MostRecentMessageByChannelInput!
+) {
+  mostRecentMessageByChannel(input: $input) {
+    mostRecentMessageMap
+  }
+}

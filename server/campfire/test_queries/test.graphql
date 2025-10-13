@@ -1,0 +1,77 @@
+query CommentConnectionLoaderQuery(
+  $first: Int!
+  $after: String
+  $desc: Boolean
+  $eventId: ID!
+  $clubId: ID!
+  $includeRoles: Boolean!
+) {
+  event(id: $eventId) {
+    ...CommentConnectionLoader_event_3BYEaY
+    id
+  }
+}
+
+fragment CommentConnectionLoader_event_3BYEaY on Event {
+  paginatedComments(first: $first, after: $after, desc: $desc) {
+    edges {
+      node {
+        id
+        author {
+          id
+          displayName
+          clubRoles(clubId: $clubId) @include(if: $includeRoles) {
+            id
+            name
+          }
+          avatarUrl
+          badges {
+            badgeType
+            alias
+          }
+        }
+        entityId
+        entityType
+        isSubscribed
+        body
+        createdAt
+        updatedAt
+        moderationStatus
+        attachments
+        paginatedComments(first: 10000) {
+          edges {
+            node {
+              id
+              createdAt
+              author {
+                id
+                displayName
+                clubRoles(clubId: $clubId) @include(if: $includeRoles) {
+                  id
+                  name
+                }
+                avatarUrl
+                badges {
+                  badgeType
+                  alias
+                }
+              }
+              entityId
+              entityType
+              body
+              updatedAt
+              moderationStatus
+              attachments
+            }
+          }
+        }
+        __typename
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
