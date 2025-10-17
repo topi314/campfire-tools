@@ -16,6 +16,31 @@
         </p>
         <p>Made with ❤️ by <a href="https://github.com/topi314">topi314</a> &bullet; Source code available on <a href="https://github.com/topi314/campfire-tools">GitHub</a></p>
     </footer>
+    {{ if devEnabled }}
+        <script>
+            (function () {
+                if (window.__campfireDevReloadInitialized) {
+                    return;
+                }
+                window.__campfireDevReloadInitialized = true;
+
+                const connect = () => {
+                    const source = new EventSource("/dev/reload");
+
+                    source.onmessage = () => {
+                        window.location.reload();
+                    };
+
+                    source.onerror = () => {
+                        source.close();
+                        setTimeout(connect, 1000);
+                    };
+                };
+
+                connect();
+            })();
+        </script>
+    {{ end }}
     </body>
     </html>
 {{ end }}

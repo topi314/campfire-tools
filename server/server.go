@@ -34,6 +34,15 @@ var (
 func New(cfg Config) (*Server, error) {
 	var staticFS http.FileSystem
 	var t func() *template.Template
+
+	tmplFuncs := make(template.FuncMap, len(templateFuncs)+1)
+	for name, fn := range templateFuncs {
+		tmplFuncs[name] = fn
+	}
+	tmplFuncs["devEnabled"] = func() bool {
+		return cfg.Dev
+	}
+
 	if cfg.Dev {
 		root, err := os.OpenRoot("server/web/")
 		if err != nil {
@@ -42,7 +51,7 @@ func New(cfg Config) (*Server, error) {
 		staticFS = http.FS(root.FS())
 		t = func() *template.Template {
 			return template.Must(template.New("templates").
-				Funcs(templateFuncs).
+				Funcs(tmplFuncs).
 				ParseFS(root.FS(), "templates/*.gohtml"))
 		}
 	} else {
@@ -53,7 +62,7 @@ func New(cfg Config) (*Server, error) {
 		staticFS = http.FS(subStaticFS)
 
 		st := template.Must(template.New("templates").
-			Funcs(templateFuncs).
+			Funcs(tmplFuncs).
 			ParseFS(templates, "web/templates/*.gohtml"),
 		)
 
@@ -82,6 +91,16 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	httpClient := &http.Client{}
+	var (
+		reloadNotifier *reloadNotifier
+		cancelWatcher  context.CancelFunc
+	)
+
+	if cfg.Dev {
+		reloadNotifier = newReloadNotifier()
+		cancelWatcher = startDevWatcher("server/web", reloadNotifier)
+	}
+
 	s := &Server{
 		Cfg: cfg,
 		Server: &http.Server{
@@ -94,6 +113,8 @@ func New(cfg Config) (*Server, error) {
 		Templates:     t,
 		StaticFS:      staticFS,
 		WebhookClient: webhookClient,
+		ReloadNotifier: reloadNotifier,
+		devWatcherCancel: cancelWatcher,
 	}
 
 	go s.cleanup()
@@ -134,6 +155,8 @@ type Server struct {
 	StaticFS               http.FileSystem
 	WebhookClient          *webhook.Client
 	SentTokenNotifications []int
+	ReloadNotifier         *reloadNotifier
+	devWatcherCancel       context.CancelFunc
 }
 
 func (s *Server) Start(handler http.Handler) {
@@ -156,6 +179,14 @@ func (s *Server) Stop() {
 	if err := s.Server.Shutdown(ctx); err != nil {
 		slog.Error("Server shutdown failed", slog.Any("err", err))
 		return
+	}
+
+	if s.devWatcherCancel != nil {
+		s.devWatcherCancel()
+	}
+
+	if s.ReloadNotifier != nil {
+		s.ReloadNotifier.Close()
 	}
 }
 

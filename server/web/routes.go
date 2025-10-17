@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -16,7 +17,13 @@ func Routes(srv *server.Server) http.Handler {
 		Server: srv,
 	}
 
-	fs := cache(http.FileServer(h.StaticFS))
+	fileServer := http.FileServer(h.StaticFS)
+	var fs http.Handler
+	if srv.Cfg.Dev {
+		fs = fileServer
+	} else {
+		fs = cache(fileServer)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", h.Index)
@@ -81,6 +88,10 @@ func Routes(srv *server.Server) http.Handler {
 	mux.Handle("GET  /static/", fs)
 	mux.Handle("HEAD /static/", fs)
 
+	if srv.Cfg.Dev {
+		mux.HandleFunc("GET /dev/reload", h.DevReload)
+	}
+
 	mux.HandleFunc("/", h.NotFound)
 
 	return cleanPath(h.auth(mux))
@@ -115,4 +126,51 @@ func cleanPath(next http.Handler) http.Handler {
 		// r.URL.RawPath = path.Clean(r.URL.RawPath)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// DevReload streams server-sent events that instruct the browser to refresh
+// whenever the dev watcher picks up a change on disk. The SSE connection stays
+// open until the client disconnects or the server shuts down.
+func (handler *handler) DevReload(writer http.ResponseWriter, request *http.Request) {
+	if handler.ReloadNotifier == nil {
+		http.NotFound(writer, request)
+		return
+	}
+
+	flusher, ok := writer.(http.Flusher)
+	if !ok {
+		http.Error(writer, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	writer.Header().Set("Content-Type", "text/event-stream")
+	writer.Header().Set("Cache-Control", "no-cache")
+	writer.Header().Set("Connection", "keep-alive")
+
+	id, ch := handler.ReloadNotifier.Subscribe()
+	if id == -1 {
+		writer.WriteHeader(http.StatusGone)
+		return
+	}
+	defer handler.ReloadNotifier.Unsubscribe(id)
+
+	if _, err := fmt.Fprint(writer, ": connected\n\n"); err != nil {
+		return
+	}
+	flusher.Flush()
+
+	for {
+		select {
+		case <-request.Context().Done():
+			return
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+			if _, err := fmt.Fprint(writer, "data: reload\n\n"); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}
 }
