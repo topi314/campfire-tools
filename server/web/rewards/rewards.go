@@ -8,7 +8,7 @@ import (
 func (h *handler) Index(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	if err := h.Templates().ExecuteTemplate(w, "index.gohtml", nil); err != nil {
+	if err := h.Templates().ExecuteTemplate(w, "rewards_index.gohtml", nil); err != nil {
 		slog.ErrorContext(ctx, "Failed to render rewards template", slog.String("error", err.Error()))
 	}
 }

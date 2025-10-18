@@ -2,12 +2,7 @@ package models
 
 import (
 	"math"
-	"net/url"
-	"strconv"
-	"strings"
 	"time"
-
-	"github.com/topi314/campfire-tools/internal/xstrconv"
 )
 
 func CalcCheckInRate(accepted int, checkIns int) float64 {
@@ -62,69 +57,4 @@ func CalcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) (i
 	}
 
 	return projectedCheckIns, days, daysRemaining
-}
-
-func ParseTimeQuery(query url.Values, name string, defaultValue time.Time) time.Time {
-	value := query.Get(name)
-	if value == "" {
-		return defaultValue
-	}
-
-	parsed, err := time.Parse("2006-01-02", value)
-	if err != nil {
-		return defaultValue
-	}
-	return parsed
-}
-
-func ParseBoolQuery(query url.Values, name string, defaultValue bool) bool {
-	value := query.Get(name)
-	if value == "" {
-		return defaultValue
-	}
-
-	parsed, err := xstrconv.ParseBool(value)
-	if err != nil {
-		return defaultValue
-	}
-	return parsed
-}
-
-func ParseIntQuery(query url.Values, name string, defaultValue int) int {
-	value := query.Get(name)
-	if value == "" {
-		return defaultValue
-	}
-
-	parsed, err := strconv.Atoi(value)
-	if err != nil {
-		return defaultValue
-	}
-
-	return parsed
-}
-
-func ParseStringQuery(query url.Values, name string, defaultValue string) string {
-	value := query.Get(name)
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func ParseStringSliceQuery(query url.Values, name string, defaultValue []string) []string {
-	value := query.Get(name)
-	if value == "" {
-		return defaultValue
-	}
-
-	var result []string
-	for _, part := range strings.Split(value, ",") {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-		result = append(result, part)
-	}
-	return result
 }

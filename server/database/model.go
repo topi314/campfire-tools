@@ -18,6 +18,7 @@ type Club struct {
 	ImportedAt                   time.Time       `db:"club_imported_at"`
 	RawJSON                      json.RawMessage `db:"club_raw_json"`
 	AutoEventImport              bool            `db:"club_auto_event_import"`
+	ClubVerificationChannelID    *string         `db:"club_verification_channel_id"`
 	LastAutoEventImportedAt      time.Time       `db:"club_last_auto_event_imported_at"`
 }
 
@@ -179,4 +180,19 @@ type EventState struct {
 	Event   Event       `json:"event"`
 	Creator Member      `json:"creator"`
 	RSVPs   []EventRSVP `json:"rsvps"`
+}
+
+type RewardUser struct {
+	ID           int       `db:"reward_user_id"`
+	CreatedAt    time.Time `db:"reward_user_created_at"`
+	MemberID     string    `db:"reward_user_member_id"`
+	PasswordHash string    `db:"reward_user_password_hash"`
+	PasswordSalt string    `db:"reward_user_password_salt"`
+}
+
+type RewardSession struct {
+	ID           int       `db:"reward_session_id"`
+	CreatedAt    time.Time `db:"reward_session_created_at"`
+	ExpiresAt    time.Time `db:"reward_session_expires_at"`
+	RewardUserID string    `db:"reward_session_reward_user_id"`
 }

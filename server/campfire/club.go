@@ -28,7 +28,7 @@ func (c *Client) GetClub(ctx context.Context, id string) (*Club, error) {
 }
 
 func (c *Client) ResolveClub(ctx context.Context, clubURL string) (*Club, error) {
-	clubID, err := c.ResolveClubID(clubURL)
+	clubID, err := ResolveClubID(clubURL)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *Client) ResolveClub(ctx context.Context, clubURL string) (*Club, error)
 	return c.GetClub(ctx, clubID)
 }
 
-func (c *Client) ResolveClubID(clubURL string) (string, error) {
+func ResolveClubID(clubURL string) (string, error) {
 	u, err := url.Parse(clubURL)
 	if err != nil {
 		return "", err
@@ -69,5 +69,4 @@ func (c *Client) ResolveClubID(clubURL string) (string, error) {
 	}
 
 	return clubID, nil
-
 }
