@@ -24,6 +24,7 @@ import (
 
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/cauth"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -33,7 +34,7 @@ var (
 	//go:embed web/static
 	static embed.FS
 
-	//go:embed web/templates/*.gohtml
+	//go:embed web
 	templates embed.FS
 
 	//go:embed web/static/campfire-tools-mini.png
@@ -60,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml")))
+				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml"))
 		}
 		reloader.Start(root.FS())
 	} else {
@@ -72,8 +73,8 @@ func New(cfg Config) (*Server, error) {
 
 		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			ParseFS(templates, "web/templates/*.gohtml"),
-		))
+			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
+		)
 
 		t = func() *template.Template {
 			return st
@@ -107,13 +108,17 @@ func New(cfg Config) (*Server, error) {
 	httpClient := &http.Client{}
 	s := &Server{
 		Cfg: cfg,
-		Server: &http.Server{
-			Addr: cfg.Server.Addr,
+		TrackerServer: &http.Server{
+			Addr: cfg.Server.TrackerAddr,
+		},
+		RewardsServer: &http.Server{
+			Addr: cfg.Server.RewardsAddr,
 		},
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:            db,
-		Auth:          auth.New(cfg.Auth),
+		Auth:          auth.New(cfg.DiscordAuth),
+		CampfireAuth:  cauth.New(cfg.CampfireAuth),
 		Templates:     t,
 		StaticFS:      staticFS,
 		WebhookClient: webhookClient,
@@ -150,11 +155,13 @@ func cleanPathMiddleware(next http.Handler) http.Handler {
 
 type Server struct {
 	Cfg                    Config
-	Server                 *http.Server
+	TrackerServer          *http.Server
+	RewardsServer          *http.Server
 	HttpClient             *http.Client
 	Campfire               *campfire.Client
 	DB                     *database.Database
 	Auth                   *auth.Auth
+	CampfireAuth           *cauth.Auth
 	Templates              func() *template.Template
 	StaticFS               http.FileSystem
 	WebhookClient          *webhook.Client
@@ -163,11 +170,18 @@ type Server struct {
 	Logo                   image.Image
 }
 
-func (s *Server) Start(handler http.Handler) {
-	s.Server.Handler = cleanPathMiddleware(handler)
+func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler) {
+	s.TrackerServer.Handler = cleanPathMiddleware(trackerHandler)
 	go func() {
-		if err := s.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Server failed: %s\n", err)
+		if err := s.TrackerServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Tracker server failed: %s\n", err)
+		}
+	}()
+
+	s.RewardsServer.Handler = cleanPathMiddleware(rewardsHandler)
+	go func() {
+		if err := s.RewardsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Rewards server failed: %s\n", err)
 		}
 	}()
 
@@ -180,7 +194,7 @@ func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := s.Server.Shutdown(ctx); err != nil {
+	if err := s.TrackerServer.Shutdown(ctx); err != nil {
 		slog.Error("Server shutdown failed", slog.Any("err", err))
 		return
 	}

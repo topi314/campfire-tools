@@ -52,3 +52,23 @@ ALTER TABLE sessions
 
 ALTER TABLE sessions
     ADD COLUMN session_user_id VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE;
+
+ALTER TABLE clubs
+    ADD COLUMN club_verification_channel_id VARCHAR;
+
+CREATE TABLE reward_users
+(
+    reward_user_id            BIGSERIAL PRIMARY KEY,
+    reward_user_created_at    TIMESTAMP NOT NULL DEFAULT now(),
+    reward_user_member_id     VARCHAR   REFERENCES members (member_id) ON DELETE SET NULL,
+    reward_user_password_hash VARCHAR   NOT NULL,
+    reward_user_password_salt VARCHAR   NOT NULL
+);
+
+CREATE TABLE reward_sessions
+(
+    reward_session_id             BIGSERIAL PRIMARY KEY,
+    reward_session_created_at     TIMESTAMP NOT NULL DEFAULT now(),
+    reward_session_expires_at     TIMESTAMP NOT NULL,
+    reward_session_reward_user_id VARCHAR REFERENCES reward_users (reward_user_id) ON DELETE CASCADE
+);

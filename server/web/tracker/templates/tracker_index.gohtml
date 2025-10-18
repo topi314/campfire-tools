@@ -5,16 +5,16 @@
         <h1>Tracker</h1>
     </div>
 
-    <p>Welcome to the Campfire Tools! Here you can run raffles, export campfire data, view events and track your campfire check-ins.</p>
-    <div class="buttons" hx-boost="true">
-        <a href="/tracker/raffle" class="button">Raffle</a>
-        <a href="/tracker/export" class="button">Export</a>
-        <a href="/tracker/event" class="button">Event</a>
-    </div>
+    <p>
+        Hi {{ .User.DisplayName }} <img src="{{ .User.AvatarURL }}" class="icon-32">
+        <br/>
+        Manage your Campfire club and rewards here.
+
+    </p>
+
     <div class="buttons" hx-boost="true">
         <a href="/tracker/clubs" class="button">Clubs</a>
         <a href="/tracker/rewards" class="button">Rewards</a>
-        <a href="/tracker/api/docs" class="button">API Docs</a>
     </div>
 </div>
 {{ template "tracker_footer" }}

@@ -50,7 +50,7 @@ func (h *handler) QRCode(w http.ResponseWriter, r *http.Request) {
 
 	code := r.PathValue("code")
 
-	qr, err := qrcode.New(h.Cfg.Auth.PublicURL + "/tracker/code/" + code)
+	qr, err := qrcode.New(h.Cfg.Auth.PublicRewardsURL + "/tracker/code/" + code)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("error", err.Error()))
 		http.Error(w, "Failed to create qrcode", http.StatusInternalServerError)

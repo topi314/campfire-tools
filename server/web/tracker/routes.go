@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/topi314/campfire-tools/internal/middlewares"
 	"github.com/topi314/campfire-tools/server"
 )
 
@@ -16,8 +17,28 @@ func Routes(srv *server.Server) http.Handler {
 		Server: srv,
 	}
 
+	fs := middlewares.Cache(http.FileServer(h.StaticFS))
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", h.TrackerIndex)
+	mux.HandleFunc("GET /{$}", h.Index)
+
+	mux.HandleFunc("GET /tracker", h.TrackerIndex)
+
+	mux.HandleFunc("GET /admin", h.Admin)
+	mux.HandleFunc("POST /admin/tokens", h.AdminTokens)
+
+	mux.HandleFunc("GET  /event", h.Event)
+	mux.HandleFunc("POST /event", h.ShowEvent)
+	mux.HandleFunc("GET  /event/{event_id}", h.GetEvent)
+
+	mux.HandleFunc("GET  /raffle", h.Raffle)
+	mux.HandleFunc("POST /raffle", h.RunRaffle)
+	mux.HandleFunc("POST /raffle/{raffle_id}", h.RerunRaffle)
+	mux.HandleFunc("GET  /raffle/{raffle_id}", h.GetRaffle)
+	mux.HandleFunc("POST /raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
+
+	mux.HandleFunc("GET  /export", h.Export)
+	mux.HandleFunc("POST /export", h.DoExport)
 
 	mux.HandleFunc("GET  /tracker/rewards", h.TrackerRewards)
 	mux.HandleFunc("GET  /tracker/rewards/new", h.TrackerRewardsNew)
@@ -30,16 +51,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/login", h.Login)
 	mux.HandleFunc("GET /tracker/login/callback", h.LoginCallback)
 
-	mux.HandleFunc("GET  /tracker/raffle", h.Raffle)
-	mux.HandleFunc("POST /tracker/raffle", h.RunRaffle)
-	mux.HandleFunc("POST /tracker/raffle/{raffle_id}", h.RerunRaffle)
-	mux.HandleFunc("GET  /tracker/raffle/{raffle_id}", h.GetRaffle)
-	mux.HandleFunc("POST /tracker/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
-
-	mux.HandleFunc("GET  /tracker/export", h.Export)
-	mux.HandleFunc("POST /tracker/export", h.DoExport)
-
-	mux.HandleFunc("GET  /tracker/clubs", h.TrackerClubs)
+	mux.HandleFunc("GET /tracker/clubs", h.TrackerClubs)
 
 	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)
 
@@ -64,11 +76,6 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle/{raffle_id}", h.GetRaffle)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
 
-	mux.HandleFunc("GET  /tracker/event", h.Event)
-	mux.HandleFunc("POST /tracker/event", h.ShowEvent)
-	// TODO: merge into TrackerClubEvent
-	// mux.HandleFunc("GET  /tracker/event/{event_id}", h.GetEvent)
-
 	mux.HandleFunc("GET  /tracker/event/import", h.TrackerEventImport)
 	mux.HandleFunc("POST /tracker/event/import", h.TrackerEventDoImport)
 
@@ -80,9 +87,13 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /tracker/api/events", h.APIImportEvents)
 	mux.HandleFunc("GET  /tracker/api/clubs/{club_id}/events", h.APIClubEvents)
 
-	mux.HandleFunc("GET /tracker/images/{image_id}", h.Image)
+	mux.HandleFunc("GET /images/{image_id}", h.Image)
+
+	mux.Handle("GET  /static/", fs)
+	mux.Handle("HEAD /static/", fs)
 
 	return h.auth(mux)
+	//return mux
 }
 
 func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {

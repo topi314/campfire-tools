@@ -7,7 +7,8 @@ format = "text"
 add_source = false
 
 [server]
-addr = ":8085"
+tracker_addr = ":8084"
+rewards_addr = ":8085"
 
 [database]
 host = "localhost" # replace with db in case you run with the compose.yml
@@ -23,7 +24,8 @@ burst = 10
 max_retries = 3
 
 [auth]
-public_url = "http://localhost:8085"
+public_tracker_url = "http://localhost:8084"
+public_rewards_url = "http://localhost:8085"
 client_id = "123456789012345678"
 client_secret = "your_client_secret"
 discord_guild_id = "123456789012345678"

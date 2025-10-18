@@ -66,14 +66,15 @@ func (d *Database) InsertClubs(ctx context.Context, clubs []Club) error {
 	return nil
 }
 
-func (d *Database) UpdateClubAutoEventImport(ctx context.Context, clubID string, autoImport bool) error {
+func (d *Database) UpdateClub(ctx context.Context, clubID string, autoImport bool, verificationChannelID *string) error {
 	query := `
 		UPDATE clubs
-		SET club_auto_event_import = $1
-		WHERE club_id = $2
+		SET club_auto_event_import = $1,
+			club_verification_channel_id = $2
+		WHERE club_id = $3
 	`
 
-	if _, err := d.db.ExecContext(ctx, query, autoImport, clubID); err != nil {
+	if _, err := d.db.ExecContext(ctx, query, autoImport, verificationChannelID, clubID); err != nil {
 		return fmt.Errorf("failed to update club auto import: %w", err)
 	}
 
@@ -126,4 +127,20 @@ func (d *Database) GetClubEventCreators(ctx context.Context, clubID string) ([]M
 	}
 
 	return creators, nil
+}
+
+func (d *Database) GetRewardClubs(ctx context.Context) ([]Club, error) {
+	query := `
+		SELECT *
+		FROM clubs
+		WHERE club_verification_channel_id IS NOT NULL
+		ORDER BY club_name
+	`
+
+	var clubs []Club
+	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
+		return nil, fmt.Errorf("failed to get reward clubs: %w", err)
+	}
+
+	return clubs, nil
 }

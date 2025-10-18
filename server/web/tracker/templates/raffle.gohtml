@@ -1,0 +1,53 @@
+{{ template "head" "Campfire Raffle" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/" }}
+        <h1>Raffle</h1>
+    </div>
+
+    <div class="section">
+        <form action="/raffle" method="POST">
+            <label class="form-control" for="events" title="Enter event links for the raffle. Each link should be on a new line.">
+                Event Links
+                <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
+https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
+                {{ if .Error }}
+                    <p class="error">{{ .Error }}</p>
+                {{ end }}
+            </label>
+            <label class="form-control" for="winner-count" title="Number of winners to select from the raffle">
+                Number of Winners
+                <input class="form-control" type="number" id="winner-count" name="winner_count" min="1" value="1" required>
+            </label>
+            <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
+                Only Checked-In Members
+                <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" checked>
+            </label>
+            <label class="form-control" for="single-entry" title="Only allow one entry per member">
+                Single Entry Per Member
+                <input class="form-control" type="checkbox" id="single-entry" name="single_entry" checked>
+            </label>
+            <button class="form-control" type="submit">Run</button>
+        </form>
+    </div>
+
+    {{ if .Raffles }}
+        <div class="section">
+            <h2>Raffles ({{ len .Raffles }})</h2>
+            <ul class="list">
+                {{ range $raffle := .Raffles }}
+                    <li class="list-item">
+                        <a href="{{ $raffle.URL }}" hx-boost="true">#{{ $raffle.ID }}</a> <span class="small-text">{{ formatTimeToRelDayTime $raffle.CreatedAt }}</span>
+                    </li>
+                {{ end }}
+            </ul>
+        </div>
+    {{ end }}
+</div>
+<script>
+    document.getElementById("events").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
+    });
+</script>
+{{ template "tracker_footer" }}
