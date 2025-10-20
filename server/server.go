@@ -34,6 +34,13 @@ var (
 func New(cfg Config) (*Server, error) {
 	var staticFS http.FileSystem
 	var t func() *template.Template
+
+	devTemplateFuncs := template.FuncMap{
+		"devEnabled": func() bool {
+			return cfg.Dev
+		},
+	}
+
 	if cfg.Dev {
 		root, err := os.OpenRoot("server/web/")
 		if err != nil {
@@ -43,6 +50,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return template.Must(template.New("templates").
 				Funcs(templateFuncs).
+				Funcs(devTemplateFuncs).
 				ParseFS(root.FS(), "templates/*.gohtml"))
 		}
 	} else {
@@ -54,6 +62,7 @@ func New(cfg Config) (*Server, error) {
 
 		st := template.Must(template.New("templates").
 			Funcs(templateFuncs).
+			Funcs(devTemplateFuncs).
 			ParseFS(templates, "web/templates/*.gohtml"),
 		)
 
@@ -82,18 +91,30 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	httpClient := &http.Client{}
+	var (
+		devLiveReloadNotifier *reloadNotifier
+		cancelWatcher         context.CancelFunc
+	)
+
+	if cfg.Dev {
+		devLiveReloadNotifier = newReloadNotifier()
+		cancelWatcher = startDevWatcher("server/web", devLiveReloadNotifier)
+	}
+
 	s := &Server{
 		Cfg: cfg,
 		Server: &http.Server{
 			Addr: cfg.Server.Addr,
 		},
-		HttpClient:    httpClient,
-		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
-		DB:            db,
-		Auth:          auth.New(cfg.Auth, db),
-		Templates:     t,
-		StaticFS:      staticFS,
-		WebhookClient: webhookClient,
+		HttpClient:       httpClient,
+		Campfire:         campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
+		DB:               db,
+		Auth:             auth.New(cfg.Auth, db),
+		Templates:        t,
+		StaticFS:         staticFS,
+		WebhookClient:    webhookClient,
+		ReloadNotifier:   devLiveReloadNotifier,
+		devWatcherCancel: cancelWatcher,
 	}
 
 	go s.cleanup()
@@ -134,6 +155,8 @@ type Server struct {
 	StaticFS               http.FileSystem
 	WebhookClient          *webhook.Client
 	SentTokenNotifications []int
+	ReloadNotifier         *reloadNotifier
+	devWatcherCancel       context.CancelFunc
 }
 
 func (s *Server) Start(handler http.Handler) {
@@ -156,6 +179,14 @@ func (s *Server) Stop() {
 	if err := s.Server.Shutdown(ctx); err != nil {
 		slog.Error("Server shutdown failed", slog.Any("err", err))
 		return
+	}
+
+	if s.devWatcherCancel != nil {
+		s.devWatcherCancel()
+	}
+
+	if s.ReloadNotifier != nil {
+		s.ReloadNotifier.Close()
 	}
 }
 
