@@ -35,12 +35,10 @@ func New(cfg Config) (*Server, error) {
 	var staticFS http.FileSystem
 	var t func() *template.Template
 
-	tmplFuncs := make(template.FuncMap, len(templateFuncs)+1)
-	for name, fn := range templateFuncs {
-		tmplFuncs[name] = fn
-	}
-	tmplFuncs["devEnabled"] = func() bool {
-		return cfg.Dev
+	devTemplateFuncs := template.FuncMap{
+		"devEnabled": func() bool {
+			return cfg.Dev
+		},
 	}
 
 	if cfg.Dev {
@@ -51,7 +49,8 @@ func New(cfg Config) (*Server, error) {
 		staticFS = http.FS(root.FS())
 		t = func() *template.Template {
 			return template.Must(template.New("templates").
-				Funcs(tmplFuncs).
+				Funcs(templateFuncs).
+				Funcs(devTemplateFuncs).
 				ParseFS(root.FS(), "templates/*.gohtml"))
 		}
 	} else {
@@ -62,7 +61,8 @@ func New(cfg Config) (*Server, error) {
 		staticFS = http.FS(subStaticFS)
 
 		st := template.Must(template.New("templates").
-			Funcs(tmplFuncs).
+			Funcs(templateFuncs).
+			Funcs(devTemplateFuncs).
 			ParseFS(templates, "web/templates/*.gohtml"),
 		)
 

@@ -131,43 +131,43 @@ func cleanPath(next http.Handler) http.Handler {
 // DevReload streams server-sent events that instruct the browser to refresh
 // whenever the dev watcher picks up a change on disk. The SSE connection stays
 // open until the client disconnects or the server shuts down.
-func (handler *handler) DevReload(writer http.ResponseWriter, request *http.Request) {
-	if handler.ReloadNotifier == nil {
-		http.NotFound(writer, request)
+func (h *handler) DevReload(w http.ResponseWriter, r *http.Request) {
+	if h.ReloadNotifier == nil {
+		http.NotFound(w, r)
 		return
 	}
 
-	flusher, ok := writer.(http.Flusher)
+	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(writer, "streaming unsupported", http.StatusInternalServerError)
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
 		return
 	}
 
-	writer.Header().Set("Content-Type", "text/event-stream")
-	writer.Header().Set("Cache-Control", "no-cache")
-	writer.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
 
-	id, ch := handler.ReloadNotifier.Subscribe()
-	if id == -1 {
-		writer.WriteHeader(http.StatusGone)
+	cancel, ch := h.ReloadNotifier.Subscribe()
+	if ch == nil {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
-	defer handler.ReloadNotifier.Unsubscribe(id)
+	defer cancel()
 
-	if _, err := fmt.Fprint(writer, ": connected\n\n"); err != nil {
+	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
 		return
 	}
 	flusher.Flush()
 
 	for {
 		select {
-		case <-request.Context().Done():
+		case <-r.Context().Done():
 			return
 		case _, ok := <-ch:
 			if !ok {
 				return
 			}
-			if _, err := fmt.Fprint(writer, "data: reload\n\n"); err != nil {
+			if _, err := fmt.Fprint(w, "data: reload\n\n"); err != nil {
 				return
 			}
 			flusher.Flush()
