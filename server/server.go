@@ -56,6 +56,7 @@ func New(cfg Config) (*Server, error) {
 				Funcs(templateFuncs).
 				ParseFS(root.FS(), "templates/*.gohtml")))
 		}
+		reloader.Start(root.FS())
 	} else {
 		subStaticFS, err := fs.Sub(static, "web")
 		if err != nil {
