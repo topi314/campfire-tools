@@ -17,11 +17,14 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/disgo/webhook"
+	"github.com/topi314/goreload"
 
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
+
+const ReloadRoute = "/dev/reload"
 
 var (
 	//go:embed web/static
@@ -32,14 +35,15 @@ var (
 )
 
 func New(cfg Config) (*Server, error) {
+	reloader := goreload.New(goreload.Config{
+		Logger:  slog.Default(),
+		Route:   ReloadRoute,
+		Enabled: cfg.Dev,
+		MaxAge:  time.Hour,
+	})
+
 	var staticFS http.FileSystem
 	var t func() *template.Template
-
-	devTemplateFuncs := template.FuncMap{
-		"devEnabled": func() bool {
-			return cfg.Dev
-		},
-	}
 
 	if cfg.Dev {
 		root, err := os.OpenRoot("server/web/")
@@ -48,10 +52,9 @@ func New(cfg Config) (*Server, error) {
 		}
 		staticFS = http.FS(root.FS())
 		t = func() *template.Template {
-			return template.Must(template.New("templates").
+			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				Funcs(devTemplateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml"))
+				ParseFS(root.FS(), "templates/*.gohtml")))
 		}
 	} else {
 		subStaticFS, err := fs.Sub(static, "web")
@@ -60,11 +63,10 @@ func New(cfg Config) (*Server, error) {
 		}
 		staticFS = http.FS(subStaticFS)
 
-		st := template.Must(template.New("templates").
+		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			Funcs(devTemplateFuncs).
 			ParseFS(templates, "web/templates/*.gohtml"),
-		)
+		))
 
 		t = func() *template.Template {
 			return st
@@ -91,30 +93,19 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	httpClient := &http.Client{}
-	var (
-		devLiveReloadNotifier *reloadNotifier
-		cancelWatcher         context.CancelFunc
-	)
-
-	if cfg.Dev {
-		devLiveReloadNotifier = newReloadNotifier()
-		cancelWatcher = startDevWatcher("server/web", devLiveReloadNotifier)
-	}
-
 	s := &Server{
 		Cfg: cfg,
 		Server: &http.Server{
 			Addr: cfg.Server.Addr,
 		},
-		HttpClient:       httpClient,
-		Campfire:         campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
-		DB:               db,
-		Auth:             auth.New(cfg.Auth, db),
-		Templates:        t,
-		StaticFS:         staticFS,
-		WebhookClient:    webhookClient,
-		ReloadNotifier:   devLiveReloadNotifier,
-		devWatcherCancel: cancelWatcher,
+		HttpClient:    httpClient,
+		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
+		DB:            db,
+		Auth:          auth.New(cfg.Auth, db),
+		Templates:     t,
+		StaticFS:      staticFS,
+		WebhookClient: webhookClient,
+		Reloader:      reloader,
 	}
 
 	go s.cleanup()
@@ -155,8 +146,7 @@ type Server struct {
 	StaticFS               http.FileSystem
 	WebhookClient          *webhook.Client
 	SentTokenNotifications []int
-	ReloadNotifier         *reloadNotifier
-	devWatcherCancel       context.CancelFunc
+	Reloader               *goreload.Reloader
 }
 
 func (s *Server) Start(handler http.Handler) {
@@ -181,12 +171,8 @@ func (s *Server) Stop() {
 		return
 	}
 
-	if s.devWatcherCancel != nil {
-		s.devWatcherCancel()
-	}
-
-	if s.ReloadNotifier != nil {
-		s.ReloadNotifier.Close()
+	if s.Reloader != nil {
+		s.Reloader.Close()
 	}
 }
 

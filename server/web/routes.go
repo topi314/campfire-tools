@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -17,13 +16,7 @@ func Routes(srv *server.Server) http.Handler {
 		Server: srv,
 	}
 
-	fileServer := http.FileServer(h.StaticFS)
-	var fs http.Handler
-	if srv.Cfg.Dev {
-		fs = fileServer
-	} else {
-		fs = cache(fileServer)
-	}
+	fileServer := h.Reloader.CacheMiddleware(http.FileServer(h.StaticFS))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", h.Index)
@@ -85,11 +78,10 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
 
-	mux.Handle("GET  /static/", fs)
-	mux.Handle("HEAD /static/", fs)
+	mux.Handle("/static/", fileServer)
 
 	if srv.Cfg.Dev {
-		mux.HandleFunc("GET /dev/reload", h.DevReload)
+		mux.Handle(server.ReloadRoute, h.Reloader.Handler())
 	}
 
 	mux.HandleFunc("/", h.NotFound)
@@ -126,51 +118,4 @@ func cleanPath(next http.Handler) http.Handler {
 		// r.URL.RawPath = path.Clean(r.URL.RawPath)
 		next.ServeHTTP(w, r)
 	})
-}
-
-// DevReload streams server-sent events that instruct the browser to refresh
-// whenever the dev watcher picks up a change on disk. The SSE connection stays
-// open until the client disconnects or the server shuts down.
-func (h *handler) DevReload(w http.ResponseWriter, r *http.Request) {
-	if h.ReloadNotifier == nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	cancel, ch := h.ReloadNotifier.Subscribe()
-	if ch == nil {
-		w.WriteHeader(http.StatusGone)
-		return
-	}
-	defer cancel()
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case _, ok := <-ch:
-			if !ok {
-				return
-			}
-			if _, err := fmt.Fprint(w, "data: reload\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
 }

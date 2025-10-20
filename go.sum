@@ -40,6 +40,8 @@ github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOf
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/topi314/gomigrate v0.0.0-20250604001904-f3f6e21ecfc9 h1:y9O3xlHCxufrozgkb8tUuitSDKuyQ6mW08qbxn2hYfw=
 github.com/topi314/gomigrate v0.0.0-20250604001904-f3f6e21ecfc9/go.mod h1:/s3mWBKnSyDEMJyi9FLM/rXtq3BtsoEki9Yyk3Aqi2I=
+github.com/topi314/goreload v0.0.0-20251020225013-1b6bf22d4dc6 h1:8aOwcPvvHvfEkdbjBZaWT2e0/fwAgjcZiiLt9a/yWDc=
+github.com/topi314/goreload v0.0.0-20251020225013-1b6bf22d4dc6/go.mod h1:u8O9ysaQJtViX0B5Id7IjukL6Duf0FP717EvoXNKR7g=
 golang.org/x/crypto v0.42.0 h1:chiH31gIWm57EkTXpwnqf8qeuMUi0yekh6mT2AvFlqI=
 golang.org/x/crypto v0.42.0/go.mod h1:4+rDnOTJhQCx2q7/j6rAN5XDw8kPjeaXEUR2eL94ix8=
 golang.org/x/oauth2 v0.30.0 h1:dnDm7JmhM45NNpd8FDDeLhK6FwqbOf4MLCM9zb1BOHI=
