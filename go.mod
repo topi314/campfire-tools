@@ -9,7 +9,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/topi314/gomigrate v0.0.0-20250604001904-f3f6e21ecfc9
-	github.com/topi314/goreload v0.0.0-20251020225013-1b6bf22d4dc6
+	github.com/topi314/goreload v0.0.0-20251020232344-560d00e2bb71
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/time v0.12.0
