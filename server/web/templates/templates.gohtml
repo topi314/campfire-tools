@@ -112,3 +112,29 @@
         <img src="/static/back.svg" alt="Back">
     </a>
 {{ end }}
+
+{{ define "live_reload_script" }}
+      <script>
+        (function () {
+            if (window.__campfireDevReloadInitialized) {
+                return;
+            }
+            window.__campfireDevReloadInitialized = true;
+
+            const connect = () => {
+                const source = new EventSource("/dev/reload");
+
+                source.onmessage = () => {
+                    window.location.reload();
+                };
+
+                source.onerror = () => {
+                    source.close();
+                    setTimeout(connect, 1000);
+                };
+            };
+
+            connect();
+        })();
+    </script>
+{{end}}

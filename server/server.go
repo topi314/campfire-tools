@@ -92,13 +92,13 @@ func New(cfg Config) (*Server, error) {
 
 	httpClient := &http.Client{}
 	var (
-		reloadNotifier *reloadNotifier
-		cancelWatcher  context.CancelFunc
+		devLiveReloadNotifier *reloadNotifier
+		cancelWatcher         context.CancelFunc
 	)
 
 	if cfg.Dev {
-		reloadNotifier = newReloadNotifier()
-		cancelWatcher = startDevWatcher("server/web", reloadNotifier)
+		devLiveReloadNotifier = newReloadNotifier()
+		cancelWatcher = startDevWatcher("server/web", devLiveReloadNotifier)
 	}
 
 	s := &Server{
@@ -106,14 +106,14 @@ func New(cfg Config) (*Server, error) {
 		Server: &http.Server{
 			Addr: cfg.Server.Addr,
 		},
-		HttpClient:    httpClient,
-		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
-		DB:            db,
-		Auth:          auth.New(cfg.Auth, db),
-		Templates:     t,
-		StaticFS:      staticFS,
-		WebhookClient: webhookClient,
-		ReloadNotifier: reloadNotifier,
+		HttpClient:       httpClient,
+		Campfire:         campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
+		DB:               db,
+		Auth:             auth.New(cfg.Auth, db),
+		Templates:        t,
+		StaticFS:         staticFS,
+		WebhookClient:    webhookClient,
+		ReloadNotifier:   devLiveReloadNotifier,
 		devWatcherCancel: cancelWatcher,
 	}
 
