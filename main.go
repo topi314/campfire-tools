@@ -65,7 +65,7 @@ func setupLogger(cfg server.LogConfig) {
 			ReplaceAttr: nil,
 		})
 	case server.LogFormatText:
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			AddSource:   cfg.AddSource,
 			Level:       cfg.Level,
 			ReplaceAttr: nil,
