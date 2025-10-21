@@ -61,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml"))
+				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml")))
 		}
 		reloader.Start(root.FS())
 	} else {
@@ -74,7 +74,7 @@ func New(cfg Config) (*Server, error) {
 		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
 			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
-		)
+		))
 
 		t = func() *template.Template {
 			return st
