@@ -10,6 +10,8 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/topi314/gomigrate v0.0.0-20250604001904-f3f6e21ecfc9
 	github.com/topi314/goreload v0.0.0-20251020232344-560d00e2bb71
+	github.com/yeqown/go-qrcode/v2 v2.2.5
+	github.com/yeqown/go-qrcode/writer/standard v1.3.0
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/time v0.12.0
@@ -26,8 +28,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad // indirect
-	github.com/yeqown/go-qrcode/v2 v2.2.5 // indirect
-	github.com/yeqown/go-qrcode/writer/standard v1.3.0 // indirect
 	github.com/yeqown/reedsolomon v1.0.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/image v0.10.0 // indirect
