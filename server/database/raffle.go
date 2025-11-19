@@ -27,6 +27,22 @@ func (d *Database) GetRaffleByID(ctx context.Context, id int) (*Raffle, error) {
 	return &raffle, nil
 }
 
+func (d *Database) GetRaffleEvents(ctx context.Context, raffleID int) ([]Event, error) {
+	query := `
+		SELECT events.*
+		FROM events
+		JOIN raffles ON $1 = raffles.raffle_id
+		WHERE events.event_id = ANY(raffles.raffle_events)
+	`
+
+	var events []Event
+	if err := d.db.SelectContext(ctx, &events, query, raffleID); err != nil {
+		return nil, fmt.Errorf("failed to get raffle events: %w", err)
+	}
+
+	return events, nil
+}
+
 func (d *Database) InsertRaffle(ctx context.Context, raffle Raffle) (int, error) {
 	query := `
 		INSERT INTO raffles (raffle_user_id, raffle_events, raffle_winner_count, raffle_only_checked_in, raffle_single_entry)
@@ -70,7 +86,7 @@ func (d *Database) GetRaffleWinners(ctx context.Context, raffleID int) ([]Raffle
 		JOIN members ON raffle_winner_member_id = member_id
 		JOIN raffles ON raffle_winner_raffle_id = raffle_id
 		WHERE raffle_winner_raffle_id = $1
-		ORDER BY raffle_winner_created_at DESC, member_display_name, member_username, member_id
+		ORDER BY raffle_winner_created_at DESC
 	`
 
 	var winners []RaffleWinnerWithMember

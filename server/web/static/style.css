@@ -9,7 +9,6 @@ body, html {
 
 a {
     color: var(--text-color);
-    text-decoration: none;
 }
 
 input, textarea {

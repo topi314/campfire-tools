@@ -76,7 +76,7 @@
             <ol>
                 {{ range $event := .Events }}
                     <li>
-                        <a href="/event/{{ $event}}" hx-boost="true">{{ $event }}</a>
+                        <a href="/event/{{ $event.ID }}" hx-boost="true">{{ $event.Name }}</a>
                     </li>
                 {{ end }}
             </ol>

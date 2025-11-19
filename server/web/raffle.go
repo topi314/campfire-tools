@@ -29,6 +29,7 @@ type RaffleVars struct {
 
 type RaffleResultVars struct {
 	Raffle
+	Events          []Event
 	ClubID          string
 	RerunRaffleURL  string
 	Error           string
@@ -255,6 +256,17 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	raffleEvents, err := h.DB.GetRaffleEvents(ctx, raffleID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get raffle events from database", slog.Any("err", err))
+		h.renderRaffleResult(w, r, database.Raffle{}, clubID, "Failed to get raffle events: "+err.Error())
+		return
+	}
+	renderEvents := make([]Event, 0, len(raffleEvents))
+	for _, event := range raffleEvents {
+		renderEvents = append(renderEvents, newEvent(event, 32))
+	}
+
 	session := auth.GetSession(r)
 	if raffle.UserID != "" && raffle.UserID != session.UserID {
 		h.NotFound(w, r)
@@ -287,6 +299,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
 		Raffle:          newRaffle(*raffle),
+		Events:          renderEvents,
 		ClubID:          clubID,
 		RerunRaffleURL:  r.URL.Path,
 		Winners:         winners,
@@ -363,6 +376,14 @@ func (h *handler) raffleWinners(ctx context.Context, raffle database.Raffle, pas
 		num := rand.N(len(members))
 		member := members[num]
 		members = slices.Delete(members, num, num+1) // Remove selected member to avoid duplicates
+
+		// If the member has already won, skip them.
+		// This can happen if singleEntry is false.
+		if slices.ContainsFunc(winners, func(winner campfire.Member) bool {
+			return winner.ID == member.ID
+		}) {
+			continue
+		}
 
 		winners = append(winners, member)
 	}
@@ -466,14 +487,14 @@ func (h *handler) unmarshalEvent(ctx context.Context, event database.EventWithCr
 		return nil, err
 	}
 
-	if len(fullEvent.Members.Edges) > 0 {
-		return &fullEvent, nil
-	}
-
 	members, err := h.DB.GetEventMembers(ctx, event.Event.ID)
 	if err != nil {
 		return nil, err
 	}
+
+	fullEvent.RSVPStatuses = nil
+	fullEvent.Members.Edges = nil
+	fullEvent.Members.TotalCount = 0
 
 	for _, member := range members {
 		fullEvent.RSVPStatuses = append(fullEvent.RSVPStatuses, campfire.RSVPStatus{
