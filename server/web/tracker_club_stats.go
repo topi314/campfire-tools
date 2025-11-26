@@ -199,14 +199,14 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 }
 
 func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digitalCodesClosed bool) (*DigitalCodes, error) {
-	startDate := time.Now().AddDate(0, 1, 0)
-	endDate := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
+	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).AddDate(0, 1, 0)
+	endDate := time.Date(2025, 10, 1, 0, 0, 0, 0, now.Location())
 
 	var digitalCodeMonths []DigitalCodeMonth
 	for date := startDate; !date.Before(endDate); date = date.AddDate(0, -1, 0) {
 		from := date.AddDate(0, -3, 0)
-		to := date.AddDate(0, 0, -1).
-			Add(time.Hour*23 + time.Minute*59 + time.Second*59)
+		to := date.Add(-time.Second)
 		_, checkIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, true, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch total check-ins and accepted members for digital codes: %w", err)
@@ -380,7 +380,7 @@ func calcCAProjectedCheckIns(from time.Time, to time.Time, totalCheckIns int) (i
 		return totalCheckIns, 0, 0 // No projection if the duration is less than a day
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	nowDuration := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Sub(from)
 
 	daysElapsed := int(nowDuration.Hours() / 24)
@@ -402,7 +402,7 @@ func parseTimeQuery(query url.Values, name string, defaultValue time.Time) time.
 		return defaultValue
 	}
 
-	parsed, err := time.Parse("2006-01-02", value)
+	parsed, err := time.ParseInLocation("2006-01-02", value, time.UTC)
 	if err != nil {
 		return defaultValue
 	}

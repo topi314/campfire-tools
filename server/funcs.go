@@ -138,7 +138,7 @@ func reverse(l any) (any, error) {
 }
 
 func parseTime(s string) (time.Time, error) {
-	return time.Parse(time.RFC3339, s)
+	return time.ParseInLocation(time.RFC3339, s, time.UTC)
 }
 
 func formatDate(t time.Time) string {
@@ -158,7 +158,7 @@ func formatTimeToDayTime(t time.Time) string {
 }
 
 func formatTimeToRelDayTime(t time.Time) string {
-	nowYear, nowMonth, nowDay := time.Now().Date()
+	nowYear, nowMonth, nowDay := time.Now().UTC().Date()
 	year, month, day := t.Date()
 
 	timeStr := t.Format("15:04 MST")

@@ -22,7 +22,7 @@ type Quarter struct {
 }
 
 func GetQuarters() []Quarter {
-	now := time.Now()
+	now := time.Now().UTC()
 	currentYear := now.Year()
 	currentMonth := now.Month()
 
@@ -102,7 +102,7 @@ func GetRangeFromQuarter(value string) (time.Time, time.Time) {
 }
 
 func GetCurrentQuarterRange() (time.Time, time.Time) {
-	now := time.Now()
+	now := time.Now().UTC()
 	year := now.Year()
 	month := now.Month()
 
