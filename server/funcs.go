@@ -28,6 +28,7 @@ var templateFuncs = template.FuncMap{
 	"safeSrcset":             safeSrcset,
 	"formatDate":             formatDate,
 	"formatDateNice":         formatDateNice,
+	"formatMonthNice":        formatMonthNice,
 	"formatTimeToDayTime":    formatTimeToDayTime,
 	"formatTimeToRelDayTime": formatTimeToRelDayTime,
 }
@@ -146,6 +147,10 @@ func formatDate(t time.Time) string {
 
 func formatDateNice(t time.Time) string {
 	return t.Format("2 Jan 2006")
+}
+
+func formatMonthNice(t time.Time) string {
+	return t.Format("January 2006")
 }
 
 func formatTimeToDayTime(t time.Time) string {

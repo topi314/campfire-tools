@@ -55,7 +55,43 @@
 
     <div class="section">
         <div class="section-header">
-            <h2>League Goals</h2>
+            <h2>Digital Codes</h2>
+        </div>
+
+        <details id="digital-codes-closed" {{ if .DigitalCodes.Open }}open{{ end }}>
+            <summary>
+                View digital code count & predictions.
+                The amount of digital codes received are roughly 25% of avergage monthly check-ins in the last 3 completed months.
+            </summary>
+
+            <div class="table-5">
+                <span>Date</span>
+                <span>Check-Ins</span>
+                <span>Predicted Check-Ins</span>
+                <span>Codes</span>
+                <span>Predicted Codes</span>
+
+                {{ range $month := .DigitalCodes.Months }}
+                    <span>{{ formatMonthNice $month.Date }}</span>
+                    <span>{{ $month.CheckIns }}</span>
+                    <span>{{ $month.PredictedCheckIns }}</span>
+                    <span>{{ $month.Codes }}</span>
+                    <span>{{ $month.PredictedCodes }}</span>
+                {{ else }}
+                    <span>No data found.</span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                {{ end }}
+            </div>
+        </details>
+
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Old League Goals</h2>
         </div>
 
         <details id="league-goals-closed" {{ if .LeagueGoals.Open }}open{{ end }}>
