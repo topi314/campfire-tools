@@ -28,6 +28,7 @@ func newRewardCode(pool database.RewardCode, importedBy database.DiscordUser, re
 		ID:            pool.ID,
 		URL:           fmt.Sprintf("/tracker/rewards/%d", pool.ID),
 		Code:          pool.Code,
+		QRURL:         fmt.Sprintf("/tracker/code/%s/qr", pool.Code),
 		RedeemCodeURL: fmt.Sprintf("https://store.pokemongo.com/offer-redemption?passcode=%s", pool.Code),
 		ImportedAt:    pool.ImportedAt,
 		ImportedBy:    newDiscordUser(importedBy),
@@ -41,6 +42,7 @@ type RewardCode struct {
 	ID            int
 	URL           string
 	Code          string
+	QRURL         string
 	RedeemCodeURL string
 	ImportedAt    time.Time
 	ImportedBy    DiscordUser

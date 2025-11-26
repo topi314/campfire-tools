@@ -117,7 +117,7 @@ func New(cfg Config) (*Server, error) {
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:            db,
-		Auth:          auth.New(cfg.DiscordAuth),
+		Auth:          auth.New(cfg.DiscordAuth, cfg.Server.PublicTrackerURL),
 		CampfireAuth:  cauth.New(cfg.CampfireAuth),
 		Templates:     t,
 		StaticFS:      staticFS,
@@ -186,6 +186,7 @@ func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler)
 	}()
 
 	go s.importClubs()
+	// TODO: activate event import/update later
 	// go s.importEvents()
 	// go s.updateEvents()
 }

@@ -125,7 +125,7 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !slices.Contains(h.Cfg.Auth.Whitelist, user.ID.String()) {
+	if !slices.Contains(h.Cfg.DiscordAuth.Whitelist, user.ID.String()) {
 		guilds, err := h.getDiscordUserGuilds(ctx, token.AccessToken)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to get user guilds from Discord", slog.Any("error", err))
@@ -134,16 +134,16 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if i := slices.IndexFunc(guilds, func(g discord.OAuth2Guild) bool {
-			return g.ID.String() == h.Cfg.Auth.DiscordGuildID
+			return g.ID.String() == h.Cfg.DiscordAuth.DiscordGuildID
 		}); i == -1 {
-			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.Auth.DiscordGuildID))
+			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.DiscordAuth.DiscordGuildID))
 			http.Error(w, "You are not whitelisted or a member of the required Discord guild", http.StatusForbidden)
 			return
 		}
 	}
 
 	var admin bool
-	if slices.Contains(h.Cfg.Auth.Admins, user.ID.String()) {
+	if slices.Contains(h.Cfg.DiscordAuth.Admins, user.ID.String()) {
 		admin = true
 	}
 

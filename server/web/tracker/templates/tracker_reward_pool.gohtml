@@ -16,18 +16,20 @@
             <h2>Codes</h2>
         </div>
         {{ if .Codes }}
-            <div class="table-5">
+            <div class="table-6">
                 <div>Code</div>
                 <div>Imported At</div>
                 <div>Imported By</div>
                 <div>Redeemed At</div>
                 <div>Redeemed By</div>
+                <div>QR Code</div>
                 {{ range $code := .Codes }}
-                    <span><a href="{{ $code.RedeemCodeURL }}">{{ $code.Code }}</a></span>
+                    <span class="left mono"><a href="{{ $code.RedeemCodeURL }}">{{ $code.Code }}</a></span>
                     <span>{{ formatTimeToRelDayTime $code.ImportedAt }}</span>
                     <span>{{ $code.ImportedBy.DisplayName }}</span>
                     <span>{{ if $code.RedeemedAt }}{{ formatTimeToRelDayTime $code.RedeemedAt }}{{ else }}-{{ end }}</span>
                     <span>{{ if $code.RedeemedBy }}{{ $code.RedeemedBy }}{{ else }}-{{ end }}</span>
+                    <span><a href="{{ $code. }}" class="button">Show</a></span>
                 {{ end }}
             </div>
         {{ else }}

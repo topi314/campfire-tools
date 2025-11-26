@@ -15,7 +15,9 @@
         <ul class="list">
             {{ range .RewardPools }}
                 <li class="list-item list-item-group">
-                    <a href="{{ .URL }}">{{ .Name }}</a>{{ .UsedCodes }}/{{ .TotalCodes }} codes)
+                    <div class="expand">
+                        <a href="{{ .URL }}">{{ .Name }} ({{ .UsedCodes }}/{{ .TotalCodes }} codes)</a>
+                    </div>
                     <div class="buttons">
                         <a href="{{ .CodesURL }}" class="button">Show Codes</a>
                     </div>

@@ -106,14 +106,18 @@ func (c LogConfig) String() string {
 }
 
 type ServerConfig struct {
-	TrackerAddr string `toml:"tracker_addr"`
-	RewardsAddr string `toml:"rewards_addr"`
+	TrackerAddr      string `toml:"tracker_addr"`
+	PublicTrackerURL string `toml:"public_tracker_url"`
+	RewardsAddr      string `toml:"rewards_addr"`
+	PublicRewardsURL string `toml:"public_rewards_url"`
 }
 
 func (c ServerConfig) String() string {
-	return fmt.Sprintf("\n Tracker Address: %s\n Rewards Address: %s",
+	return fmt.Sprintf("\n TrackerAddr: %s\n PublicTrackerURL: %s\n RewardsAddr: %s\n PublicRewardsURL: %s",
 		c.TrackerAddr,
+		c.PublicTrackerURL,
 		c.RewardsAddr,
+		c.PublicRewardsURL,
 	)
 }
 

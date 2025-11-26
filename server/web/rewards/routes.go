@@ -17,7 +17,7 @@ func Routes(srv *server.Server) http.Handler {
 		Server: srv,
 	}
 
-	fs := middlewares.Cache(http.FileServer(h.StaticFS))
+	fs := srv.Reloader.CacheMiddleware(http.FileServer(h.StaticFS))
 
 	mux := http.NewServeMux()
 
@@ -36,6 +36,8 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.Handle("GET  /static/", fs)
 	mux.Handle("HEAD /static/", fs)
+
+	mux.Handle(server.ReloadRoute, srv.Reloader.Handler())
 
 	mux.HandleFunc("/", h.NotFound)
 

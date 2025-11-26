@@ -19,6 +19,7 @@ input, textarea {
     border-radius: 4px;
     background-color: var(--background2-color);
     color: var(--text-color);
+    resize: vertical;
 }
 
 input[type="checkbox"] {
@@ -545,6 +546,22 @@ h2 > img {
 
 .center {
     text-align: center;
+}
+
+.left {
+    text-align: left;
+}
+
+.right {
+    text-align: right;
+}
+
+.mono {
+    font-family: monospace;
+}
+
+.expand {
+    flex-grow: 1;
 }
 
 .manual-code {

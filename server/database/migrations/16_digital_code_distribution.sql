@@ -70,5 +70,5 @@ CREATE TABLE reward_sessions
     reward_session_id             BIGSERIAL PRIMARY KEY,
     reward_session_created_at     TIMESTAMP NOT NULL DEFAULT now(),
     reward_session_expires_at     TIMESTAMP NOT NULL,
-    reward_session_reward_user_id VARCHAR REFERENCES reward_users (reward_user_id) ON DELETE CASCADE
+    reward_session_reward_user_id BIGINT REFERENCES reward_users (reward_user_id) ON DELETE CASCADE
 );

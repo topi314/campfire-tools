@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/topi314/campfire-tools/internal/middlewares"
 	"github.com/topi314/campfire-tools/server"
 )
 
@@ -17,7 +16,7 @@ func Routes(srv *server.Server) http.Handler {
 		Server: srv,
 	}
 
-	fs := middlewares.Cache(http.FileServer(h.StaticFS))
+	fs := srv.Reloader.CacheMiddleware(http.FileServer(h.StaticFS))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", h.Index)
@@ -52,8 +51,6 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/login/callback", h.LoginCallback)
 
 	mux.HandleFunc("GET /tracker/clubs", h.TrackerClubs)
-
-	mux.HandleFunc("GET /tracker/refresh", h.TrackerRefresh)
 
 	mux.HandleFunc("GET  /tracker/club/import", h.TrackerClubImport)
 	mux.HandleFunc("POST /tracker/club/import", h.TrackerClubDoImport)
@@ -92,8 +89,11 @@ func Routes(srv *server.Server) http.Handler {
 	mux.Handle("GET  /static/", fs)
 	mux.Handle("HEAD /static/", fs)
 
+	mux.Handle(server.ReloadRoute, srv.Reloader.Handler())
+
+	mux.HandleFunc("/", h.NotFound)
+
 	return h.auth(mux)
-	//return mux
 }
 
 func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {

@@ -124,7 +124,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
-		Club: newClub(*club),
+		Club: models.NewClub(*club),
 		EventsFilter: EventsFilter{
 			FilterURL:            r.URL.Path,
 			From:                 from,
@@ -142,7 +142,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, categoriesClosed bool) (*EventCategories, error) {
+func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, categoriesClosed bool) (*models.EventCategories, error) {
 	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch total check-ins and accepted members: %w", err)
@@ -152,7 +152,7 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch event check-in and accepted counts: %w", err)
 	}
-	eventCategories := make(map[string]EventCategory)
+	eventCategories := make(map[string]models.EventCategory)
 	for _, event := range events {
 		category := h.getEventCategories(event.CampfireLiveEventName)
 
@@ -181,16 +181,16 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 		}
 		return b.CheckIns - a.CheckIns
 	})
-	categories = append(categories, EventCategory{
+	categories = append(categories, models.EventCategory{
 		Name:             "Total",
 		Events:           len(events),
 		Accepted:         totalAccepted,
 		CheckIns:         totalCheckIns,
-		CheckInRate:      calcCheckInRate(totalAccepted, totalCheckIns),
+		CheckInRate:      models.CalcCheckInRate(totalAccepted, totalCheckIns),
 		TotalCheckInRate: 100,
 	})
 
-	return &EventCategories{
+	return &models.EventCategories{
 		Open:       !categoriesClosed,
 		Categories: categories,
 	}, nil
@@ -210,7 +210,7 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 			return nil, fmt.Errorf("failed to fetch total check-ins and accepted members for digital codes: %w", err)
 		}
 
-		predictedCheckIns, _, _ := calcCAProjectedCheckIns(from, to, checkIns)
+		predictedCheckIns, _, _ := models.CalcCAProjectedCheckIns(from, to, checkIns)
 		codes := int(float64(checkIns/3) * 0.25)
 		predictedCodes := int(float64(predictedCheckIns/3) * 0.25)
 
@@ -298,7 +298,7 @@ func (h *handler) calculateLeagueGoals(ctx context.Context, clubID string, from 
 		Days:               quarterDays,
 		DaysElapsed:        quarterDays - quarterDaysRemaining,
 		DaysRemaining:      quarterDaysRemaining,
-		DaysElapsedPercent: calcQuarterProgress(quarterDays, quarterDaysRemaining),
+		DaysElapsedPercent: models.CalcQuarterProgress(quarterDays, quarterDaysRemaining),
 		BiggestEvent:       trackerBiggestEvent,
 	}, nil
 }
