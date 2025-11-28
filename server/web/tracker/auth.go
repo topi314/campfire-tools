@@ -75,7 +75,7 @@ func (h *handler) forceLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
-func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *handler) LoginOld(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	redirect := query.Get("rd")
 	if redirect == "" {
@@ -134,9 +134,9 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if i := slices.IndexFunc(guilds, func(g discord.OAuth2Guild) bool {
-			return g.ID.String() == h.Cfg.DiscordAuth.DiscordGuildID
+			return g.ID.String() == h.Cfg.DiscordAuth.GuildID
 		}); i == -1 {
-			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.DiscordAuth.DiscordGuildID))
+			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.DiscordAuth.GuildID))
 			http.Error(w, "You are not whitelisted or a member of the required Discord guild", http.StatusForbidden)
 			return
 		}

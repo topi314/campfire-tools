@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -195,10 +196,24 @@ func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := s.TrackerServer.Shutdown(ctx); err != nil {
-		slog.Error("Server shutdown failed", slog.Any("err", err))
-		return
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := s.TrackerServer.Shutdown(ctx); err != nil {
+			slog.Error("Tracker server shutdown failed", slog.Any("err", err))
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := s.RewardsServer.Shutdown(ctx); err != nil {
+			slog.Error("Rewards server shutdown failed", slog.Any("err", err))
+		}
+	}()
+
+	wg.Wait()
 
 	if s.Reloader != nil {
 		s.Reloader.Close()

@@ -29,7 +29,7 @@
                     <span>{{ $code.ImportedBy.DisplayName }}</span>
                     <span>{{ if $code.RedeemedAt }}{{ formatTimeToRelDayTime $code.RedeemedAt }}{{ else }}-{{ end }}</span>
                     <span>{{ if $code.RedeemedBy }}{{ $code.RedeemedBy }}{{ else }}-{{ end }}</span>
-                    <span><a href="{{ $code. }}" class="button">Show</a></span>
+                    <span><a href="{{ $code.URL }}" class="button">Show</a></span>
                 {{ end }}
             </div>
         {{ else }}

@@ -84,7 +84,7 @@ func (h *handler) CampfireLogin(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(h.Cfg.CampfireAuth.AuthURL + "/login")
 	q := u.Query()
 	q.Set("client_id", h.Cfg.CampfireAuth.ClientID)
-	q.Set("redirect_uri", h.Cfg.CampfireAuth.PublicURL+"/callback")
+	q.Set("redirect_uri", h.Cfg.Server.PublicRewardsURL+"/callback")
 	q.Set("club_id", club.Club.ID)
 	q.Set("channel_id", *club.ClubVerificationChannelID)
 	q.Set("state", state)
