@@ -3,6 +3,7 @@
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
         <h1>{{ .Name }}</h1>
+        <a href="{{ .EditURL }}" class="button button-primary">Edit</a>
     </div>
 
     {{ if .Description }}
@@ -13,7 +14,7 @@
 
     <div class="section">
         <div class="section-header">
-            <h2>Codes</h2>
+            <h2>Codes ({{ len .Codes }})</h2>
         </div>
         {{ if .Codes }}
             <div class="table-6">
@@ -29,7 +30,7 @@
                     <span>{{ $code.ImportedBy.DisplayName }}</span>
                     <span>{{ if $code.RedeemedAt }}{{ formatTimeToRelDayTime $code.RedeemedAt }}{{ else }}-{{ end }}</span>
                     <span>{{ if $code.RedeemedBy }}{{ $code.RedeemedBy }}{{ else }}-{{ end }}</span>
-                    <span><a href="{{ $code.URL }}" class="button">Show</a></span>
+                    <span><a href="{{ $code.ShowURL }}" class="button">Show</a></span>
                 {{ end }}
             </div>
         {{ else }}

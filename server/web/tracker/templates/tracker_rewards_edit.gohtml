@@ -2,31 +2,29 @@
 <div class="container">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
-        <h1>New Reward Pool</h1>
+        <h1>Edit Reward Pool</h1>
     </div>
 
     <div class="section">
         <form hx-post="/tracker/rewards/new" hx-encoding='multipart/form-data' hx-target="body" hx-push-url="true">
             <label class="form-control" for="name" title="Name of the reward pool">
                 Name
-                <input class="form-control" type="text" id="name" name="name" required>
+                <input class="form-control" type="text" id="name" name="name" required value="{{ .Name }}">
             </label>
 
             <label class="form-control" for="description" title="Description of the reward pool">
                 Description
-                <textarea class="form-control" id="description" name="description" rows="4"></textarea>
-            </label>
-
-            <label class="form-control" for="codes" title="">
-                Codes
-                <textarea class="form-control" id="codes" name="codes" required></textarea>
+                <textarea class="form-control" id="description" name="description" rows="4">{{ .Description }}</textarea>
             </label>
 
             {{ if .Error }}
                 <div class="error-message">{{ .Error }}</div>
             {{ end }}
 
-            <button type="submit">Create</button>
+            <div class="buttons">
+                <button type="submit">Edit</button>
+                <a href="{{ .DeleteURL }}" class="button button-danger">Delete</a>
+            </div>
         </form>
     </div>
 

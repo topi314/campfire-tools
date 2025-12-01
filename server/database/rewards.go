@@ -58,6 +58,36 @@ func (d *Database) InsertRewardPool(ctx context.Context, pool RewardPool) (int, 
 	return poolID, nil
 }
 
+func (d *Database) UpdateRewardPool(ctx context.Context, pool RewardPool) error {
+	query := `
+		UPDATE reward_pools
+		SET reward_pool_name = :reward_pool_name,
+		    reward_pool_description = :reward_pool_description
+		WHERE reward_pool_id = :reward_pool_id
+	`
+
+	_, err := d.db.NamedExecContext(ctx, query, pool)
+	if err != nil {
+		return fmt.Errorf("failed to update reward pool: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) DeleteRewardCode(ctx context.Context, codeID int) error {
+	query := `
+		DELETE FROM reward_codes
+		WHERE reward_code_id = $1
+	`
+
+	_, err := d.db.ExecContext(ctx, query, codeID)
+	if err != nil {
+		return fmt.Errorf("failed to delete reward code: %w", err)
+	}
+
+	return nil
+}
+
 type RewardCode struct {
 	ID           int        `db:"reward_code_id"`
 	Code         string     `db:"reward_code_code"`

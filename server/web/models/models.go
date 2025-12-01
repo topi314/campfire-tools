@@ -320,6 +320,8 @@ func NewRewardPool(pool database.RewardPool, usedCodes int, totalCodes int) Rewa
 		ID:          pool.ID,
 		URL:         fmt.Sprintf("/tracker/reward-pool/%d", pool.ID),
 		CodesURL:    fmt.Sprintf("/tracker/reward-pool/%d/codes", pool.ID),
+		EditURL:     fmt.Sprintf("/tracker/reward-pool/%d/edit", pool.ID),
+		DeleteURL:   fmt.Sprintf("/tracker/reward-pool/%d/delete", pool.ID),
 		Name:        pool.Name,
 		Description: pool.Description,
 		UsedCodes:   usedCodes,
@@ -331,6 +333,8 @@ type RewardPool struct {
 	ID          int
 	URL         string
 	CodesURL    string
+	EditURL     string
+	DeleteURL   string
 	Name        string
 	Description string
 	UsedCodes   int
