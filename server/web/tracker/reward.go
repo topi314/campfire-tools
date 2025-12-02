@@ -13,27 +13,31 @@ import (
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
-type TrackerRewardPoolVars struct {
-	models.RewardPool
+func CodeURL(code string) string {
+	return fmt.Sprintf("https://store.pokemongo.com/offer-redemption?passcode=%s", code)
+}
+
+type TrackerRewardVars struct {
+	models.Reward
 	Codes []RewardCode
 }
 
-func newRewardCode(pool database.RewardCode, importedBy database.DiscordUser, redeemedBy *database.DiscordUser) RewardCode {
+func newRewardCode(rewardID int, code database.RewardCode, importedBy database.DiscordUser, redeemedBy *database.DiscordUser) RewardCode {
 	var user *DiscordUser
 	if redeemedBy != nil {
 		u := newDiscordUser(*redeemedBy)
 		user = &u
 	}
 	return RewardCode{
-		ID:            pool.ID,
-		URL:           fmt.Sprintf("/tracker/rewards/%d", pool.ID),
-		Code:          pool.Code,
-		QRURL:         fmt.Sprintf("/tracker/code/%s/qr", pool.Code),
-		RedeemCodeURL: fmt.Sprintf("https://store.pokemongo.com/offer-redemption?passcode=%s", pool.Code),
-		ImportedAt:    pool.ImportedAt,
+		ID:            code.ID,
+		URL:           fmt.Sprintf("/tracker/rewards/%d/codes/%d", rewardID, code.ID),
+		Code:          code.Code,
+		QRURL:         fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", rewardID, code.ID),
+		RedeemCodeURL: CodeURL(code.Code),
+		ImportedAt:    code.ImportedAt,
 		ImportedBy:    newDiscordUser(importedBy),
-		RedeemCode:    pool.RedeemCode,
-		RedeemedAt:    pool.RedeemedAt,
+		RedeemCode:    code.RedeemCode,
+		RedeemedAt:    code.RedeemedAt,
 		RedeemedBy:    user,
 	}
 }
@@ -69,24 +73,24 @@ type DiscordUser struct {
 	ImportedAt  time.Time
 }
 
-func (h *handler) TrackerRewardPool(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
-	poolID, err := strconv.Atoi(r.PathValue("pool_id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
 	}
 
-	rewardPool, err := h.DB.GetRewardPool(ctx, poolID, session.UserID)
+	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward pools", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get reward pools", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("error", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
-	codes, err := h.DB.GetRewardCodes(ctx, poolID)
+	codes, err := h.DB.GetRewardCodes(ctx, id)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
@@ -104,12 +108,12 @@ func (h *handler) TrackerRewardPool(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   *code.RedeemedByUser.AvatarURL,
 			}
 		}
-		trackerCodes[i] = newRewardCode(code.RewardCode, code.ImportedByUser, redeemedBy)
+		trackerCodes[i] = newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_pool.gohtml", TrackerRewardPoolVars{
-		RewardPool: models.NewRewardPool(*rewardPool, 0, 0),
-		Codes:      trackerCodes,
+	if err = h.Templates().ExecuteTemplate(w, "tracker_reward.gohtml", TrackerRewardVars{
+		Reward: models.NewReward(*reward, 0, 0),
+		Codes:  trackerCodes,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
 	}

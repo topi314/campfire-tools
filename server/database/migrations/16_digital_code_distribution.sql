@@ -15,33 +15,33 @@ CREATE TABLE discord_user_pinned_clubs
     PRIMARY KEY (discord_user_pinned_club_user_id, discord_user_pinned_club_club_id)
 );
 
-CREATE TABLE reward_pools
+CREATE TABLE rewards
 (
-    reward_pool_id          BIGSERIAL PRIMARY KEY,
-    reward_pool_name        VARCHAR   NOT NULL,
-    reward_pool_description TEXT      NOT NULL,
-    reward_pool_created_by  VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
-    reward_pool_created_at  TIMESTAMP NOT NULL DEFAULT now()
+    reward_id          BIGSERIAL PRIMARY KEY,
+    reward_name        VARCHAR   NOT NULL,
+    reward_description TEXT      NOT NULL,
+    reward_created_by  VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
+    reward_created_at  TIMESTAMP NOT NULL DEFAULT now()
 );
 
-CREATE TABLE reward_pool_users
+CREATE TABLE reward_members
 (
-    reward_pool_user_reward_pool_id BIGINT REFERENCES reward_pools (reward_pool_id) ON DELETE CASCADE,
-    reward_pool_user_user_id        VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
-    reward_pool_user_added_at       TIMESTAMP NOT NULL DEFAULT now(),
-    PRIMARY KEY (reward_pool_user_reward_pool_id, reward_pool_user_user_id)
+    reward_member_reward_id       BIGINT REFERENCES rewards (reward_id) ON DELETE CASCADE,
+    reward_member_discord_user_id VARCHAR REFERENCES discord_users (discord_user_id) ON DELETE CASCADE,
+    reward_member_added_at        TIMESTAMP NOT NULL DEFAULT now(),
+    PRIMARY KEY (reward_member_reward_id, reward_member_discord_user_id)
 );
 
 CREATE TABLE reward_codes
 (
-    reward_code_id             BIGSERIAL PRIMARY KEY,
-    reward_code_code           VARCHAR(255) UNIQUE NOT NULL,
-    reward_code_reward_pool_id BIGINT REFERENCES reward_pools (reward_pool_id) ON DELETE CASCADE,
-    reward_code_imported_at    TIMESTAMP DEFAULT now(),
-    reward_code_imported_by    VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL,
-    reward_code_redeem_code    VARCHAR(255),
-    reward_code_redeemed_at    TIMESTAMP,
-    reward_code_redeemed_by    VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL
+    reward_code_id          BIGSERIAL PRIMARY KEY,
+    reward_code_code        VARCHAR(255) UNIQUE NOT NULL,
+    reward_code_reward_id   BIGINT REFERENCES rewards (reward_id) ON DELETE CASCADE,
+    reward_code_imported_at TIMESTAMP DEFAULT now(),
+    reward_code_imported_by VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL,
+    reward_code_redeem_code VARCHAR(255),
+    reward_code_redeemed_at TIMESTAMP,
+    reward_code_redeemed_by VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL
 );
 
 DELETE

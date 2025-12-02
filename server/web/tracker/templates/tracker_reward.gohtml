@@ -23,18 +23,18 @@
                 <div>Imported By</div>
                 <div>Redeemed At</div>
                 <div>Redeemed By</div>
-                <div>QR Code</div>
+                <div></div>
                 {{ range $code := .Codes }}
                     <span class="left mono"><a href="{{ $code.RedeemCodeURL }}">{{ $code.Code }}</a></span>
                     <span>{{ formatTimeToRelDayTime $code.ImportedAt }}</span>
                     <span>{{ $code.ImportedBy.DisplayName }}</span>
                     <span>{{ if $code.RedeemedAt }}{{ formatTimeToRelDayTime $code.RedeemedAt }}{{ else }}-{{ end }}</span>
                     <span>{{ if $code.RedeemedBy }}{{ $code.RedeemedBy }}{{ else }}-{{ end }}</span>
-                    <span><a href="{{ $code.ShowURL }}" class="button">Show</a></span>
+                    <span><a href="{{ $code.URL }}" class="button small">Show</a></span>
                 {{ end }}
             </div>
         {{ else }}
-            <p>No codes available in this reward pool.</p>
+            <p>No codes available in this reward.</p>
         {{ end }}
     </div>
 </div>

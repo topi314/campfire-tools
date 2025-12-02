@@ -7,13 +7,13 @@
 
     <div class="section">
         <div class="section-header">
-            <h2>Your Reward Pools</h2>
+            <h2>Your Rewards</h2>
             <div class="buttons">
                 <a href="/tracker/rewards/new" class="button button-primary">New</a>
             </div>
         </div>
         <ul class="list">
-            {{ range .RewardPools }}
+            {{ range .Rewards }}
                 <li class="list-item list-item-group">
                     <div class="expand">
                         <a href="{{ .URL }}">{{ .Name }} ({{ .UsedCodes }}/{{ .TotalCodes }} codes)</a>
@@ -23,7 +23,7 @@
                     </div>
                 </li>
             {{ else }}
-                <li>No reward pools found. Create one by clicking the "New" button above.</li>
+                <li>No rewards found. Create one by clicking the "New" button above.</li>
             {{ end }}
         </ul>
     </div>

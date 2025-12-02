@@ -11,45 +11,45 @@ import (
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
-type TrackerRewardsEditVars struct {
-	models.RewardPool
+type TrackerRewardEditVars struct {
+	models.Reward
 	Error string
 }
 
-func (h *handler) TrackerRewardsEdit(w http.ResponseWriter, r *http.Request) {
-	h.renderTrackerRewardsEdit(w, r, "")
+func (h *handler) TrackerRewardEdit(w http.ResponseWriter, r *http.Request) {
+	h.renderTrackerRewardEdit(w, r, "")
 }
 
-func (h *handler) renderTrackerRewardsEdit(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (h *handler) renderTrackerRewardEdit(w http.ResponseWriter, r *http.Request, errorMessage string) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
-	id, err := strconv.Atoi(r.PathValue("pool_id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
 	}
 
-	rewardPool, err := h.DB.GetRewardPool(ctx, id, session.UserID)
+	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward pool", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward", slog.String("error", err.Error()))
 		h.NotFound(w, r)
 		return
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards_edit.gohtml", TrackerRewardsEditVars{
-		RewardPool: models.NewRewardPool(*rewardPool, 0, 0),
-		Error:      errorMessage,
+	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards_edit.gohtml", TrackerRewardEditVars{
+		Reward: models.NewReward(*reward, 0, 0),
+		Error:  errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards edit template", slog.String("error", err.Error()))
 	}
 }
 
-func (h *handler) PostTrackerRewardsEdit(w http.ResponseWriter, r *http.Request) {
+func (h *handler) PostTrackerRewardEdit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
-	id, err := strconv.Atoi(r.PathValue("pool_id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
@@ -57,32 +57,32 @@ func (h *handler) PostTrackerRewardsEdit(w http.ResponseWriter, r *http.Request)
 	name := r.FormValue("name")
 	description := r.FormValue("description")
 
-	if err = h.DB.UpdateRewardPool(ctx, database.RewardPool{
+	if err = h.DB.UpdateReward(ctx, database.Reward{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		CreatedBy:   session.UserID,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to update reward pool", slog.String("error", err.Error()))
-		h.renderTrackerRewardsNew(w, r, "Failed to update reward pool")
+		slog.ErrorContext(ctx, "Failed to update reward", slog.String("error", err.Error()))
+		h.renderTrackerRewardsNew(w, r, "Failed to update reward")
 		return
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d", id), http.StatusSeeOther)
 }
 
-func (h *handler) DeleteTrackerRewardCode(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerRewardDelete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	codeID, err := strconv.Atoi(r.PathValue("code_id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
 	}
 
-	if err = h.DB.DeleteRewardCode(ctx, codeID); err != nil {
-		slog.ErrorContext(ctx, "Failed to delete reward code", slog.String("error", err.Error()))
-		http.Error(w, "Failed to delete reward code", http.StatusInternalServerError)
+	if err = h.DB.DeleteReward(ctx, id); err != nil {
+		slog.ErrorContext(ctx, "Failed to delete reward", slog.String("error", err.Error()))
+		http.Error(w, "Failed to delete reward", http.StatusInternalServerError)
 		return
 	}
 

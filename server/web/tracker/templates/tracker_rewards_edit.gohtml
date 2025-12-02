@@ -2,17 +2,17 @@
 <div class="container">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
-        <h1>Edit Reward Pool</h1>
+        <h1>Edit Reward</h1>
     </div>
 
     <div class="section">
         <form hx-post="/tracker/rewards/new" hx-encoding='multipart/form-data' hx-target="body" hx-push-url="true">
-            <label class="form-control" for="name" title="Name of the reward pool">
+            <label class="form-control" for="name" title="Name of the reward">
                 Name
                 <input class="form-control" type="text" id="name" name="name" required value="{{ .Name }}">
             </label>
 
-            <label class="form-control" for="description" title="Description of the reward pool">
+            <label class="form-control" for="description" title="Description of the reward">
                 Description
                 <textarea class="form-control" id="description" name="description" rows="4">{{ .Description }}</textarea>
             </label>

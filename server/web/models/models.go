@@ -315,21 +315,21 @@ func ImageURL(imageURL string, size int) string {
 	return imageURL
 }
 
-func NewRewardPool(pool database.RewardPool, usedCodes int, totalCodes int) RewardPool {
-	return RewardPool{
-		ID:          pool.ID,
-		URL:         fmt.Sprintf("/tracker/reward-pool/%d", pool.ID),
-		CodesURL:    fmt.Sprintf("/tracker/reward-pool/%d/codes", pool.ID),
-		EditURL:     fmt.Sprintf("/tracker/reward-pool/%d/edit", pool.ID),
-		DeleteURL:   fmt.Sprintf("/tracker/reward-pool/%d/delete", pool.ID),
-		Name:        pool.Name,
-		Description: pool.Description,
+func NewReward(reward database.Reward, usedCodes int, totalCodes int) Reward {
+	return Reward{
+		ID:          reward.ID,
+		URL:         fmt.Sprintf("/tracker/rewards/%d", reward.ID),
+		CodesURL:    fmt.Sprintf("/tracker/rewards/%d/codes", reward.ID),
+		EditURL:     fmt.Sprintf("/tracker/rewards/%d/edit", reward.ID),
+		DeleteURL:   fmt.Sprintf("/tracker/rewards/%d/delete", reward.ID),
+		Name:        reward.Name,
+		Description: reward.Description,
 		UsedCodes:   usedCodes,
 		TotalCodes:  totalCodes,
 	}
 }
 
-type RewardPool struct {
+type Reward struct {
 	ID          int
 	URL         string
 	CodesURL    string

@@ -40,14 +40,14 @@ func (h *handler) PostTrackerRewardsNew(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	id, err := h.DB.InsertRewardPool(ctx, database.RewardPool{
+	id, err := h.DB.InsertReward(ctx, database.Reward{
 		Name:        name,
 		Description: description,
 		CreatedBy:   session.UserID,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to insert reward pool", slog.String("error", err.Error()))
-		h.renderTrackerRewardsNew(w, r, "Failed to create reward pool")
+		slog.ErrorContext(ctx, "Failed to insert reward", slog.String("error", err.Error()))
+		h.renderTrackerRewardsNew(w, r, "Failed to create reward")
 		return
 	}
 

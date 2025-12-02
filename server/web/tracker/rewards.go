@@ -9,27 +9,27 @@ import (
 )
 
 type TrackerRewardsVars struct {
-	RewardPools []models.RewardPool
+	Rewards []models.Reward
 }
 
 func (h *handler) TrackerRewards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
-	rewardPools, err := h.DB.GetRewardPools(ctx, session.UserID)
+	rewards, err := h.DB.GetRewards(ctx, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward pools", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get reward pools", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to get rewards", slog.String("error", err.Error()))
+		http.Error(w, "Failed to get rewards", http.StatusInternalServerError)
 		return
 	}
 
-	trackerRewardPools := make([]models.RewardPool, len(rewardPools))
-	for i, pool := range rewardPools {
-		trackerRewardPools[i] = models.NewRewardPool(pool.RewardPool, 0, 0)
+	trackerRewards := make([]models.Reward, len(rewards))
+	for i, reward := range rewards {
+		trackerRewards[i] = models.NewReward(reward.Reward, 0, 0)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards.gohtml", TrackerRewardsVars{
-		RewardPools: trackerRewardPools,
+		Rewards: trackerRewards,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
 	}

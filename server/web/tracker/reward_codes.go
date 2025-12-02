@@ -10,29 +10,29 @@ import (
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
-type TrackerRewardPoolCodesVars struct {
-	models.RewardPool
+type TrackerRewardCodesVars struct {
+	models.Reward
 	Codes []RewardCode
 }
 
-func (h *handler) TrackerRewardPoolCodes(w http.ResponseWriter, r *http.Request) {
+func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
-	poolID, err := strconv.Atoi(r.PathValue("pool_id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.NotFound(w, r)
 		return
 	}
 
-	rewardPool, err := h.DB.GetRewardPool(ctx, poolID, session.UserID)
+	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward pools", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get reward pools", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to get reward", slog.String("error", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
-	codes, err := h.DB.GetRewardCodes(ctx, poolID)
+	codes, err := h.DB.GetRewardCodes(ctx, id)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
@@ -50,12 +50,12 @@ func (h *handler) TrackerRewardPoolCodes(w http.ResponseWriter, r *http.Request)
 				AvatarURL:   *code.RedeemedByUser.AvatarURL,
 			}
 		}
-		trackerCodes[i] = newRewardCode(code.RewardCode, code.ImportedByUser, redeemedBy)
+		trackerCodes[i] = newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_pool.gohtml", TrackerRewardPoolVars{
-		RewardPool: models.NewRewardPool(*rewardPool, 0, 0),
-		Codes:      trackerCodes,
+	if err = h.Templates().ExecuteTemplate(w, "tracker_reward.gohtml", TrackerRewardVars{
+		Reward: models.NewReward(*reward, 0, 0),
+		Codes:  trackerCodes,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
 	}

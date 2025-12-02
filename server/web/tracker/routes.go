@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/topi314/campfire-tools/internal/middlewares"
 	"github.com/topi314/campfire-tools/server"
 )
 
@@ -42,10 +43,12 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/rewards", h.TrackerRewards)
 	mux.HandleFunc("GET  /tracker/rewards/new", h.TrackerRewardsNew)
 	mux.HandleFunc("POST /tracker/rewards/new", h.PostTrackerRewardsNew)
-	mux.HandleFunc("GET /tracker/reward-pool/{pool_id}", h.TrackerRewardPool)
-	mux.HandleFunc("GET /tracker/reward-pool/{pool_id}/edit", h.TrackerRewardsEdit)
-	mux.HandleFunc("POST /tracker/reward-pool/{pool_id}/edit", h.PostTrackerRewardsEdit)
-	mux.HandleFunc("POST /tracker/reward-code/{code_id}/delete", h.DeleteTrackerRewardCode)
+	mux.HandleFunc("GET /tracker/rewards/{id}", h.TrackerReward)
+	mux.HandleFunc("GET /tracker/rewards/{id}/edit", h.TrackerRewardEdit)
+	mux.HandleFunc("POST /tracker/rewards/{id}/edit", h.PostTrackerRewardEdit)
+	mux.HandleFunc("POST /tracker/rewards/{id}/delete", h.TrackerRewardDelete)
+	mux.HandleFunc("GET /tracker/rewards/{id}/codes/{code_id}", h.TrackerRewardCode)
+	mux.Handle("GET /tracker/rewards/{id}/codes/{code_id}/qr", middlewares.Cache(http.HandlerFunc(h.TrackerRewardCodeQR)))
 
 	mux.HandleFunc("GET  /tracker/code/{code}", h.TrackerCode)
 	mux.HandleFunc("POST /tracker/code/{code}", h.PostTrackerCode)

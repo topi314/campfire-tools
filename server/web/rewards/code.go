@@ -2,13 +2,13 @@ package rewards
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
 
+	"github.com/topi314/campfire-tools/internal/xio"
 	"github.com/topi314/campfire-tools/internal/xrand"
 )
 
@@ -34,17 +34,6 @@ func (h *handler) GetCode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type responseWriteCloser struct {
-	io.Writer
-}
-
-func (rwc *responseWriteCloser) Close() error {
-	if closer, ok := rwc.Writer.(io.Closer); ok {
-		return closer.Close()
-	}
-	return nil
-}
-
 func (h *handler) QRCode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -57,7 +46,7 @@ func (h *handler) QRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	qrW := standard.NewWithWriter(&responseWriteCloser{w}, standard.WithLogoImage(h.Logo),
+	qrW := standard.NewWithWriter(xio.NewResponseWriteCloser(w), standard.WithLogoImage(h.Logo),
 		standard.WithBgTransparent(),
 		standard.WithBuiltinImageEncoder(standard.PNG_FORMAT),
 		standard.WithLogoSafeZone(),
