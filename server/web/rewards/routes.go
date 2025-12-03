@@ -48,7 +48,7 @@ func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := h.Templates().ExecuteTemplate(w, "not_found.gohtml", nil); err != nil {
-		slog.ErrorContext(ctx, "Failed to render not found template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render not found template", slog.String("err", err.Error()))
 		return
 	}
 }

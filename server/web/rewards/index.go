@@ -33,6 +33,6 @@ func (h *handler) Index(w http.ResponseWriter, r *http.Request) {
 		ClubID:    clubID,
 		SignUpURL: signUpURL.String(),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render rewards template", slog.String("err", err.Error()))
 	}
 }

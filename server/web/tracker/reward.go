@@ -19,7 +19,9 @@ func CodeURL(code string) string {
 
 type TrackerRewardVars struct {
 	models.Reward
-	Codes []RewardCode
+	Codes  []RewardCode
+	URL    string
+	Filter string
 }
 
 func newRewardCode(rewardID int, code database.RewardCode, importedBy database.DiscordUser, redeemedBy *database.DiscordUser) RewardCode {
@@ -29,30 +31,36 @@ func newRewardCode(rewardID int, code database.RewardCode, importedBy database.D
 		user = &u
 	}
 	return RewardCode{
-		ID:            code.ID,
-		URL:           fmt.Sprintf("/tracker/rewards/%d/codes/%d", rewardID, code.ID),
-		Code:          code.Code,
-		QRURL:         fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", rewardID, code.ID),
-		RedeemCodeURL: CodeURL(code.Code),
-		ImportedAt:    code.ImportedAt,
-		ImportedBy:    newDiscordUser(importedBy),
-		RedeemCode:    code.RedeemCode,
-		RedeemedAt:    code.RedeemedAt,
-		RedeemedBy:    user,
+		ID:         code.ID,
+		URL:        fmt.Sprintf("/tracker/rewards/%d/codes/%d", rewardID, code.ID),
+		Code:       code.Code,
+		QRURL:      fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", rewardID, code.ID),
+		ImportedAt: code.ImportedAt,
+		ImportedBy: newDiscordUser(importedBy),
+		RedeemCode: code.RedeemCode,
+		RedeemedAt: code.RedeemedAt,
+		RedeemedBy: user,
 	}
 }
 
 type RewardCode struct {
-	ID            int
-	URL           string
-	Code          string
-	QRURL         string
-	RedeemCodeURL string
-	ImportedAt    time.Time
-	ImportedBy    DiscordUser
-	RedeemCode    *string
-	RedeemedAt    *time.Time
-	RedeemedBy    *DiscordUser
+	ID         int
+	URL        string
+	Code       string
+	QRURL      string
+	ImportedAt time.Time
+	ImportedBy DiscordUser
+	RedeemCode *string
+	RedeemedAt *time.Time
+	RedeemedBy *DiscordUser
+}
+
+func (c RewardCode) IsRedeemed() bool {
+	return c.RedeemedAt != nil
+}
+
+func (c RewardCode) RedeemCodeURL() string {
+	return CodeURL(c.Code)
 }
 
 func newDiscordUser(user database.DiscordUser) DiscordUser {
@@ -73,8 +81,17 @@ type DiscordUser struct {
 	ImportedAt  time.Time
 }
 
+func (u DiscordUser) EffectiveName() string {
+	if u.DisplayName == "" {
+		return u.Username
+	}
+	return u.DisplayName
+}
+
 func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	query := r.URL.Query()
+
 	session := auth.GetSession(r)
 
 	id, err := strconv.Atoi(r.PathValue("id"))
@@ -82,17 +99,21 @@ func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	filter := query.Get("filter")
+	if filter == "" {
+		filter = "unredeemed"
+	}
 
 	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
-	codes, err := h.DB.GetRewardCodes(ctx, id)
+	codes, err := h.DB.GetRewardCodes(ctx, id, filter)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
 		return
 	}
@@ -114,7 +135,9 @@ func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_reward.gohtml", TrackerRewardVars{
 		Reward: models.NewReward(*reward, 0, 0),
 		Codes:  trackerCodes,
+		URL:    fmt.Sprintf("/tracker/rewards/%d", id),
+		Filter: filter,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}
 }

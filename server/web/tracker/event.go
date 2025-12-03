@@ -48,7 +48,7 @@ func (h *handler) ShowEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event", event), slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event", event), slog.String("err", err.Error()))
 		h.renderCheckIns(w, r, "", "Failed to fetch event details")
 		return
 	}
@@ -70,7 +70,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event_id", eventID), slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event_id", eventID), slog.String("err", err.Error()))
 		h.renderCheckIns(w, r, "", "Failed to fetch event details")
 		return
 	}
@@ -107,7 +107,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		CheckedInMembers: getEventMembers(*event, "CHECKED_IN"),
 		AcceptedMembers:  getEventMembers(*event, "ACCEPTED"),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render event details template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render event details template", slog.String("err", err.Error()))
 	}
 }
 
@@ -118,7 +118,7 @@ func (h *handler) renderCheckIns(w http.ResponseWriter, r *http.Request, event s
 		Event: event,
 		Error: errorMessage,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render check-ins template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render check-ins template", slog.String("err", err.Error()))
 	}
 }
 

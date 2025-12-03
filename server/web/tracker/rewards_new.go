@@ -24,7 +24,7 @@ func (h *handler) renderTrackerRewardsNew(w http.ResponseWriter, r *http.Request
 	if err := h.Templates().ExecuteTemplate(w, "tracker_rewards_new.gohtml", TrackerRewardsNewVars{
 		Error: errorMessage,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}
 }
 
@@ -46,13 +46,13 @@ func (h *handler) PostTrackerRewardsNew(w http.ResponseWriter, r *http.Request) 
 		CreatedBy:   session.UserID,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to insert reward", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to insert reward", slog.String("err", err.Error()))
 		h.renderTrackerRewardsNew(w, r, "Failed to create reward")
 		return
 	}
 
 	if err = h.DB.InsertRewardCodes(ctx, id, codes, session.UserID); err != nil {
-		slog.ErrorContext(ctx, "Failed to insert reward codes", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to insert reward codes", slog.String("err", err.Error()))
 		h.renderTrackerRewardsNew(w, r, "Failed to add reward codes")
 		return
 	}

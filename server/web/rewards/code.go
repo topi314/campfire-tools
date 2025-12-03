@@ -30,7 +30,7 @@ func (h *handler) GetCode(w http.ResponseWriter, r *http.Request) {
 	if err := h.Templates().ExecuteTemplate(w, "code.gohtml", CodeVars{
 		Code: code,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render index template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
 }
 
@@ -41,7 +41,7 @@ func (h *handler) QRCode(w http.ResponseWriter, r *http.Request) {
 
 	qr, err := qrcode.New(h.Cfg.Server.PublicRewardsURL + "/tracker/code/" + code)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("err", err.Error()))
 		http.Error(w, "Failed to create qrcode", http.StatusInternalServerError)
 		return
 	}
@@ -57,6 +57,6 @@ func (h *handler) QRCode(w http.ResponseWriter, r *http.Request) {
 		_ = qrW.Close()
 	}()
 	if err = qr.Save(qrW); err != nil {
-		slog.ErrorContext(ctx, "Failed to save qrcode", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to save qrcode", slog.String("err", err.Error()))
 	}
 }

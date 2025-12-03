@@ -17,7 +17,7 @@ func (h *handler) TrackerCode(w http.ResponseWriter, r *http.Request) {
 	if err := h.Templates().ExecuteTemplate(w, "tracker_code.gohtml", TrackerCodeVars{
 		Code: code,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render index template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
 }
 

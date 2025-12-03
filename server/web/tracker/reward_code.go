@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
@@ -18,7 +19,10 @@ import (
 type TrackerRewardCodeVars struct {
 	models.Reward
 	RewardCode
-	BackURL string
+	BackURL         string
+	MarkAsUsedURL   string
+	MarkAsUnusedURL string
+	URL             string
 }
 
 func (h *handler) TrackerRewardCode(w http.ResponseWriter, r *http.Request) {
@@ -39,14 +43,14 @@ func (h *handler) TrackerRewardCode(w http.ResponseWriter, r *http.Request) {
 
 	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
 	code, err := h.DB.GetRewardCode(ctx, codeID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
 		return
 	}
@@ -60,14 +64,16 @@ func (h *handler) TrackerRewardCode(w http.ResponseWriter, r *http.Request) {
 			AvatarURL:   *code.RedeemedByUser.AvatarURL,
 		}
 	}
-	trackerCode := newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_code.gohtml", TrackerRewardCodeVars{
-		Reward:     models.NewReward(*reward, 0, 0),
-		RewardCode: trackerCode,
-		BackURL:    fmt.Sprintf("/tracker/rewards/%d", id),
+		Reward:          models.NewReward(*reward, 0, 0),
+		RewardCode:      newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy),
+		BackURL:         fmt.Sprintf("/tracker/rewards/%d", id),
+		MarkAsUsedURL:   fmt.Sprintf("/tracker/rewards/%d/codes/%d/mark-used", id, codeID),
+		MarkAsUnusedURL: fmt.Sprintf("/tracker/rewards/%d/codes/%d/mark-unused", id, codeID),
+		URL:             fmt.Sprintf("/tracker/rewards/%d/codes/%d", id, codeID),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}
 }
 
@@ -88,21 +94,21 @@ func (h *handler) TrackerRewardCodeQR(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err = h.DB.GetReward(ctx, id, session.UserID); err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
 	code, err := h.DB.GetRewardCode(ctx, codeID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
 		return
 	}
 
 	qr, err := qrcode.New(CodeURL(code.Code))
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("err", err.Error()))
 		http.Error(w, "Failed to create qrcode", http.StatusInternalServerError)
 		return
 	}
@@ -118,6 +124,100 @@ func (h *handler) TrackerRewardCodeQR(w http.ResponseWriter, r *http.Request) {
 		_ = qrW.Close()
 	}()
 	if err = qr.Save(qrW); err != nil {
-		slog.ErrorContext(ctx, "Failed to save qrcode", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to save qrcode", slog.String("err", err.Error()))
 	}
+}
+
+func (h *handler) TrackerRewardCodeDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	codeID, err := strconv.Atoi(r.PathValue("code_id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	if _, err = h.DB.GetReward(ctx, id, session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.DB.DeleteRewardCode(ctx, codeID); err != nil {
+		slog.ErrorContext(ctx, "Failed to delete reward code", slog.String("err", err.Error()))
+		http.Error(w, "Failed to delete reward code", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d", id), http.StatusSeeOther)
+}
+
+func (h *handler) TrackerRewardCodeMarkAsUsed(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	codeID, err := strconv.Atoi(r.PathValue("code_id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	if _, err = h.DB.GetReward(ctx, id, session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now()
+	if err = h.DB.UpdateRewardCodeRedeemed(ctx, codeID, &now, &session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to mark reward code as used", slog.String("err", err.Error()))
+		http.Error(w, "Failed to mark reward code as used", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d", id), http.StatusSeeOther)
+}
+
+func (h *handler) TrackerRewardCodeMarkAsUnused(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	codeID, err := strconv.Atoi(r.PathValue("code_id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	if _, err = h.DB.GetReward(ctx, id, session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.DB.UpdateRewardCodeRedeemed(ctx, codeID, nil, nil); err != nil {
+		slog.ErrorContext(ctx, "Failed to mark reward code as unused", slog.String("err", err.Error()))
+		http.Error(w, "Failed to mark reward code as unused", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d", id), http.StatusSeeOther)
 }

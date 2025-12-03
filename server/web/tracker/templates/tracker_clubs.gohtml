@@ -11,15 +11,17 @@
     </div>
 
     <div id="clubs" class="section">
-        <div class="inline-form-control">
-            <label for="sort">
-                <select id="sort" name="sort" hx-get="/tracker/clubs" hx-target="#clubs" hx-swap="outerHTML" hx-select="#clubs" hx-push-url="true">
-                    <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Sort by Name</option>
-                    <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Sort by Events</option>
-                </select>
-            </label>
+        <div class="section-header">
+            <h2>Clubs ({{ len .Clubs }})</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    <select id="sort" name="sort" hx-get="/tracker/clubs" hx-target="#clubs" hx-swap="outerHTML" hx-select="#clubs" hx-push-url="true">
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Sort by Name</option>
+                        <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Sort by Events</option>
+                    </select>
+                </label>
+            </div>
         </div>
-        <h2>Clubs ({{ len .Clubs }})</h2>
         <ul class="list">
             {{ range $club := .Clubs }}
                 <li class="list-item">

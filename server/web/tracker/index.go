@@ -11,7 +11,7 @@ func (h *handler) Index(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := h.Templates().ExecuteTemplate(w, "index.gohtml", nil); err != nil {
-		slog.ErrorContext(ctx, "Failed to render index template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
 }
 
@@ -27,6 +27,6 @@ func (h *handler) TrackerIndex(w http.ResponseWriter, r *http.Request) {
 	if err := h.Templates().ExecuteTemplate(w, "tracker_index.gohtml", TrackerIndexVars{
 		User: newDiscordUser(session.DiscordUser),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render index template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
 }

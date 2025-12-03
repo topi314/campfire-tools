@@ -44,10 +44,15 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/rewards/new", h.TrackerRewardsNew)
 	mux.HandleFunc("POST /tracker/rewards/new", h.PostTrackerRewardsNew)
 	mux.HandleFunc("GET /tracker/rewards/{id}", h.TrackerReward)
+	mux.HandleFunc("PATCH /tracker/rewards/{id}", h.PostTrackerRewardEdit)
+	mux.HandleFunc("GET /tracker/rewards/{id}/codes", h.TrackerRewardCodes)
 	mux.HandleFunc("GET /tracker/rewards/{id}/edit", h.TrackerRewardEdit)
-	mux.HandleFunc("POST /tracker/rewards/{id}/edit", h.PostTrackerRewardEdit)
 	mux.HandleFunc("POST /tracker/rewards/{id}/delete", h.TrackerRewardDelete)
 	mux.HandleFunc("GET /tracker/rewards/{id}/codes/{code_id}", h.TrackerRewardCode)
+	mux.HandleFunc("DELETE /tracker/rewards/{id}/codes/{code_id}", h.TrackerRewardCodeDelete)
+	mux.HandleFunc("POST /tracker/rewards/{id}/codes/{code_id}/next", h.TrackerRewardCodeNext)
+	mux.HandleFunc("POST /tracker/rewards/{id}/codes/{code_id}/mark-used", h.TrackerRewardCodeMarkAsUsed)
+	mux.HandleFunc("POST /tracker/rewards/{id}/codes/{code_id}/mark-unused", h.TrackerRewardCodeMarkAsUnused)
 	mux.Handle("GET /tracker/rewards/{id}/codes/{code_id}/qr", middlewares.Cache(http.HandlerFunc(h.TrackerRewardCodeQR)))
 
 	mux.HandleFunc("GET  /tracker/code/{code}", h.TrackerCode)
@@ -106,7 +111,7 @@ func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := h.Templates().ExecuteTemplate(w, "not_found.gohtml", nil); err != nil {
-		slog.ErrorContext(ctx, "Failed to render not found template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render not found template", slog.String("err", err.Error()))
 		return
 	}
 }

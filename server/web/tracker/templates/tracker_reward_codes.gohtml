@@ -2,17 +2,26 @@
 <div class="container">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
-        <h1>{{ .Name }} Codes</h1>
+        <h1>{{ .Name }} ({{ .UsedCodes }}/{{ .TotalCodes }} codes)</h1>
     </div>
 
-    {{ if .Description }}
-        <div class="section">
-            <p>{{ .Description }}</p>
-        </div>
-    {{ end }}
+    <div id="code" class="section">
+        {{ if eq .Code nil }}
+            <p>No reward unredeemed codes available.</p>
+        {{ else }}
+            <img src="{{ .Code.QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
 
-    <div class="section">
-        
+            <p>
+                <strong>Code:</strong> <code>{{ .Code.Code }}</code>
+                <br/>
+                <a href="{{ .Code.RedeemCodeURL }}">Store Link</a>
+            </p>
+
+            <br/>
+
+            <button hx-post="{{ .NextCodeURL }}" class="success" hx-target="#code" hx-select-oob="#code">Mark as Used and next</button>
+        {{ end }}
     </div>
+
 </div>
 {{ template "tracker_footer" }}

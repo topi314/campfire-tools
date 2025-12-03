@@ -26,7 +26,7 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	clubs, err := h.DB.GetRewardClubs(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward clubs", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward clubs", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward clubs", http.StatusInternalServerError)
 		return
 	}
@@ -42,7 +42,7 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Clubs:       mClubs,
 		DefaultClub: club,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render rewards template", slog.String("err", err.Error()))
 	}
 }
 
@@ -67,7 +67,7 @@ func (h *handler) CampfireLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Club not found", http.StatusNotFound)
 			return
 		}
-		slog.ErrorContext(ctx, "Failed to get club for Campfire login", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get club for Campfire login", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get club for Campfire login", http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +116,7 @@ func (h *handler) SignUpCallback(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.exchangeCode(code)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to exchange code for Campfire member", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to exchange code for Campfire member", slog.String("err", err.Error()))
 		http.Error(w, "Failed to process login", http.StatusInternalServerError)
 		return
 	}

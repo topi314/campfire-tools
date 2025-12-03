@@ -22,7 +22,7 @@
 {{ end }}
 
 {{ define "league_progress" }}
-    <span class="progress-{{ if eq . 100.0 }}green{{ else if gt . 66.0 }}yellow{{ else if gt . 33.0 }}orange{{ else }}red{{ end }}">
+    <span class="{{ if eq . 100.0 }}green{{ else if gt . 66.0 }}yellow{{ else if gt . 33.0 }}orange{{ else }}red{{ end }}">
         {{ . }}%
     </span>
 {{ end }}
@@ -111,4 +111,8 @@
     <a href="{{ . }}" class="back" hx-boost="true">
         <img src="/static/back.svg" alt="Back">
     </a>
+{{ end }}
+
+{{ define "discord_user" }}
+    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-32"> {{ .EffectiveName }}</span>
 {{ end }}

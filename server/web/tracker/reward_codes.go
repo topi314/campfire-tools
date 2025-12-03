@@ -1,22 +1,26 @@
 package tracker
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/database"
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
-type TrackerRewardCodesVars struct {
+type TrackerRewardCodesVar struct {
 	models.Reward
-	Codes []RewardCode
+	Code        *RewardCode
+	NextCodeURL string
 }
 
 func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	session := auth.GetSession(r)
 
 	id, err := strconv.Atoi(r.PathValue("id"))
@@ -27,20 +31,25 @@ func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 
 	reward, err := h.DB.GetReward(ctx, id, session.UserID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
 		return
 	}
 
-	codes, err := h.DB.GetRewardCodes(ctx, id)
+	codes, err := h.DB.GetRewardCodes(ctx, id, "unredeemed")
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to get reward codes", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get reward codes", http.StatusInternalServerError)
 		return
 	}
 
-	trackerCodes := make([]RewardCode, len(codes))
-	for i, code := range codes {
+	var (
+		trackerCode *RewardCode
+		nextCodeURL string
+	)
+	if len(codes) > 0 {
+		code := codes[0]
+
 		var redeemedBy *database.DiscordUser
 		if code.RedeemedByUser.ID != nil {
 			redeemedBy = &database.DiscordUser{
@@ -50,13 +59,48 @@ func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   *code.RedeemedByUser.AvatarURL,
 			}
 		}
-		trackerCodes[i] = newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
+		c := newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
+		trackerCode = &c
+		nextCodeURL = fmt.Sprintf("/tracker/rewards/%d/codes/%d/next", reward.ID, trackerCode.ID)
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_reward.gohtml", TrackerRewardVars{
-		Reward: models.NewReward(*reward, 0, 0),
-		Codes:  trackerCodes,
+	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_codes.gohtml", TrackerRewardCodesVar{
+		Reward:      models.NewReward(*reward, 0, 0),
+		Code:        trackerCode,
+		NextCodeURL: nextCodeURL,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}
+}
+
+func (h *handler) TrackerRewardCodeNext(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	codeID, err := strconv.Atoi(r.PathValue("code_id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	if _, err = h.DB.GetReward(ctx, id, session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to get reward ", slog.String("err", err.Error()))
+		http.Error(w, "Failed to get reward", http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now()
+	if err = h.DB.UpdateRewardCodeRedeemed(ctx, codeID, &now, &session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to mark reward code as used", slog.String("err", err.Error()))
+		http.Error(w, "Failed to mark reward code as used", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d/codes", id), http.StatusSeeOther)
 }

@@ -321,7 +321,6 @@ func NewReward(reward database.Reward, usedCodes int, totalCodes int) Reward {
 		URL:         fmt.Sprintf("/tracker/rewards/%d", reward.ID),
 		CodesURL:    fmt.Sprintf("/tracker/rewards/%d/codes", reward.ID),
 		EditURL:     fmt.Sprintf("/tracker/rewards/%d/edit", reward.ID),
-		DeleteURL:   fmt.Sprintf("/tracker/rewards/%d/delete", reward.ID),
 		Name:        reward.Name,
 		Description: reward.Description,
 		UsedCodes:   usedCodes,
@@ -334,7 +333,6 @@ type Reward struct {
 	URL         string
 	CodesURL    string
 	EditURL     string
-	DeleteURL   string
 	Name        string
 	Description string
 	UsedCodes   int

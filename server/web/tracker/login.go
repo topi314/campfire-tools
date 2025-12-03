@@ -37,6 +37,6 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 		PreviousURL: redirect,
 		LoginURL:    h.Auth.Config().AuthCodeURL(state, opts...),
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render index template", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
 }
