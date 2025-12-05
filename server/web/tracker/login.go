@@ -12,8 +12,7 @@ import (
 )
 
 type TrackerLoginVars struct {
-	PreviousURL string
-	LoginURL    string
+	LoginURL string
 }
 
 func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -34,8 +33,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	addOauthCookie(w, state, expiration)
 
 	if err := h.Templates().ExecuteTemplate(w, "tracker_login.gohtml", TrackerLoginVars{
-		PreviousURL: redirect,
-		LoginURL:    h.Auth.Config().AuthCodeURL(state, opts...),
+		LoginURL: h.Auth.Config().AuthCodeURL(state, opts...),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}
