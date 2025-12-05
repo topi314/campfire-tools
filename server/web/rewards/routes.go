@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/topi314/campfire-tools/internal/middlewares"
 	"github.com/topi314/campfire-tools/server"
 )
 
@@ -23,16 +22,13 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("GET /{$}", h.Index)
 
-	mux.HandleFunc("GET  /campfire", h.CampfireLogin)
-	mux.HandleFunc("GET  /signup", h.SignUp)
-	mux.HandleFunc("POST /signup", h.PostSignUp)
-	mux.HandleFunc("POST /signup/callback", h.SignUpCallback)
+	// mux.HandleFunc("GET  /campfire", h.CampfireLogin)
+	// mux.HandleFunc("GET  /signup", h.SignUp)
+	// mux.HandleFunc("POST /signup", h.PostSignUp)
+	// mux.HandleFunc("POST /signup/callback", h.SignUpCallback)
+	// mux.HandleFunc("POST /login", h.PostSignUp)
 
-	mux.HandleFunc("POST /login", h.PostSignUp)
-
-	mux.HandleFunc("GET /code", h.Code)
-	mux.HandleFunc("GET /code/{code}", h.GetCode)
-	mux.Handle("GET /code/{code}/qr", middlewares.Cache(http.HandlerFunc(h.QRCode)))
+	mux.HandleFunc("GET /redeem", h.Redeem)
 
 	mux.Handle("GET  /static/", fs)
 	mux.Handle("HEAD /static/", fs)

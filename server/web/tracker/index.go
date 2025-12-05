@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/topi314/campfire-tools/server/auth"
+	"github.com/topi314/campfire-tools/server/web/models"
 )
 
 func (h *handler) Index(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,7 @@ func (h *handler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 type TrackerIndexVars struct {
-	User DiscordUser
+	User models.DiscordUser
 }
 
 func (h *handler) TrackerIndex(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func (h *handler) TrackerIndex(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSession(r)
 
 	if err := h.Templates().ExecuteTemplate(w, "tracker_index.gohtml", TrackerIndexVars{
-		User: newDiscordUser(session.DiscordUser),
+		User: models.NewDiscordUser(session.DiscordUser),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render index template", slog.String("err", err.Error()))
 	}

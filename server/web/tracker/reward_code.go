@@ -18,11 +18,12 @@ import (
 
 type TrackerRewardCodeVars struct {
 	models.Reward
-	RewardCode
+	models.RewardCode
 	BackURL         string
 	MarkAsUsedURL   string
 	MarkAsUnusedURL string
 	URL             string
+	RewardCodeURL   string
 }
 
 func (h *handler) TrackerRewardCode(w http.ResponseWriter, r *http.Request) {
@@ -66,12 +67,13 @@ func (h *handler) TrackerRewardCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_code.gohtml", TrackerRewardCodeVars{
-		Reward:          models.NewReward(*reward, 0, 0),
-		RewardCode:      newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy),
+		Reward:          models.NewReward(*reward),
+		RewardCode:      models.NewRewardCode(code.RewardCode, code.ImportedByUser, redeemedBy),
 		BackURL:         fmt.Sprintf("/tracker/rewards/%d", id),
 		MarkAsUsedURL:   fmt.Sprintf("/tracker/rewards/%d/codes/%d/mark-used", id, codeID),
 		MarkAsUnusedURL: fmt.Sprintf("/tracker/rewards/%d/codes/%d/mark-unused", id, codeID),
 		URL:             fmt.Sprintf("/tracker/rewards/%d/codes/%d", id, codeID),
+		RewardCodeURL:   models.RewardCodeURL(h.Cfg.Server.PublicRewardsURL, code.RedeemCode),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}
@@ -106,7 +108,7 @@ func (h *handler) TrackerRewardCodeQR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	qr, err := qrcode.New(CodeURL(code.Code))
+	qr, err := qrcode.New(models.RewardCodeURL(h.Cfg.Server.PublicRewardsURL, code.RedeemCode))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create qrcode", slog.String("err", err.Error()))
 		http.Error(w, "Failed to create qrcode", http.StatusInternalServerError)

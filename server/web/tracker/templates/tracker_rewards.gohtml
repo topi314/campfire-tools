@@ -16,7 +16,7 @@
             {{ range .Rewards }}
                 <li class="list-item list-item-group">
                     <div class="expand">
-                        <a href="{{ .URL }}">{{ .Name }} ({{ .UsedCodes }}/{{ .TotalCodes }} codes)</a>
+                        <a href="{{ .URL }}">{{ .Name }} ({{ .RedeemedCodes }}/{{ .TotalCodes }})</a>
                     </div>
                     <div class="buttons">
                         <a href="{{ .CodesURL }}" class="button">Show Codes</a>

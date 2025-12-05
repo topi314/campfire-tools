@@ -39,7 +39,7 @@ CREATE TABLE reward_codes
     reward_code_reward_id   BIGINT REFERENCES rewards (reward_id) ON DELETE CASCADE,
     reward_code_imported_at TIMESTAMP DEFAULT now(),
     reward_code_imported_by VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL,
-    reward_code_redeem_code VARCHAR(255),
+    reward_code_redeem_code VARCHAR(255)        NOT NULL UNIQUE,
     reward_code_redeemed_at TIMESTAMP,
     reward_code_redeemed_by VARCHAR             REFERENCES discord_users (discord_user_id) ON DELETE SET NULL
 );

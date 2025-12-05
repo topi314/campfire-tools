@@ -16,6 +16,7 @@ func (h *handler) TrackerRewards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
 
+	// rewards, err := h.DB.GetRewards(ctx, session.UserID)
 	rewards, err := h.DB.GetRewards(ctx, session.UserID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get rewards", slog.String("err", err.Error()))
@@ -25,7 +26,7 @@ func (h *handler) TrackerRewards(w http.ResponseWriter, r *http.Request) {
 
 	trackerRewards := make([]models.Reward, len(rewards))
 	for i, reward := range rewards {
-		trackerRewards[i] = models.NewReward(reward.Reward, 0, 0)
+		trackerRewards[i] = models.NewReward(reward)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards.gohtml", TrackerRewardsVars{

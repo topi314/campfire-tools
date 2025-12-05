@@ -40,7 +40,7 @@ func (h *handler) renderTrackerRewardEdit(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards_edit.gohtml", TrackerRewardEditVars{
-		Reward:  models.NewReward(*reward, 0, 0),
+		Reward:  models.NewReward(*reward),
 		Error:   errorMessage,
 		URL:     fmt.Sprintf("/tracker/rewards/%d", id),
 		BackURL: fmt.Sprintf("/tracker/rewards/%d", id),

@@ -4,21 +4,18 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/topi314/campfire-tools/internal/xrand"
 )
 
 type Reward struct {
-	ID          int    `db:"reward_id"`
-	Name        string `db:"reward_name"`
-	Description string `db:"reward_description"`
-	CreatedBy   string `db:"reward_created_by"`
-	CreatedAt   string `db:"reward_created_at"`
-	UsedCount   int    `db:"reward_used_count"`
-	TotalCount  int    `db:"reward_total_count"`
-}
-
-type RewardWithCreator struct {
-	Reward
-	DiscordUser
+	ID            int    `db:"reward_id"`
+	Name          string `db:"reward_name"`
+	Description   string `db:"reward_description"`
+	CreatedBy     string `db:"reward_created_by"`
+	CreatedAt     string `db:"reward_created_at"`
+	TotalCodes    int    `db:"reward_total_codes"`
+	RedeemedCodes int    `db:"reward_redeemed_codes"`
 }
 
 type RewardCode struct {
@@ -27,7 +24,7 @@ type RewardCode struct {
 	RewardID   int        `db:"reward_code_reward_id"`
 	ImportedAt time.Time  `db:"reward_code_imported_at"`
 	ImportedBy string     `db:"reward_code_imported_by"`
-	RedeemCode *string    `db:"reward_code_redeem_code"`
+	RedeemCode string     `db:"reward_code_redeem_code"`
 	RedeemedAt *time.Time `db:"reward_code_redeemed_at"`
 	RedeemedBy *string    `db:"reward_code_redeemed_by"`
 }
@@ -45,8 +42,11 @@ type RewardCodeWithUser struct {
 
 func (d *Database) GetReward(ctx context.Context, id int, userID string) (*Reward, error) {
 	query := `
-		SELECT rewards.*
+		SELECT rewards.*,
+		       COUNT(reward_codes.reward_code_id) AS reward_total_codes,
+		       COUNT(reward_codes.reward_code_redeemed_at) AS reward_redeemed_codes
 		FROM rewards
+        LEFT JOIN reward_codes ON reward_code_reward_id = reward_id
 		LEFT JOIN reward_members ON reward_member_reward_id = reward_id
 		WHERE reward_id = $1 AND (reward_created_by = $2 OR reward_member_discord_user_id = $2)
 		GROUP BY reward_id
@@ -59,33 +59,21 @@ func (d *Database) GetReward(ctx context.Context, id int, userID string) (*Rewar
 	return &reward, nil
 }
 
-func (d *Database) DeleteRewardCode(ctx context.Context, id int) error {
+func (d *Database) GetRewards(ctx context.Context, userID string) ([]Reward, error) {
 	query := `
-		DELETE FROM reward_codes
-		WHERE reward_code_id = $1
-	`
-
-	_, err := d.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete reward code: %w", err)
-	}
-
-	return nil
-}
-
-func (d *Database) GetRewards(ctx context.Context, userID string) ([]RewardWithCreator, error) {
-	query := `
-		SELECT rewards.*, discord_users.*
+		SELECT rewards.*,
+		       COUNT(reward_codes.reward_code_id) AS reward_total_codes,
+		       COUNT(reward_codes.reward_code_redeemed_at) AS reward_redeemed_codes
 		FROM rewards
-		JOIN discord_users ON reward_created_by = discord_user_id
+		LEFT JOIN reward_codes ON reward_code_reward_id = reward_id
 		LEFT JOIN reward_members ON reward_member_reward_id = reward_id
-		WHERE discord_user_id = $1 OR reward_created_by = $1
-		GROUP BY reward_id, discord_user_id, reward_created_at
+		WHERE reward_created_by = $1 OR reward_member_discord_user_id = $1
+		GROUP BY reward_id
 		ORDER BY reward_created_at DESC
 	`
-	var rewards []RewardWithCreator
+	var rewards []Reward
 	if err := d.db.SelectContext(ctx, &rewards, query, userID); err != nil {
-		return nil, fmt.Errorf("failed to get rewards: %w", err)
+		return nil, fmt.Errorf("failed to get rewards with counts: %w", err)
 	}
 
 	return rewards, nil
@@ -148,11 +136,12 @@ func (d *Database) InsertRewardCodes(ctx context.Context, id int, codes []string
 			Code:       code,
 			RewardID:   id,
 			ImportedBy: userID,
+			RedeemCode: xrand.Code(12),
 		})
 	}
 	query := `
-		INSERT INTO reward_codes (reward_code_code, reward_code_reward_id, reward_code_imported_by)
-		VALUES (:reward_code_code, :reward_code_reward_id, :reward_code_imported_by)
+		INSERT INTO reward_codes (reward_code_code, reward_code_reward_id, reward_code_imported_by, reward_code_redeem_code)
+		VALUES (:reward_code_code, :reward_code_reward_id, :reward_code_imported_by, :reward_code_redeem_code)
 		ON CONFLICT (reward_code_code) DO NOTHING
 	`
 
@@ -180,6 +169,20 @@ func (d *Database) UpdateRewardCodeRedeemed(ctx context.Context, id int, at *tim
 	return nil
 }
 
+func (d *Database) DeleteRewardCode(ctx context.Context, id int) error {
+	query := `
+		DELETE FROM reward_codes
+		WHERE reward_code_id = $1
+	`
+
+	_, err := d.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete reward code: %w", err)
+	}
+
+	return nil
+}
+
 func (d *Database) GetRewardCode(ctx context.Context, id int) (*RewardCodeWithUser, error) {
 	query := `
 		SELECT reward_codes.*, 
@@ -199,6 +202,30 @@ func (d *Database) GetRewardCode(ctx context.Context, id int) (*RewardCodeWithUs
 	var code RewardCodeWithUser
 	if err := d.db.GetContext(ctx, &code, query, id); err != nil {
 		return nil, fmt.Errorf("failed to get reward code: %w", err)
+	}
+
+	return &code, nil
+}
+
+func (d *Database) GetRewardCodeByRedeemCode(ctx context.Context, redeemCode string) (*RewardCodeWithUser, error) {
+	query := `
+		SELECT reward_codes.*, 
+		       importer.discord_user_id AS "imported_by_user.discord_user_id",
+		       importer.discord_user_username AS "imported_by_user.discord_user_username",
+		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
+		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
+		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
+		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
+		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
+		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url"
+		FROM reward_codes
+		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
+		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
+		WHERE reward_code_redeem_code = $1
+	`
+	var code RewardCodeWithUser
+	if err := d.db.GetContext(ctx, &code, query, redeemCode); err != nil {
+		return nil, fmt.Errorf("failed to get reward code by redeem code: %w", err)
 	}
 
 	return &code, nil

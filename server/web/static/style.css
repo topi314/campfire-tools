@@ -413,6 +413,14 @@ hr {
     object-fit: cover;
 }
 
+.icon-18 {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
 .back {
     display: flex;
     align-items: center;
@@ -588,10 +596,11 @@ hr {
 }
 
 .qr-code {
-    width: 100%;
-    margin: 0 auto;
+    display: block;
+    width: 80%;
     padding: 10px;
     background-color: var(--static-background-color);
+    margin: 0 auto;
 }
 
 .center {
@@ -618,4 +627,34 @@ hr {
     font-size: 1.5em;
     font-weight: bold;
     letter-spacing: 0.1em;
+}
+
+.reward-code {
+    padding: 10px;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.reward-redeem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    text-align: center;
+}
+
+.reward-redeem .button {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 8px;
+}
+
+.reward-redeem .button img {
+    width: 64px;
+    height: 64px;
+    vertical-align: middle;
+    margin-right: 10px;
 }

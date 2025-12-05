@@ -1,4 +1,4 @@
-{{ template "head" "Code Request" }}
+{{ template "head" "Reward Edit" }}
 <div class="container">
     <div class="container-header">
         {{ template "back_button" .BackURL }}
@@ -27,8 +27,8 @@
             {{ end }}
 
             <div class="form-control buttons spread">
-                <button type="submit" class="success">Edit</button>
                 <button hx-delete="{{ .URL }}" class="button danger" hx-confirm="Are you sure you want to delete this reward? This action cannot be undone.">Delete</button>
+                <button type="submit" class="success">Edit</button>
             </div>
         </form>
     </div>

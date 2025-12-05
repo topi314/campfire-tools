@@ -84,7 +84,6 @@
         toChangeHandler();
 
         function fromChangeHandler() {
-            console.log("From date changed");
             const fromDate = document.getElementById("from");
             const toDate = document.getElementById("to");
 
@@ -95,7 +94,6 @@
         }
 
         function toChangeHandler() {
-            console.log("To date changed");
             const fromDate = document.getElementById("from");
             const toDate = document.getElementById("to");
 
@@ -114,5 +112,5 @@
 {{ end }}
 
 {{ define "discord_user" }}
-    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-32"> {{ .EffectiveName }}</span>
+    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-18"> {{ .EffectiveName }}</span>
 {{ end }}

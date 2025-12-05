@@ -1,91 +1,21 @@
 package tracker
 
 import (
-	"cmp"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/database"
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
-func CodeURL(code string) string {
-	return fmt.Sprintf("https://store.pokemongo.com/offer-redemption?passcode=%s", code)
-}
-
 type TrackerRewardVars struct {
 	models.Reward
-	Codes  []RewardCode
+	Codes  []models.RewardCode
 	URL    string
 	Filter string
-}
-
-func newRewardCode(rewardID int, code database.RewardCode, importedBy database.DiscordUser, redeemedBy *database.DiscordUser) RewardCode {
-	var user *DiscordUser
-	if redeemedBy != nil {
-		u := newDiscordUser(*redeemedBy)
-		user = &u
-	}
-	return RewardCode{
-		ID:         code.ID,
-		URL:        fmt.Sprintf("/tracker/rewards/%d/codes/%d", rewardID, code.ID),
-		Code:       code.Code,
-		QRURL:      fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", rewardID, code.ID),
-		ImportedAt: code.ImportedAt,
-		ImportedBy: newDiscordUser(importedBy),
-		RedeemCode: code.RedeemCode,
-		RedeemedAt: code.RedeemedAt,
-		RedeemedBy: user,
-	}
-}
-
-type RewardCode struct {
-	ID         int
-	URL        string
-	Code       string
-	QRURL      string
-	ImportedAt time.Time
-	ImportedBy DiscordUser
-	RedeemCode *string
-	RedeemedAt *time.Time
-	RedeemedBy *DiscordUser
-}
-
-func (c RewardCode) IsRedeemed() bool {
-	return c.RedeemedAt != nil
-}
-
-func (c RewardCode) RedeemCodeURL() string {
-	return CodeURL(c.Code)
-}
-
-func newDiscordUser(user database.DiscordUser) DiscordUser {
-	return DiscordUser{
-		ID:          user.ID,
-		Username:    user.Username,
-		DisplayName: cmp.Or(user.DisplayName, user.Username),
-		AvatarURL:   user.AvatarURL,
-		ImportedAt:  user.ImportedAt,
-	}
-}
-
-type DiscordUser struct {
-	ID          string
-	Username    string
-	DisplayName string
-	AvatarURL   string
-	ImportedAt  time.Time
-}
-
-func (u DiscordUser) EffectiveName() string {
-	if u.DisplayName == "" {
-		return u.Username
-	}
-	return u.DisplayName
 }
 
 func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +48,7 @@ func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trackerCodes := make([]RewardCode, len(codes))
+	trackerCodes := make([]models.RewardCode, len(codes))
 	for i, code := range codes {
 		var redeemedBy *database.DiscordUser
 		if code.RedeemedByUser.ID != nil {
@@ -129,11 +59,11 @@ func (h *handler) TrackerReward(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   *code.RedeemedByUser.AvatarURL,
 			}
 		}
-		trackerCodes[i] = newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
+		trackerCodes[i] = models.NewRewardCode(code.RewardCode, code.ImportedByUser, redeemedBy)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_reward.gohtml", TrackerRewardVars{
-		Reward: models.NewReward(*reward, 0, 0),
+		Reward: models.NewReward(*reward),
 		Codes:  trackerCodes,
 		URL:    fmt.Sprintf("/tracker/rewards/%d", id),
 		Filter: filter,

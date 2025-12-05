@@ -1,8 +1,8 @@
-{{ template "head" "Code Request" }}
+{{ template "head" "Reward" }}
 <div class="container">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
-        <h1>{{ .Name }}</h1>
+        <h1>Reward: {{ .Name }}</h1>
         <a href="{{ .EditURL }}" class="button button-primary">Edit</a>
     </div>
 
@@ -15,7 +15,7 @@
 
     <div class="section">
         <div class="section-header">
-            <h2>Codes ({{ len .Codes }})</h2>
+            <h2>Codes ({{ .RedeemedCodes }}/{{ .TotalCodes }})</h2>
             <div class="inline-form-control">
                 <label for="filter">
                     <select id="filter" name="filter" hx-get="{{ .URL }}" hx-target="#codes" hx-swap="outerHTML" hx-select="#codes" hx-push-url="true">

@@ -14,8 +14,9 @@ import (
 
 type TrackerRewardCodesVar struct {
 	models.Reward
-	Code        *RewardCode
-	NextCodeURL string
+	Code          *models.RewardCode
+	NextCodeURL   string
+	RewardCodeURL string
 }
 
 func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +45,9 @@ func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		trackerCode *RewardCode
-		nextCodeURL string
+		trackerCode   *models.RewardCode
+		nextCodeURL   string
+		rewardCodeURL string
 	)
 	if len(codes) > 0 {
 		code := codes[0]
@@ -59,15 +61,17 @@ func (h *handler) TrackerRewardCodes(w http.ResponseWriter, r *http.Request) {
 				AvatarURL:   *code.RedeemedByUser.AvatarURL,
 			}
 		}
-		c := newRewardCode(id, code.RewardCode, code.ImportedByUser, redeemedBy)
+		c := models.NewRewardCode(code.RewardCode, code.ImportedByUser, redeemedBy)
 		trackerCode = &c
 		nextCodeURL = fmt.Sprintf("/tracker/rewards/%d/codes/%d/next", reward.ID, trackerCode.ID)
+		rewardCodeURL = models.RewardCodeURL(h.Cfg.Server.PublicRewardsURL, code.RedeemCode)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_reward_codes.gohtml", TrackerRewardCodesVar{
-		Reward:      models.NewReward(*reward, 0, 0),
-		Code:        trackerCode,
-		NextCodeURL: nextCodeURL,
+		Reward:        models.NewReward(*reward),
+		Code:          trackerCode,
+		NextCodeURL:   nextCodeURL,
+		RewardCodeURL: rewardCodeURL,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}

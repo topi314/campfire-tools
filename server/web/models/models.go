@@ -315,26 +315,26 @@ func ImageURL(imageURL string, size int) string {
 	return imageURL
 }
 
-func NewReward(reward database.Reward, usedCodes int, totalCodes int) Reward {
+func NewReward(reward database.Reward) Reward {
 	return Reward{
-		ID:          reward.ID,
-		URL:         fmt.Sprintf("/tracker/rewards/%d", reward.ID),
-		CodesURL:    fmt.Sprintf("/tracker/rewards/%d/codes", reward.ID),
-		EditURL:     fmt.Sprintf("/tracker/rewards/%d/edit", reward.ID),
-		Name:        reward.Name,
-		Description: reward.Description,
-		UsedCodes:   usedCodes,
-		TotalCodes:  totalCodes,
+		ID:            reward.ID,
+		URL:           fmt.Sprintf("/tracker/rewards/%d", reward.ID),
+		CodesURL:      fmt.Sprintf("/tracker/rewards/%d/codes", reward.ID),
+		EditURL:       fmt.Sprintf("/tracker/rewards/%d/edit", reward.ID),
+		Name:          reward.Name,
+		Description:   reward.Description,
+		RedeemedCodes: reward.RedeemedCodes,
+		TotalCodes:    reward.TotalCodes,
 	}
 }
 
 type Reward struct {
-	ID          int
-	URL         string
-	CodesURL    string
-	EditURL     string
-	Name        string
-	Description string
-	UsedCodes   int
-	TotalCodes  int
+	ID            int
+	URL           string
+	CodesURL      string
+	EditURL       string
+	Name          string
+	Description   string
+	RedeemedCodes int
+	TotalCodes    int
 }

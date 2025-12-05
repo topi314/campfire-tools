@@ -5,34 +5,9 @@
     </div>
 
     <div class="section center">
-        <h2>Sign In</h2>
-        <form hx-post="/signin" hx-target="#rewards-form" hx-swap="outerHTML" id="rewards-form">
-            <label for="username">
-                Username
-                <input type="text" id="username" name="username" required>
-            </label>
-            <label for="password">
-                Password
-                <input type="password" id="password" name="password" required>
-            </label>
-            <div class="buttons">
-                <button type="submit" class="button">Sign In</button>
-                <a href="/signin/forgot" class="button">Forgot Password?</a>
-            </div>
-        </form>
-        <p>Don't have an account yet?</p>
-        <a href="{{ .SignUpURL }}" class="button">Sign Up</a>
-    </div>
-
-    <div class="section">
-        <h2>Earn Rewards</h2>
-        <p>Participate in your local campfire community and earn rewards for your participation!</p>
-        <p>Sign up for our rewards program to start earning points for activities such as:</p>
-        <ul>
-            <li>Attending events</li>
-            <li>Winning contests</li>
-            <li>Raffles</li>
-        </ul>
+        <p>
+            Claim rewards you've earned through your participation in local Campfire communities!
+        </p>
     </div>
 </div>
 {{ template "footer" }}
