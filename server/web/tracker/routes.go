@@ -90,10 +90,10 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/event/{event_id}", h.TrackerClubEvent)
 	mux.HandleFunc("GET /tracker/event/{event_id}/refresh", h.TrackerClubEventRefresh)
 
-	mux.HandleFunc("GET  /tracker/api/docs", h.APIDocs)
-	mux.HandleFunc("GET  /tracker/api/events", h.APIExportEvents)
-	mux.HandleFunc("POST /tracker/api/events", h.APIImportEvents)
-	mux.HandleFunc("GET  /tracker/api/clubs/{club_id}/events", h.APIClubEvents)
+	mux.HandleFunc("GET  /api/docs", h.APIDocs)
+	mux.HandleFunc("GET  /api/events", h.APIExportEvents)
+	mux.HandleFunc("POST /api/events", h.APIImportEvents)
+	mux.HandleFunc("GET  /api/clubs/{club_id}/events", h.APIClubEvents)
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
 
