@@ -21,15 +21,14 @@ func (s loginState) IsExpired() bool {
 	return time.Since(s.CreatedAt) > MaxLoginFlowDuration
 }
 
-func New(cfg Config, db *database.Database) *Auth {
+func New(cfg Config, publicURL string) *Auth {
 	a := &Auth{
 		cfg: cfg,
-		db:  db,
 		oauth2Cfg: &oauth2.Config{
 			ClientID:     cfg.ClientID,
 			ClientSecret: cfg.ClientSecret,
 			Endpoint:     endpoints.Discord,
-			RedirectURL:  cfg.PublicURL + "/login/callback",
+			RedirectURL:  publicURL + "/tracker/login/callback",
 			Scopes:       []string{"identify", "guilds"},
 		},
 		states: make(map[string]loginState),

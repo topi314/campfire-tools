@@ -1,12 +1,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
+	"image/png"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -21,6 +24,7 @@ import (
 
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/cauth"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -30,8 +34,11 @@ var (
 	//go:embed web/static
 	static embed.FS
 
-	//go:embed web/templates/*.gohtml
+	//go:embed web
 	templates embed.FS
+
+	//go:embed web/static/campfire-tools-mini.png
+	logo []byte
 )
 
 func New(cfg Config) (*Server, error) {
@@ -54,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml")))
+				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml")))
 		}
 		reloader.Start(root.FS())
 	} else {
@@ -66,7 +73,7 @@ func New(cfg Config) (*Server, error) {
 
 		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			ParseFS(templates, "web/templates/*.gohtml"),
+			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
 		))
 
 		t = func() *template.Template {
@@ -93,20 +100,30 @@ func New(cfg Config) (*Server, error) {
 		slog.Info("Discord webhook notifications enabled", slog.String("name", wh.Name()), slog.String("guild_id", wh.GuildID.String()), slog.String("channel_id", wh.ChannelID.String()))
 	}
 
+	logoPNG, err := png.Decode(bytes.NewReader(logo))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode logo: %w", err)
+	}
+
 	httpClient := &http.Client{}
 	s := &Server{
 		Cfg: cfg,
-		Server: &http.Server{
-			Addr: cfg.Server.Addr,
+		TrackerServer: &http.Server{
+			Addr: cfg.Server.TrackerAddr,
+		},
+		RewardsServer: &http.Server{
+			Addr: cfg.Server.RewardsAddr,
 		},
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:            db,
-		Auth:          auth.New(cfg.Auth, db),
+		Auth:          auth.New(cfg.DiscordAuth, cfg.Server.PublicTrackerURL),
+		CampfireAuth:  cauth.New(cfg.CampfireAuth),
 		Templates:     t,
 		StaticFS:      staticFS,
 		WebhookClient: webhookClient,
 		Reloader:      reloader,
+		Logo:          logoPNG,
 	}
 
 	go s.cleanup()
@@ -138,39 +155,64 @@ func cleanPathMiddleware(next http.Handler) http.Handler {
 
 type Server struct {
 	Cfg                    Config
-	Server                 *http.Server
+	TrackerServer          *http.Server
+	RewardsServer          *http.Server
 	HttpClient             *http.Client
 	Campfire               *campfire.Client
 	DB                     *database.Database
 	Auth                   *auth.Auth
+	CampfireAuth           *cauth.Auth
 	Templates              func() *template.Template
 	StaticFS               http.FileSystem
 	WebhookClient          *webhook.Client
 	SentTokenNotifications []int
 	Reloader               *goreload.Reloader
+	Logo                   image.Image
 }
 
-func (s *Server) Start(handler http.Handler) {
-	s.Server.Handler = cleanPathMiddleware(handler)
+func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler) {
+	s.TrackerServer.Handler = cleanPathMiddleware(trackerHandler)
 	go func() {
-		if err := s.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Server failed: %s\n", err)
+		if err := s.TrackerServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Tracker server failed: %s\n", err)
+		}
+	}()
+
+	s.RewardsServer.Handler = cleanPathMiddleware(rewardsHandler)
+	go func() {
+		if err := s.RewardsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Rewards server failed: %s\n", err)
 		}
 	}()
 
 	go s.importClubs()
-	go s.importEvents()
-	go s.updateEvents()
+	// TODO: activate event import/update later
+	// go s.importEvents()
+	// go s.updateEvents()
 }
 
 func (s *Server) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := s.Server.Shutdown(ctx); err != nil {
-		slog.Error("Server shutdown failed", slog.Any("err", err))
-		return
-	}
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
+	//
+	// var wg sync.WaitGroup
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	if err := s.TrackerServer.Shutdown(ctx); err != nil {
+	// 		slog.Error("Tracker server shutdown failed", slog.Any("err", err))
+	// 	}
+	// }()
+	//
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	if err := s.RewardsServer.Shutdown(ctx); err != nil {
+	// 		slog.Error("Rewards server shutdown failed", slog.Any("err", err))
+	// 	}
+	// }()
+	//
+	// wg.Wait()
 
 	if s.Reloader != nil {
 		s.Reloader.Close()

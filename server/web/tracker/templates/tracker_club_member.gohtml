@@ -1,0 +1,77 @@
+{{ template "head" addStr "Tracker - " .DisplayName }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" .Club.URL }}
+        <h1>
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}">
+            {{ else }}
+                <img src="/static/default_avatar.png">
+            {{ end }}
+            <span title="{{ .Username }}">{{ .DisplayName }}</span>
+        </h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Details</h2>
+        </div>
+        <p>
+            <strong>Username:</strong>
+            {{ .Username }}
+        </p>
+        <p>
+            <strong>Display Name:</strong>
+            {{ .DisplayName }}
+        </p>
+        <p>
+            <strong>Community Ambassador:</strong>
+            {{ template "checkbox" .IsCommunityAmbassador }}
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Check-Ins ({{ len .Events }})</h2>
+        </div>
+        <ul class="list">
+            {{ range $event := .Events }}
+                <li class="list-item">
+                    {{ if $event.CoverPhotoURL }}
+                        <img src="{{ $event.CoverPhotoURL }}">
+                    {{ else }}
+                        <img src="/static/default.png">
+                    {{ end }}
+                    <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
+                        {{ $event.Name }}
+                    </a>
+                </li>
+            {{ else }}
+                <span>No events found.</span>
+            {{ end }}
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Accepted ({{ len .AcceptedEvents }})</h2>
+        </div>
+        <ul class="list">
+            {{ range $event := .AcceptedEvents }}
+                <li class="list-item">
+                    {{ if $event.CoverPhotoURL }}
+                        <img src="{{ $event.CoverPhotoURL }}">
+                    {{ else }}
+                        <img src="/static/default.png">
+                    {{ end }}
+                    <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
+                        {{ $event.Name }}
+                    </a>
+                </li>
+            {{ else }}
+                <span>No events found.</span>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ template "tracker_footer" }}

@@ -1,0 +1,20 @@
+{{ template "head" "Campfire Login" }}
+<div class="container">
+    <div class="container-header">
+        <h1>Rewards</h1>
+    </div>
+
+    <form hx-get="/campfire" hx-push-url="true">
+
+        <label for="club">Choose your Campfire Club:</label>
+        <select name="club" id="club" class="form-control" required>
+            <option value="" disabled selected>Select your club</option>
+            {{ range .Clubs }}
+                <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+
+        <button type="submit" class="button">Log In with Campfire</button>
+    </form>
+</div>
+{{ template "footer" }}

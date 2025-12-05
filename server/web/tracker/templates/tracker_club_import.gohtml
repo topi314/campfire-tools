@@ -1,0 +1,71 @@
+{{ template "head" "Campfire Tracker Club Import" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker/clubs" }}
+        <h1>Tracker Club Import</h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Import Club</h2>
+        </div>
+        <form id="import-form" method="POST" action="/tracker/club/import" class="form">
+            <label for="club">Campfire Club</label>
+            <textarea id="club" name="club" rows="10" required placeholder="Join Campfire! https://campfire.onelink.me/...">{{ .SelectedClubID }}</textarea>
+            {{ if .Errors }}
+                <p id="error-message" class="error">
+                    {{ range $error := .Errors }}
+                        {{ $error }}
+                        <br/>
+                    {{ end }}
+                </p>
+            {{ end }}
+            <button type="submit" class="button">Import</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Import Jobs</h2>
+        </div>
+
+        <div class="table-{{ if .IsAdmin }}7{{ else }}6{{ end }}">
+            <div>ID</div>
+            <div>Club</div>
+            <div>Created At</div>
+            <div>Completed At</div>
+            <div>Last Tried At</div>
+            <div>Status</div>
+            {{ if .IsAdmin }}
+                <div>Error</div>
+            {{ end }}
+            {{ range $job := .ImportJobs }}
+                <div>{{ $job.ID }}</div>
+                <div><a href="{{ $job.Club.URL }}" hx-boost="true">{{ $job.Club.Name }}</a></div>
+                <div>{{ formatTimeToRelDayTime $job.CreatedAt }}</div>
+                <div>{{ if not $job.CompletedAt.IsZero }}{{ formatTimeToRelDayTime $job.CompletedAt }}{{ end }}</div>
+                <div>{{ if not $job.LastTriedAt.IsZero }}{{ formatTimeToRelDayTime $job.LastTriedAt }}{{ end }}</div>
+                <div>{{ $job.Status }}</div>
+                {{ if $.IsAdmin }}
+                    <div>{{ $job.Error }}</div>
+                {{ end }}
+            {{ end }}
+        </div>
+    </div>
+
+
+</div>
+<script>
+    document.getElementById("import-form")?.addEventListener("submit", () => {
+        const err = document.getElementById("error-message");
+        if (err) {
+            err.remove();
+        }
+    });
+
+    document.getElementById("club").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
+    });
+</script>
+{{ template "tracker_footer" }}

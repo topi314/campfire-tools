@@ -13,7 +13,8 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/xslog"
 	"github.com/topi314/campfire-tools/server"
-	"github.com/topi314/campfire-tools/server/web"
+	"github.com/topi314/campfire-tools/server/web/rewards"
+	"github.com/topi314/campfire-tools/server/web/tracker"
 )
 
 func main() {
@@ -44,10 +45,10 @@ func main() {
 		return
 	}
 
-	go srv.Start(web.Routes(srv))
+	go srv.Start(tracker.Routes(srv), rewards.Routes(srv))
 	defer srv.Stop()
 
-	slog.Info("Server started", slog.String("addr", cfg.Server.Addr))
+	slog.Info("Servers started", slog.String("tracker_addr", cfg.Server.TrackerAddr), slog.String("rewards_addr", cfg.Server.RewardsAddr))
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
@@ -64,7 +65,7 @@ func setupLogger(cfg server.LogConfig) {
 			ReplaceAttr: nil,
 		})
 	case server.LogFormatText:
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			AddSource:   cfg.AddSource,
 			Level:       cfg.Level,
 			ReplaceAttr: nil,

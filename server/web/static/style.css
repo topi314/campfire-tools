@@ -19,6 +19,7 @@ input, textarea {
     border-radius: 4px;
     background-color: var(--background2-color);
     color: var(--text-color);
+    resize: vertical;
 }
 
 input[type="checkbox"] {
@@ -81,6 +82,44 @@ button.loading::after, .button.loading::after {
     color: #ffffff;
     font-size: 16px;
 }
+
+button.small, .button.small {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.success {
+    background-color: var(--color-success);
+}
+
+.success:hover {
+    background-color: var(--color-success-hover);
+}
+
+.info {
+    background-color: var(--color-info);
+}
+
+.info:hover {
+    background-color: var(--color-info-hover);
+}
+
+.warning {
+    background-color: var(--color-warning);
+}
+
+.warning:hover {
+    background-color: var(--color-warning-hover);
+}
+
+.danger {
+    background-color: var(--color-danger);
+}
+
+.danger:hover {
+    background-color: var(--color-danger-hover);
+}
+
 
 select {
     overflow-y: auto;
@@ -158,6 +197,11 @@ pre:has(code) {
     flex-wrap: wrap;
     justify-content: center;
     gap: 10px;
+    width: auto;
+}
+
+.buttons.spread {
+    justify-content: space-between;
 }
 
 .buttons form {
@@ -333,6 +377,13 @@ form label {
     border-bottom: none;
 }
 
+.list-item-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 h1 > img, h2 > img {
     width: 48px;
     height: 48px;
@@ -346,9 +397,25 @@ h2 > img {
     height: 32px;
 }
 
+hr {
+    display: block;
+    width: 100%;
+    height: 1px;
+    border: none;
+    background-color: var(--border-color);
+}
+
 .list-item > img, .icon-32 {
     width: 32px;
     height: 32px;
+    vertical-align: middle;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.icon-18 {
+    width: 18px;
+    height: 18px;
     vertical-align: middle;
     border-radius: 8px;
     object-fit: cover;
@@ -500,23 +567,23 @@ h2 > img {
     grid-template-columns: 1fr auto auto auto;
 }
 
-.progress-green {
-    background-color: var(--progress-green);
+.color-success {
+    background-color: var(--color-success);
     color: #000000;
 }
 
-.progress-yellow {
-    background-color: var(--progress-yellow);
+.color-info {
+    background-color: var(--color-info);
     color: #000000;
 }
 
-.progress-orange {
-    background-color: var(--progress-orange);
+.color-warning {
+    background-color: var(--color-warning);
     color: #000000;
 }
 
-.progress-red {
-    background-color: var(--progress-red);
+.color-danger {
+    background-color: var(--color-danger);
     color: #000000;
 }
 
@@ -526,4 +593,68 @@ h2 > img {
 
 .wrap {
     word-wrap: anywhere;
+}
+
+.qr-code {
+    display: block;
+    width: 80%;
+    padding: 10px;
+    background-color: var(--static-background-color);
+    margin: 0 auto;
+}
+
+.center {
+    text-align: center;
+}
+
+.left {
+    text-align: left;
+}
+
+.right {
+    text-align: right;
+}
+
+.mono {
+    font-family: monospace;
+}
+
+.expand {
+    flex-grow: 1;
+}
+
+.manual-code {
+    font-size: 1.5em;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+}
+
+.reward-code {
+    padding: 10px;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.reward-redeem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    text-align: center;
+}
+
+.reward-redeem .button {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 8px;
+}
+
+.reward-redeem .button img {
+    width: 64px;
+    height: 64px;
+    vertical-align: middle;
+    margin-right: 10px;
 }

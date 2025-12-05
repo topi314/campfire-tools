@@ -1,0 +1,36 @@
+{{ template "head" "Redeem Reward" }}
+<div class="container">
+    <div class="container-header">
+        <h1>Redeem Reward</h1>
+    </div>
+
+    <div class="section">
+        <div class="reward-redeem">
+            {{ if eq .Code nil }}
+                <p>
+                    Sorry, it seems the reward code you are trying to redeem is invalid.
+                    <br/>
+                    Please double-check the code or ask your Community Ambassador for assistance.
+                </p>
+            {{ else }}
+                <div>
+                    <h3>Congratulations! You've earned a reward code.</h3>
+                    <p>
+                        You can redeem this code in the <a href="https://store.pokemongo.com" target="_blank">web store</a> to claim your reward.
+                        <br/>
+                        Click the code to copy it to your clipboard or directly redeem it using the button below.
+                    </p>
+                </div>
+                <h2 class="reward-code" title="Click to copy" id="redemption-code">{{ .Code.Code }}</h2>
+                <a href="{{ .Code.RedeemCodeURL }}" class="button"><img src="/static/webstore.png">Redeem in Web Store</a>
+            {{ end }}
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById("redemption-code")?.addEventListener("click", function() {
+        navigator.clipboard.writeText(this.textContent);
+        alert("Code copied to clipboard!");
+    });
+</script>
+{{ template "footer" }}

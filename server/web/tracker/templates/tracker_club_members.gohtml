@@ -1,0 +1,46 @@
+{{ template "head" addStr "Tracker - " .Name " - Members" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" addStr "/tracker/club/" .Club.ID }}
+        <h1>
+            <img src="{{ .AvatarURL }}">
+            {{ .Name }}
+        </h1>
+    </div>
+
+    <div class="section">
+        {{ template "events_filter" . }}
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Members ({{ len .Members }})</h2>
+        </div>
+
+        <div class="table-5">
+            <span>Position</span>
+            <span>Member</span>
+            <span>Accepted</span>
+            <span>Check-Ins</span>
+            <span>Rate</span>
+            {{ range $index, $member := .Members }}
+                <span>{{ add $index 1 }}</span>
+                <div>
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
+                        {{ $member.DisplayName }}
+                    </a>
+                </div>
+                <span>{{ $member.Accepted }}</span>
+                <span>{{ $member.CheckIns }}</span>
+                <span>{{ $member.CheckInRate }}%</span>
+            {{ else }}
+                <span>No members found.</span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            {{ end }}
+        </div>
+    </div>
+</div>
+{{ template "tracker_footer" }}

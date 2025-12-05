@@ -1,0 +1,117 @@
+{{ template "head" "Campfire Raffle Result" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" .BackURL }}
+        <h1>Raffle Result</h1>
+    </div>
+
+    {{ if .Error }}
+        <div class="error">
+            <p>{{ .Error }}</p>
+        </div>
+    {{ end }}
+
+    <div class="section">
+        {{ if .Winners }}
+            <ol class="winners">
+                {{ range $index, $winner := .Winners }}
+                    <li title="{{ $winner.Username }}">
+                        <div>
+                            <span>{{ $winner.DisplayName }}{{if $winner.CheckIns }} ({{ $winner.CheckIns }}){{ end }}</span>
+                            {{ if not $winner.Confirmed }}
+                                <form action="{{ $winner.ConfirmURL }}" method="POST">
+                                    <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
+                                    <button type="submit" class="delete-button">
+                                        Confirm
+                                    </button>
+                                </form>
+                            {{ end }}
+                        </div>
+                    </li>
+                {{ end }}
+            </ol>
+        {{ else }}
+            <p class="error">
+                No eligible winners found. Try again later.
+            </p>
+        {{ end }}
+
+        <div class="buttons">
+            {{ if .ID }}
+                <form action="{{ .RerunRaffleURL }}" method="POST">
+                    <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
+                    <button type="submit" class="button">
+                        Rerun
+                    </button>
+                </form>
+            {{ end }}
+        </div>
+    </div>
+
+    {{ if .PastWinners }}
+        <div class="section">
+            <details id="past-winners" {{ if .PastWinnersOpen }}open{{ end }}>
+                <summary>Past Winners</summary>
+                <ul class="past-winners">
+                    {{ range $index, $pastWinner := .PastWinners }}
+                        <li title="{{ $pastWinner.Username }}">
+                            {{ $pastWinner.DisplayName }}{{ if $pastWinner.CheckIns }} ({{ $pastWinner.CheckIns }}){{ end }}
+                        </li>
+                    {{ end }}
+                </ul>
+            </details>
+        </div>
+    {{ end }}
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Raffle Information:</h2>
+        </div>
+        <p>
+            <strong>Created At:</strong>
+            {{ formatTimeToRelDayTime .CreatedAt }}
+        </p>
+        <div>
+            <strong>Events:</strong>
+            <ol>
+                {{ range $event := .Events }}
+                    <li>
+                        <a href="/event/{{ $event.ID }}" hx-boost="true">{{ $event.Name }}</a>
+                    </li>
+                {{ end }}
+            </ol>
+        </div>
+        <p>
+            <strong>Winner Count:</strong>
+            {{ .WinnerCount }}
+        </p>
+        <p>
+            <strong>Only Checked-In Members:</strong>
+            {{ template "checkbox" .OnlyCheckedIn }}
+        </p>
+        <p>
+            <strong>Single Entry Per Member:</strong>
+            {{ template "checkbox" .SingleEntry }}
+        </p>
+    </div>
+</div>
+<script>
+    document.getElementById("past-winners")?.addEventListener("toggle", (event) => {
+        toggleParam(event.target, "past-winners");
+    });
+
+    function toggleParam(element, name) {
+        const url = new URL(window.location);
+        if (element.open) {
+            url.searchParams.set(name, "true");
+        } else {
+            url.searchParams.delete(name);
+        }
+        document.querySelectorAll(`input[name="${name.replaceAll("-", "_")}"]`).forEach(field => {
+            field.value = element.open ? "true" : "false";
+        })
+
+        window.history.replaceState(null, "", url.toString());
+    }
+</script>
+{{ template "tracker_footer" }}

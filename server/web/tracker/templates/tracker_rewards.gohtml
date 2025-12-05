@@ -1,0 +1,32 @@
+{{ template "head" "Rewards" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker" }}
+        <h1>Rewards</h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Your Rewards</h2>
+            <div class="buttons">
+                <a href="/tracker/rewards/new" class="button">New</a>
+            </div>
+        </div>
+        <ul class="list">
+            {{ range .Rewards }}
+                <li class="list-item list-item-group">
+                    <div class="expand">
+                        <a href="{{ .URL }}">{{ .Name }} ({{ .RedeemedCodes }}/{{ .TotalCodes }})</a>
+                    </div>
+                    <div class="buttons">
+                        <a href="{{ .CodesURL }}" class="button">Show Codes</a>
+                    </div>
+                </li>
+            {{ else }}
+                <li>No rewards found. Create one by clicking the "New" button above.</li>
+            {{ end }}
+        </ul>
+    </div>
+
+</div>
+{{ template "tracker_footer" }}

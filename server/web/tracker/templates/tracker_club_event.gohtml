@@ -1,0 +1,119 @@
+{{ template "head" addStr "Tracker - " .Name }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" .Club.URL }}
+        <h1>
+            {{ if .CoverPhotoURL }}
+                <img src="{{ .CoverPhotoURL }}">
+            {{ end }}
+            {{ .Name }}
+        </h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Details </h2>
+
+            <div class="inline-form-control" hx-boost="true">
+                <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
+                <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+                <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
+            </div>
+        </div>
+        <p>
+            <strong>Creator:</strong>
+            {{ if .Creator.AvatarURL }}
+                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
+            {{ else }}
+                <img class="icon-32" src="/static/default_avatar.png">
+            {{ end }}
+            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
+                {{ .Creator.DisplayName }}
+            </a>
+        </p>
+        <p>
+            <strong>Club:</strong>
+            {{ if .Club.AvatarURL }}
+                <img class="icon-32" src="{{ .Club.AvatarURL }}">
+            {{ else }}
+                <img class="icon-32" src="/static/default_avatar.png">
+            {{ end }}
+            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
+                {{ .Club.Name }}
+            </a>
+        </p>
+        <p>
+            <strong>Start:</strong>
+            {{ formatTimeToRelDayTime .Time }}
+        </p>
+        <p>
+            <strong>End:</strong>
+            {{ formatTimeToRelDayTime .EndTime }}
+        </p>
+        <p>
+            <strong>Finished:</strong>
+            {{ template "checkbox" .Finished }}
+        </p>
+        {{ if .CampfireLiveEventID }}
+            <p>
+                <strong>Campfire Live Event:</strong>
+                <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span>
+            </p>
+        {{ end }}
+        <p>
+            <strong>Created By Community Ambassador:</strong>
+            {{ template "checkbox" .CreatedByCommunityAmbassador }}
+        </p>
+        <p>
+            <strong>Imported At:</strong>
+            {{ formatTimeToRelDayTime .ImportedAt }}
+        </p>
+        <p>
+            <strong>Description:</strong>
+            <br/>
+            {{ .Details }}
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Check-Ins ({{ len .CheckedInMembers }})</h2>
+        <ul class="list">
+            {{ range $member := .CheckedInMembers }}
+                <li class="list-item">
+                    {{ if $member.AvatarURL }}
+                        <img src="{{ $member.AvatarURL }}">
+                    {{ else }}
+                        <img src="/static/default_avatar.png">
+                    {{ end }}
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
+                        {{ $member.DisplayName }}
+                    </a>
+                </li>
+            {{ else }}
+                <span>No members have checked in.</span>
+            {{ end }}
+
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Accepted ({{ len .AcceptedMembers }})</h2>
+        <ul class="list">
+            {{ range $member := .AcceptedMembers }}
+                <li class="list-item">
+                    {{ if $member.AvatarURL }}
+                        <img src="{{ $member.AvatarURL }}">
+                    {{ else }}
+                        <img src="/static/default_avatar.png">
+                    {{ end }}
+                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
+                        {{ $member.DisplayName }}
+                    </a>
+                </li>
+            {{ else }}
+                <span>No members have accepted and not checked in.</span>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ template "tracker_footer" }}

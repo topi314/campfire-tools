@@ -18,6 +18,7 @@ type Club struct {
 	ImportedAt                   time.Time       `db:"club_imported_at"`
 	RawJSON                      json.RawMessage `db:"club_raw_json"`
 	AutoEventImport              bool            `db:"club_auto_event_import"`
+	ClubVerificationChannelID    *string         `db:"club_verification_channel_id"`
 	LastAutoEventImportedAt      time.Time       `db:"club_last_auto_event_imported_at"`
 }
 
@@ -123,6 +124,14 @@ type RaffleWinnerWithMember struct {
 	CheckIns int `db:"check_ins"`
 }
 
+type DiscordUser struct {
+	ID          string    `db:"discord_user_id"`
+	Username    string    `db:"discord_user_username"`
+	DisplayName string    `db:"discord_user_display_name"`
+	AvatarURL   string    `db:"discord_user_avatar_url"`
+	ImportedAt  time.Time `db:"discord_user_imported_at"`
+}
+
 type Session struct {
 	ID        string    `db:"session_id"`
 	CreatedAt time.Time `db:"session_created_at"`
@@ -131,15 +140,9 @@ type Session struct {
 	Admin     bool      `db:"session_admin"`
 }
 
-type UserSetting struct {
-	UserID       string  `db:"user_setting_user_id"`
-	PinnedClubID *string `db:"user_setting_pinned_club_id"`
-}
-
-type SessionWithUserSetting struct {
+type SessionWithUser struct {
 	Session
-	UserSettingUserID *string `db:"user_setting_user_id"`
-	PinnedClubID      *string `db:"user_setting_pinned_club_id"`
+	DiscordUser
 }
 
 type ClubImportJobStatus string
@@ -177,4 +180,19 @@ type EventState struct {
 	Event   Event       `json:"event"`
 	Creator Member      `json:"creator"`
 	RSVPs   []EventRSVP `json:"rsvps"`
+}
+
+type RewardUser struct {
+	ID           int       `db:"reward_user_id"`
+	CreatedAt    time.Time `db:"reward_user_created_at"`
+	MemberID     string    `db:"reward_user_member_id"`
+	PasswordHash string    `db:"reward_user_password_hash"`
+	PasswordSalt string    `db:"reward_user_password_salt"`
+}
+
+type RewardSession struct {
+	ID           int       `db:"reward_session_id"`
+	CreatedAt    time.Time `db:"reward_session_created_at"`
+	ExpiresAt    time.Time `db:"reward_session_expires_at"`
+	RewardUserID string    `db:"reward_session_reward_user_id"`
 }

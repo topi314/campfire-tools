@@ -1,0 +1,37 @@
+{{ template "head" "New Reward" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker/rewards" }}
+        <h1>New Reward</h1>
+    </div>
+
+    <div class="section">
+        <form hx-post="/tracker/rewards/new" hx-encoding='multipart/form-data' hx-target="body" hx-push-url="true">
+            <label class="form-control" for="name" title="Name of the reward">
+                Name
+                <input class="form-control" type="text" id="name" name="name" required>
+            </label>
+
+            <label class="form-control" for="description" title="Description of the reward">
+                Description
+                <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+            </label>
+
+            <label class="form-control" for="codes" title="">
+                Codes
+                <textarea class="form-control" id="codes" name="codes" required></textarea>
+            </label>
+
+            {{ if .Error }}
+                <div class="error-message">{{ .Error }}</div>
+            {{ end }}
+
+            <div class="form-control buttons spread">
+                <span></span>
+                <button type="submit" class="success">Create</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{{ template "tracker_footer" }}

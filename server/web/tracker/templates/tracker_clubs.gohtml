@@ -1,0 +1,42 @@
+{{ template "head" "Campfire Event Tracker" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker" }}
+        <h1>Tracker</h1>
+    </div>
+
+    <div class="buttons" hx-boost="true">
+        <a class="button" href="/tracker/club/import">Import Club</a>
+        <a class="button" href="/tracker/event/import">Import Events</a>
+    </div>
+
+    <div id="clubs" class="section">
+        <div class="section-header">
+            <h2>Clubs ({{ len .Clubs }})</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    <select id="sort" name="sort" hx-get="/tracker/clubs" hx-target="#clubs" hx-swap="outerHTML" hx-select="#clubs" hx-push-url="true">
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Sort by Name</option>
+                        <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Sort by Events</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+        <ul class="list">
+            {{ range $club := .Clubs }}
+                <li class="list-item">
+                    {{ if $club.AvatarURL }}
+                        <img src="{{ $club.AvatarURL }}">
+                    {{ else }}
+                        <img src="/static/default.png">
+                    {{ end }}
+                    <a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>
+                    {{ if $club.Pinned }} 📌{{ end }}
+                </li>
+            {{ else }}
+                <span>No clubs tracked yet.</span>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ template "tracker_footer" }}

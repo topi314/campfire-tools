@@ -11,6 +11,7 @@ import (
 	"github.com/topi314/campfire-tools/internal/xtime"
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/cauth"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -39,7 +40,8 @@ func defaultConfig() Config {
 			AddSource: false,
 		},
 		Server: ServerConfig{
-			Addr: ":8085",
+			TrackerAddr: ":8085",
+			RewardsAddr: ":8084",
 		},
 		Database: database.Config{
 			Host:     "localhost",
@@ -58,24 +60,26 @@ func defaultConfig() Config {
 
 type Config struct {
 	Dev                        bool                `toml:"dev"`
-	WarnUnknownEventCategories bool                `toml:"warn_unknown_event_categorie"`
+	WarnUnknownEventCategories bool                `toml:"warn_unknown_event_categories"`
 	Log                        LogConfig           `toml:"log"`
 	Server                     ServerConfig        `toml:"server"`
 	Database                   database.Config     `toml:"database"`
 	Campfire                   campfire.Config     `toml:"campfire"`
-	Auth                       auth.Config         `toml:"auth"`
+	DiscordAuth                auth.Config         `toml:"discord_auth"`
+	CampfireAuth               cauth.Config        `toml:"campfire_auth"`
 	Notifications              NotificationsConfig `toml:"notifications"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nWarnUnknownEventCategories: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nAuth: %s\nNotifications: %s",
+	return fmt.Sprintf("Dev: %t\nWarnUnknownEventCategories: %t\nLog: %s\nServer: %s\nDatabase: %s\nCampfire: %s\nDiscordAuth: %s\nCampfireAuth: %s\nNotifications: %s",
 		c.Dev,
 		c.WarnUnknownEventCategories,
 		c.Log,
 		c.Server,
 		c.Database,
 		c.Campfire,
-		c.Auth,
+		c.DiscordAuth,
+		c.CampfireAuth,
 		c.Notifications,
 	)
 }
@@ -102,12 +106,18 @@ func (c LogConfig) String() string {
 }
 
 type ServerConfig struct {
-	Addr string `toml:"addr"`
+	TrackerAddr      string `toml:"tracker_addr"`
+	PublicTrackerURL string `toml:"public_tracker_url"`
+	RewardsAddr      string `toml:"rewards_addr"`
+	PublicRewardsURL string `toml:"public_rewards_url"`
 }
 
 func (c ServerConfig) String() string {
-	return fmt.Sprintf("\n Address: %s",
-		c.Addr,
+	return fmt.Sprintf("\n TrackerAddr: %s\n PublicTrackerURL: %s\n RewardsAddr: %s\n PublicRewardsURL: %s",
+		c.TrackerAddr,
+		c.PublicTrackerURL,
+		c.RewardsAddr,
+		c.PublicRewardsURL,
 	)
 }
 

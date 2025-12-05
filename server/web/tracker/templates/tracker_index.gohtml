@@ -1,0 +1,20 @@
+{{ template "head" "Campfire Tools" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/" }}
+        <h1>Tracker</h1>
+    </div>
+
+    <p>
+        Hi {{ .User.DisplayName }} <img src="{{ .User.AvatarURL }}" class="icon-32">
+        <br/>
+        Manage your Campfire club and rewards here.
+
+    </p>
+
+    <div class="buttons" hx-boost="true">
+        <a href="/tracker/clubs" class="button">Clubs</a>
+        <a href="/tracker/rewards" class="button">Rewards</a>
+    </div>
+</div>
+{{ template "tracker_footer" }}
