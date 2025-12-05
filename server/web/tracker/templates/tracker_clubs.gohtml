@@ -30,8 +30,7 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    <a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>
-                    {{ if $club.Pinned }} 📌{{ end }}
+                    {{ if $club.Pinned }}📌{{ end }}<a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>
                 </li>
             {{ else }}
                 <span>No clubs tracked yet.</span>
