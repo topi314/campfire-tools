@@ -22,9 +22,9 @@
             <button hx-delete="{{ .URL }}" class="button danger" hx-confirm="Are you sure you want to delete this reward code? This action cannot be undone.">Delete Code</button>
 
             {{ if .IsRedeemed }}
-                <button hx-post="{{ .MarkAsUnusedURL }}" class="warning">Mark as Unused</button>
+                <button hx-post="{{ .MarkAsUnusedURL }}" hx-target="body" class="warning">Mark as Unused</button>
             {{ else }}
-                <button hx-post="{{ .MarkAsUsedURL }}" class="success">Mark as Used</button>
+                <button hx-post="{{ .MarkAsUsedURL }}" hx-target="body" class="success">Mark as Used</button>
             {{ end }}
         </div>
     </div>
