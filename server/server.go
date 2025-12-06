@@ -186,9 +186,8 @@ func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler)
 	}()
 
 	go s.importClubs()
-	// TODO: activate event import/update later
-	// go s.importEvents()
-	// go s.updateEvents()
+	go s.importEvents()
+	go s.updateEvents()
 }
 
 func (s *Server) Stop() {
