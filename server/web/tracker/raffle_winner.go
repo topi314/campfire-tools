@@ -77,7 +77,7 @@ func redirectRaffle(w http.ResponseWriter, r *http.Request, raffleID int, clubID
 	if clubID != "" {
 		redirectURL = fmt.Sprintf("/tracker/club/%s/raffle/%d", clubID, raffleID)
 	} else {
-		redirectURL = fmt.Sprintf("/tracker/raffle/%d", raffleID)
+		redirectURL = fmt.Sprintf("/raffle/%d", raffleID)
 	}
 	http.Redirect(w, r, withQuery(redirectURL, rawQuery), http.StatusSeeOther)
 }

@@ -214,7 +214,7 @@ func NewRaffle(raffle database.Raffle) Raffle {
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
 		SingleEntry:   raffle.SingleEntry,
 		CreatedAt:     raffle.CreatedAt,
-		URL:           fmt.Sprintf("/tracker/raffle/%d", raffle.ID),
+		URL:           fmt.Sprintf("/raffle/%d", raffle.ID),
 	}
 }
 
@@ -234,7 +234,7 @@ func NewWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
 	if clubID != "" {
 		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/confirm/%s", clubID, winner.RaffleID, winner.Member.ID)
 	} else {
-		confirmURL = fmt.Sprintf("/tracker/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
 	}
 
 	return Winner{

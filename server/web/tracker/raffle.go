@@ -299,7 +299,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		backURL = "/raffle"
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_raffle_result.gohtml", RaffleResultVars{
+	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
 		Raffle:          models.NewRaffle(*raffle),
 		Events:          renderEvents,
 		ClubID:          clubID,
