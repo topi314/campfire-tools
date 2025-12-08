@@ -1,0 +1,20 @@
+mutation CreateEventLocationSharingSessionMutation(
+  $input: CreateEventLocationSharingSessionInput!
+) {
+  createEventLocationSharingSession(input: $input) {
+    me {
+      location
+      id
+    }
+    event {
+      hostLocationSharingSession {
+        id
+        expiresAt
+        isStopped
+        user {
+          id
+        }
+      }
+    }
+  }
+}

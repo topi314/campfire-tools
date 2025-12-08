@@ -1,0 +1,10 @@
+mutation StopLocationSharingSessionMutation(
+  $input: StopLocationSharingSessionInput!
+) {
+  stopLocationSharingSession(input: $input) {
+    session {
+      id
+      isStopped
+    }
+  }
+}

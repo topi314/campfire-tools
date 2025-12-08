@@ -1,0 +1,11 @@
+mutation LocationHeartbeatMutation(
+  $input: LocationHeartbeatInput!
+) {
+  locationHeartbeat(input: $input) {
+    success
+    me {
+      id
+      location
+    }
+  }
+}
