@@ -31,6 +31,7 @@ var templateFuncs = template.FuncMap{
 	"formatMonthNice":        formatMonthNice,
 	"formatTimeToDayTime":    formatTimeToDayTime,
 	"formatDayTime":          formatDayTime,
+	"formatTime":             formatTime,
 	"formatTimeToRelDayTime": formatTimeToRelDayTime,
 }
 
@@ -156,6 +157,10 @@ func formatMonthNice(t time.Time) string {
 
 func formatDayTime(t time.Time) string {
 	return t.Format("02.01.2006 15:04")
+}
+
+func formatTime(t time.Time) string {
+	return t.Format("15:04:05")
 }
 
 func formatTimeToDayTime(t time.Time) string {

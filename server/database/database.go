@@ -34,6 +34,7 @@ func New(cfg Config) (*Database, error) {
 	}
 
 	go db.cleanup()
+	go db.rewardCodeCleanup()
 
 	return db, nil
 }
@@ -62,5 +63,21 @@ func (d *Database) doCleanupSessions() {
 
 	if err := d.DeleteExpiredSessions(ctx); err != nil {
 		slog.Error("failed to cleanup expired sessions", slog.Any("err", err))
+	}
+}
+
+func (d *Database) rewardCodeCleanup() {
+	for {
+		d.doCleanupRewardCodes()
+		time.Sleep(15 * time.Second)
+	}
+}
+
+func (d *Database) doCleanupRewardCodes() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := d.UnreserveRewardCodes(ctx); err != nil {
+		slog.Error("failed to cleanup expired reward codes", slog.Any("err", err))
 	}
 }

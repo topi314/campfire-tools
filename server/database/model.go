@@ -132,6 +132,14 @@ type DiscordUser struct {
 	ImportedAt  time.Time `db:"discord_user_imported_at"`
 }
 
+type OptDiscordUser struct {
+	ID          *string    `db:"discord_user_id"`
+	Username    *string    `db:"discord_user_username"`
+	DisplayName *string    `db:"discord_user_display_name"`
+	AvatarURL   *string    `db:"discord_user_avatar_url"`
+	ImportedAt  *time.Time `db:"discord_user_imported_at"`
+}
+
 type Session struct {
 	ID        string    `db:"session_id"`
 	CreatedAt time.Time `db:"session_created_at"`
@@ -195,4 +203,52 @@ type RewardSession struct {
 	CreatedAt    time.Time `db:"reward_session_created_at"`
 	ExpiresAt    time.Time `db:"reward_session_expires_at"`
 	RewardUserID string    `db:"reward_session_reward_user_id"`
+}
+
+type Reward struct {
+	ID          int    `db:"reward_id"`
+	Name        string `db:"reward_name"`
+	Description string `db:"reward_description"`
+	CreatedBy   string `db:"reward_created_by"`
+	CreatedAt   string `db:"reward_created_at"`
+	// TotalCodes is a computed field
+	TotalCodes int `db:"reward_total_codes"`
+	// RedeemedCodes is a computed field
+	RedeemedCodes int `db:"reward_redeemed_codes"`
+}
+
+type RewardWithMembers struct {
+	Reward
+	Members []RewardMemberWithUser `db:"members"`
+}
+
+type RewardMember struct {
+	RewardID      string    `db:"reward_member_reward_id"`
+	DiscordUserID string    `db:"reward_member_discord_user_id"`
+	AddedAt       time.Time `db:"reward_member_added_at"`
+}
+
+type RewardMemberWithUser struct {
+	RewardMember
+	DiscordUser `db:"discord_user"`
+}
+
+type RewardCode struct {
+	ID         int        `db:"reward_code_id"`
+	Code       string     `db:"reward_code_code"`
+	RewardID   int        `db:"reward_code_reward_id"`
+	ImportedAt time.Time  `db:"reward_code_imported_at"`
+	ImportedBy string     `db:"reward_code_imported_by"`
+	RedeemCode string     `db:"reward_code_redeem_code"`
+	RedeemedAt *time.Time `db:"reward_code_redeemed_at"`
+	RedeemedBy *string    `db:"reward_code_redeemed_by"`
+	ReservedBy *string    `db:"reward_code_reserved_by"`
+	ReservedAt *time.Time `db:"reward_code_reserved_at"`
+}
+
+type RewardCodeWithUser struct {
+	RewardCode
+	ImportedByUser DiscordUser    `db:"imported_by_user"`
+	RedeemedByUser OptDiscordUser `db:"redeemed_by_user"`
+	ReservedByUser OptDiscordUser `db:"reserved_by_user"`
 }

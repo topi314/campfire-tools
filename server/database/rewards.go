@@ -8,38 +8,6 @@ import (
 	"github.com/topi314/campfire-tools/internal/xrand"
 )
 
-type Reward struct {
-	ID            int    `db:"reward_id"`
-	Name          string `db:"reward_name"`
-	Description   string `db:"reward_description"`
-	CreatedBy     string `db:"reward_created_by"`
-	CreatedAt     string `db:"reward_created_at"`
-	TotalCodes    int    `db:"reward_total_codes"`
-	RedeemedCodes int    `db:"reward_redeemed_codes"`
-}
-
-type RewardCode struct {
-	ID         int        `db:"reward_code_id"`
-	Code       string     `db:"reward_code_code"`
-	RewardID   int        `db:"reward_code_reward_id"`
-	ImportedAt time.Time  `db:"reward_code_imported_at"`
-	ImportedBy string     `db:"reward_code_imported_by"`
-	RedeemCode string     `db:"reward_code_redeem_code"`
-	RedeemedAt *time.Time `db:"reward_code_redeemed_at"`
-	RedeemedBy *string    `db:"reward_code_redeemed_by"`
-}
-
-type RewardCodeWithUser struct {
-	RewardCode
-	ImportedByUser DiscordUser `db:"imported_by_user"`
-	RedeemedByUser struct {
-		ID          *string `db:"discord_user_id"`
-		Username    *string `db:"discord_user_username"`
-		DisplayName *string `db:"discord_user_display_name"`
-		AvatarURL   *string `db:"discord_user_avatar_url"`
-	} `db:"redeemed_by_user"`
-}
-
 func (d *Database) GetReward(ctx context.Context, id int, userID string) (*Reward, error) {
 	query := `
 		SELECT rewards.*,
@@ -54,6 +22,42 @@ func (d *Database) GetReward(ctx context.Context, id int, userID string) (*Rewar
 	var reward Reward
 	if err := d.db.GetContext(ctx, &reward, query, id, userID); err != nil {
 		return nil, fmt.Errorf("failed to get reward: %w", err)
+	}
+
+	return &reward, nil
+}
+
+func (d *Database) GetRewardWithMembers(ctx context.Context, id int) (*RewardWithMembers, error) {
+	query := `
+		SELECT rewards.*,
+		       COUNT(reward_codes.reward_code_id) AS reward_total_codes,
+		       COUNT(reward_codes.reward_code_redeemed_at) AS reward_redeemed_codes,
+		       COALESCE(
+		           JSONB_AGG(
+		               JSONB_BUILD_OBJECT(
+		                   'reward_member_reward_id', reward_members.reward_member_reward_id,
+		                   'reward_member_discord_user_id', reward_members.reward_member_discord_user_id,
+		                   'reward_member_added_at', reward_members.reward_member_added_at,
+		                   'discord_user', JSONB_BUILD_OBJECT(
+		                       'discord_user_id', discord_users.discord_user_id,
+		                       'discord_user_username', discord_users.discord_user_username,
+		                       'discord_user_display_name', discord_users.discord_user_display_name,
+		                       'discord_user_avatar_url', discord_users.discord_user_avatar_url
+		                   )
+		               )
+		           ) FILTER (WHERE reward_members.reward_member_discord_user_id IS NOT NULL),
+		           '[]'::JSONB
+		       ) AS members
+		FROM rewards
+		LEFT JOIN reward_codes ON reward_code_reward_id = reward_id
+		LEFT JOIN reward_members ON reward_member_reward_id = reward_id
+		LEFT JOIN discord_users ON reward_member_discord_user_id = discord_users.discord_user_id
+		WHERE reward_id = $1
+		GROUP BY reward_id
+	`
+	var reward RewardWithMembers
+	if err := d.db.GetContext(ctx, &reward, query, id); err != nil {
+		return nil, fmt.Errorf("failed to get reward with members: %w", err)
 	}
 
 	return &reward, nil
@@ -129,6 +133,183 @@ func (d *Database) DeleteReward(ctx context.Context, codeID int) error {
 	return nil
 }
 
+func (d *Database) GetRewardCode(ctx context.Context, id int) (*RewardCodeWithUser, error) {
+	query := `
+		SELECT reward_codes.*, 
+		       importer.discord_user_id AS "imported_by_user.discord_user_id",
+		       importer.discord_user_username AS "imported_by_user.discord_user_username",
+		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
+		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
+		       importer.discord_user_imported_at AS "imported_by_user.discord_user_imported_at",
+		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
+		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
+		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
+		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url",
+		       redeemer.discord_user_imported_at AS "redeemed_by_user.discord_user_imported_at",
+		       reserver.discord_user_id AS "reserved_by_user.discord_user_id",
+		       reserver.discord_user_username AS "reserved_by_user.discord_user_username",
+		       reserver.discord_user_display_name AS "reserved_by_user.discord_user_display_name",
+		       reserver.discord_user_avatar_url AS "reserved_by_user.discord_user_avatar_url",
+		       reserver.discord_user_imported_at AS "reserved_by_user.discord_user_imported_at"
+		FROM reward_codes
+		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
+		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
+		LEFT JOIN discord_users AS reserver ON reward_code_reserved_by = reserver.discord_user_id
+		WHERE reward_code_id = $1
+	`
+	var code RewardCodeWithUser
+	if err := d.db.GetContext(ctx, &code, query, id); err != nil {
+		return nil, fmt.Errorf("failed to get reward code: %w", err)
+	}
+
+	return &code, nil
+}
+
+func (d *Database) GetRewardCodeByRedeemCode(ctx context.Context, redeemCode string) (*RewardCodeWithUser, error) {
+	query := `
+		SELECT reward_codes.*, 
+		       importer.discord_user_id AS "imported_by_user.discord_user_id",
+		       importer.discord_user_username AS "imported_by_user.discord_user_username",
+		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
+		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
+		       importer.discord_user_imported_at AS "imported_by_user.discord_user_imported_at",
+		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
+		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
+		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
+		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url",
+		       redeemer.discord_user_imported_at AS "redeemed_by_user.discord_user_imported_at",
+		       reserver.discord_user_id AS "reserved_by_user.discord_user_id",
+		       reserver.discord_user_username AS "reserved_by_user.discord_user_username",
+		       reserver.discord_user_display_name AS "reserved_by_user.discord_user_display_name",
+		       reserver.discord_user_avatar_url AS "reserved_by_user.discord_user_avatar_url",
+		       reserver.discord_user_imported_at AS "reserved_by_user.discord_user_imported_at"
+		FROM reward_codes
+		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
+		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
+		LEFT JOIN discord_users AS reserver ON reward_code_reserved_by = reserver.discord_user_id
+		WHERE reward_code_redeem_code = $1
+	`
+	var code RewardCodeWithUser
+	if err := d.db.GetContext(ctx, &code, query, redeemCode); err != nil {
+		return nil, fmt.Errorf("failed to get reward code by redeem code: %w", err)
+	}
+
+	return &code, nil
+}
+
+func (d *Database) GetRewardCodes(ctx context.Context, id int, filter string) ([]RewardCodeWithUser, error) {
+	query := `
+		SELECT reward_codes.*, 
+		       importer.discord_user_id AS "imported_by_user.discord_user_id",
+		       importer.discord_user_username AS "imported_by_user.discord_user_username",
+		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
+		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
+		       importer.discord_user_imported_at AS "imported_by_user.discord_user_imported_at",
+		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
+		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
+		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
+		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url",
+		       redeemer.discord_user_imported_at AS "redeemed_by_user.discord_user_imported_at",
+		       reserver.discord_user_id AS "reserved_by_user.discord_user_id",
+		       reserver.discord_user_username AS "reserved_by_user.discord_user_username",
+		       reserver.discord_user_display_name AS "reserved_by_user.discord_user_display_name",
+		       reserver.discord_user_avatar_url AS "reserved_by_user.discord_user_avatar_url",
+		       reserver.discord_user_imported_at AS "reserved_by_user.discord_user_imported_at"
+		FROM reward_codes
+		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
+		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
+		LEFT JOIN discord_users AS reserver ON reward_code_reserved_by = reserver.discord_user_id
+		WHERE reward_code_reward_id = $1
+	`
+
+	switch filter {
+	case "redeemed":
+		query += ` AND reward_code_redeemed_at IS NOT NULL `
+	case "unredeemed":
+		query += ` AND reward_code_redeemed_at IS NULL `
+	}
+
+	query += `ORDER BY reward_code_imported_at DESC, reward_code_id DESC`
+
+	var codes []RewardCodeWithUser
+	if err := d.db.SelectContext(ctx, &codes, query, id); err != nil {
+		return nil, fmt.Errorf("failed to get reward codes: %w", err)
+	}
+
+	return codes, nil
+}
+
+func (d *Database) GetNextRewardCode(ctx context.Context, id int) (*RewardCodeWithUser, error) {
+	query := `
+		SELECT reward_codes.*, 
+		       importer.discord_user_id AS "imported_by_user.discord_user_id",
+		       importer.discord_user_username AS "imported_by_user.discord_user_username",
+		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
+		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
+		       importer.discord_user_imported_at AS "imported_by_user.discord_user_imported_at",
+		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
+		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
+		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
+		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url",
+		       redeemer.discord_user_imported_at AS "redeemed_by_user.discord_user_imported_at",
+		       reserver.discord_user_id AS "reserved_by_user.discord_user_id",
+		       reserver.discord_user_username AS "reserved_by_user.discord_user_username",
+		       reserver.discord_user_display_name AS "reserved_by_user.discord_user_display_name",
+		       reserver.discord_user_avatar_url AS "reserved_by_user.discord_user_avatar_url",
+		       reserver.discord_user_imported_at AS "reserved_by_user.discord_user_imported_at"
+		FROM reward_codes
+		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
+		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
+		LEFT JOIN discord_users AS reserver ON reward_code_reserved_by = reserver.discord_user_id
+		WHERE reward_code_reward_id = $1
+		  AND reward_code_redeemed_at IS NULL
+		  AND reward_code_reserved_at IS NULL
+		ORDER BY reward_code_imported_at DESC, reward_code_id DESC
+		LIMIT 1
+	`
+
+	var code RewardCodeWithUser
+	if err := d.db.GetContext(ctx, &code, query, id); err != nil {
+		return nil, fmt.Errorf("failed to get next reward code: %w", err)
+	}
+
+	return &code, nil
+}
+
+func (d *Database) ReserveRewardCode(ctx context.Context, id int, userID string) error {
+	query := `
+		UPDATE reward_codes
+		SET reward_code_reserved_at = now(),
+		    reward_code_reserved_by = $1
+		WHERE reward_code_id = $2
+	`
+
+	_, err := d.db.ExecContext(ctx, query, userID, id)
+	if err != nil {
+		return fmt.Errorf("failed to reserve reward code: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) UnreserveRewardCodes(ctx context.Context) error {
+	query := `
+		UPDATE reward_codes
+		SET reward_code_reserved_at = NULL,
+		    reward_code_reserved_by = NULL
+		WHERE reward_code_reserved_at IS NOT NULL
+		  AND reward_code_redeemed_at IS NULL
+		  AND reward_code_reserved_at < NOW() - INTERVAL '1 minute'
+	`
+
+	_, err := d.db.ExecContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to unreserve reward codes: %w", err)
+	}
+
+	return nil
+}
+
 func (d *Database) InsertRewardCodes(ctx context.Context, id int, codes []string, userID string) error {
 	var dbCodes []RewardCode
 	for _, code := range codes {
@@ -157,7 +338,9 @@ func (d *Database) UpdateRewardCodeRedeemed(ctx context.Context, id int, at *tim
 	query := `
 		UPDATE reward_codes
 		SET reward_code_redeemed_at = $1,
-		    reward_code_redeemed_by = $2
+		    reward_code_redeemed_by = $2,
+			reward_code_reserved_at = NULL,
+			reward_code_reserved_by = NULL
 		WHERE reward_code_id = $3
 	`
 
@@ -183,84 +366,31 @@ func (d *Database) DeleteRewardCode(ctx context.Context, id int) error {
 	return nil
 }
 
-func (d *Database) GetRewardCode(ctx context.Context, id int) (*RewardCodeWithUser, error) {
+func (d *Database) AddRewardMember(ctx context.Context, rewardID int, discordUserID string) error {
 	query := `
-		SELECT reward_codes.*, 
-		       importer.discord_user_id AS "imported_by_user.discord_user_id",
-		       importer.discord_user_username AS "imported_by_user.discord_user_username",
-		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
-		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
-		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
-		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
-		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
-		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url"
-		FROM reward_codes
-		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
-		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
-		WHERE reward_code_id = $1
+		INSERT INTO reward_members (reward_member_reward_id, reward_member_discord_user_id)
+		VALUES ($1, $2)
+		ON CONFLICT (reward_member_reward_id, reward_member_discord_user_id) DO NOTHING
 	`
-	var code RewardCodeWithUser
-	if err := d.db.GetContext(ctx, &code, query, id); err != nil {
-		return nil, fmt.Errorf("failed to get reward code: %w", err)
+
+	_, err := d.db.ExecContext(ctx, query, rewardID, discordUserID)
+	if err != nil {
+		return fmt.Errorf("failed to add reward member: %w", err)
 	}
 
-	return &code, nil
+	return nil
 }
 
-func (d *Database) GetRewardCodeByRedeemCode(ctx context.Context, redeemCode string) (*RewardCodeWithUser, error) {
+func (d *Database) RemoveRewardMember(ctx context.Context, rewardID int, discordUserID string) error {
 	query := `
-		SELECT reward_codes.*, 
-		       importer.discord_user_id AS "imported_by_user.discord_user_id",
-		       importer.discord_user_username AS "imported_by_user.discord_user_username",
-		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
-		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
-		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
-		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
-		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
-		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url"
-		FROM reward_codes
-		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
-		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
-		WHERE reward_code_redeem_code = $1
-	`
-	var code RewardCodeWithUser
-	if err := d.db.GetContext(ctx, &code, query, redeemCode); err != nil {
-		return nil, fmt.Errorf("failed to get reward code by redeem code: %w", err)
-	}
-
-	return &code, nil
-}
-
-func (d *Database) GetRewardCodes(ctx context.Context, id int, filter string) ([]RewardCodeWithUser, error) {
-	query := `
-		SELECT reward_codes.*, 
-		       importer.discord_user_id AS "imported_by_user.discord_user_id",
-		       importer.discord_user_username AS "imported_by_user.discord_user_username",
-		       importer.discord_user_display_name AS "imported_by_user.discord_user_display_name",
-		       importer.discord_user_avatar_url AS "imported_by_user.discord_user_avatar_url",
-		       redeemer.discord_user_id AS "redeemed_by_user.discord_user_id",
-		       redeemer.discord_user_username AS "redeemed_by_user.discord_user_username",
-		       redeemer.discord_user_display_name AS "redeemed_by_user.discord_user_display_name",
-		       redeemer.discord_user_avatar_url AS "redeemed_by_user.discord_user_avatar_url"
-		FROM reward_codes
-		LEFT JOIN discord_users AS importer ON reward_code_imported_by = importer.discord_user_id
-		LEFT JOIN discord_users AS redeemer ON reward_code_redeemed_by = redeemer.discord_user_id
-		WHERE reward_code_reward_id = $1
+		DELETE FROM reward_members
+		WHERE reward_member_reward_id = $1 AND reward_member_discord_user_id = $2
 	`
 
-	switch filter {
-	case "redeemed":
-		query += ` AND reward_code_redeemed_at IS NOT NULL `
-	case "unredeemed":
-		query += ` AND reward_code_redeemed_at IS NULL `
+	_, err := d.db.ExecContext(ctx, query, rewardID, discordUserID)
+	if err != nil {
+		return fmt.Errorf("failed to remove reward member: %w", err)
 	}
 
-	query += `ORDER BY reward_code_imported_at DESC, reward_code_id DESC`
-
-	var codes []RewardCodeWithUser
-	if err := d.db.SelectContext(ctx, &codes, query, id); err != nil {
-		return nil, fmt.Errorf("failed to get reward codes: %w", err)
-	}
-
-	return codes, nil
+	return nil
 }

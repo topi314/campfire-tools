@@ -40,7 +40,7 @@ func defaultConfig() Config {
 			AddSource: false,
 		},
 		Server: ServerConfig{
-			TrackerAddr: ":8085",
+			ToolsAddr:   ":8085",
 			RewardsAddr: ":8084",
 		},
 		Database: database.Config{
@@ -106,18 +106,18 @@ func (c LogConfig) String() string {
 }
 
 type ServerConfig struct {
-	TrackerAddr      string `toml:"tracker_addr"`
-	PublicTrackerURL string `toml:"public_tracker_url"`
 	RewardsAddr      string `toml:"rewards_addr"`
 	PublicRewardsURL string `toml:"public_rewards_url"`
+	ToolsAddr        string `toml:"tools_addr"`
+	PublicToolsURL   string `toml:"public_tools_url"`
 }
 
 func (c ServerConfig) String() string {
-	return fmt.Sprintf("\n TrackerAddr: %s\n PublicTrackerURL: %s\n RewardsAddr: %s\n PublicRewardsURL: %s",
-		c.TrackerAddr,
-		c.PublicTrackerURL,
+	return fmt.Sprintf("\n RewardsAddr: %s\n PublicRewardsURL: %s\n ToolsAddr: %s\n PublicToolsURL: %s",
 		c.RewardsAddr,
 		c.PublicRewardsURL,
+		c.ToolsAddr,
+		c.PublicToolsURL,
 	)
 }
 

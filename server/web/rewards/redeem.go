@@ -28,7 +28,7 @@ func (h *handler) Redeem(w http.ResponseWriter, r *http.Request) {
 
 	var rewardsRewardCode *models.RewardCode
 	if rewardCode != nil {
-		t := models.NewRewardCode(rewardCode.RewardCode, rewardCode.ImportedByUser, nil)
+		t := models.NewRewardCode(rewardCode.RewardCode, rewardCode.ImportedByUser, rewardCode.RedeemedByUser, rewardCode.ReservedByUser)
 		rewardsRewardCode = &t
 	}
 

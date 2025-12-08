@@ -61,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml")))
+				ParseFS(root.FS(), "templates/*.gohtml", "tools/templates/*.gohtml", "rewards/templates/*.gohtml")))
 		}
 		reloader.Start(root.FS())
 	} else {
@@ -73,7 +73,7 @@ func New(cfg Config) (*Server, error) {
 
 		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
+			ParseFS(templates, "web/templates/*.gohtml", "web/tools/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
 		))
 
 		t = func() *template.Template {
@@ -108,8 +108,8 @@ func New(cfg Config) (*Server, error) {
 	httpClient := &http.Client{}
 	s := &Server{
 		Cfg: cfg,
-		TrackerServer: &http.Server{
-			Addr: cfg.Server.TrackerAddr,
+		ToolsServer: &http.Server{
+			Addr: cfg.Server.ToolsAddr,
 		},
 		RewardsServer: &http.Server{
 			Addr: cfg.Server.RewardsAddr,
@@ -117,7 +117,7 @@ func New(cfg Config) (*Server, error) {
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
 		DB:            db,
-		Auth:          auth.New(cfg.DiscordAuth, cfg.Server.PublicTrackerURL),
+		Auth:          auth.New(cfg.DiscordAuth, cfg.Server.PublicToolsURL),
 		CampfireAuth:  cauth.New(cfg.CampfireAuth),
 		Templates:     t,
 		StaticFS:      staticFS,
@@ -155,7 +155,7 @@ func cleanPathMiddleware(next http.Handler) http.Handler {
 
 type Server struct {
 	Cfg                    Config
-	TrackerServer          *http.Server
+	ToolsServer            *http.Server
 	RewardsServer          *http.Server
 	HttpClient             *http.Client
 	Campfire               *campfire.Client
@@ -170,11 +170,11 @@ type Server struct {
 	Logo                   image.Image
 }
 
-func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler) {
-	s.TrackerServer.Handler = cleanPathMiddleware(trackerHandler)
+func (s *Server) Start(toolsHandler http.Handler, rewardsHandler http.Handler) {
+	s.ToolsServer.Handler = cleanPathMiddleware(toolsHandler)
 	go func() {
-		if err := s.TrackerServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Tracker server failed: %s\n", err)
+		if err := s.ToolsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Tools server failed: %s\n", err)
 		}
 	}()
 
@@ -186,8 +186,12 @@ func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler)
 	}()
 
 	go s.importClubs()
-	go s.importEvents()
-	go s.updateEvents()
+	if s.Cfg.Campfire.EventAutoImport {
+		go s.importEvents()
+	}
+	if s.Cfg.Campfire.EventAutoUpdate {
+		go s.updateEvents()
+	}
 }
 
 func (s *Server) Stop() {
@@ -198,8 +202,8 @@ func (s *Server) Stop() {
 	// wg.Add(1)
 	// go func() {
 	// 	defer wg.Done()
-	// 	if err := s.TrackerServer.Shutdown(ctx); err != nil {
-	// 		slog.Error("Tracker server shutdown failed", slog.Any("err", err))
+	// 	if err := s.ToolsServer.Shutdown(ctx); err != nil {
+	// 		slog.Error("Tools server shutdown failed", slog.Any("err", err))
 	// 	}
 	// }()
 	//

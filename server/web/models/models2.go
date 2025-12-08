@@ -16,12 +16,7 @@ func RewardCodeURL(publicURL string, code string) string {
 	return fmt.Sprintf("%s/redeem?code=%s", publicURL, code)
 }
 
-func NewRewardCode(code database.RewardCode, importedBy database.DiscordUser, redeemedBy *database.DiscordUser) RewardCode {
-	var user *DiscordUser
-	if redeemedBy != nil {
-		u := NewDiscordUser(*redeemedBy)
-		user = &u
-	}
+func NewRewardCode(code database.RewardCode, importedBy database.DiscordUser, redeemedBy database.OptDiscordUser, reservedBy database.OptDiscordUser) RewardCode {
 	return RewardCode{
 		ID:         code.ID,
 		URL:        fmt.Sprintf("/tracker/rewards/%d/codes/%d", code.RewardID, code.ID),
@@ -31,7 +26,9 @@ func NewRewardCode(code database.RewardCode, importedBy database.DiscordUser, re
 		ImportedBy: NewDiscordUser(importedBy),
 		RedeemCode: code.RedeemCode,
 		RedeemedAt: code.RedeemedAt,
-		RedeemedBy: user,
+		RedeemedBy: NewOptDiscordUser(redeemedBy),
+		ReservedAt: code.ReservedAt,
+		ReservedBy: NewOptDiscordUser(reservedBy),
 	}
 }
 
@@ -45,6 +42,8 @@ type RewardCode struct {
 	RedeemCode string
 	RedeemedAt *time.Time
 	RedeemedBy *DiscordUser
+	ReservedAt *time.Time
+	ReservedBy *DiscordUser
 }
 
 func (c RewardCode) IsRedeemed() bool {
@@ -62,6 +61,20 @@ func NewDiscordUser(user database.DiscordUser) DiscordUser {
 		DisplayName: cmp.Or(user.DisplayName, user.Username),
 		AvatarURL:   user.AvatarURL,
 		ImportedAt:  user.ImportedAt,
+	}
+}
+
+func NewOptDiscordUser(user database.OptDiscordUser) *DiscordUser {
+	if user.ID == nil {
+		return nil
+	}
+
+	return &DiscordUser{
+		ID:          *user.ID,
+		Username:    *user.Username,
+		DisplayName: cmp.Or(*user.DisplayName, *user.Username),
+		AvatarURL:   *user.AvatarURL,
+		ImportedAt:  *user.ImportedAt,
 	}
 }
 
