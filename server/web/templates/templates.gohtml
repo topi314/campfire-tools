@@ -65,7 +65,7 @@
 
             <div class="stacked-form-control">
                 <label for="date-preset">
-                    <select id="date-preset" name="quarter" hx-get="/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
+                    <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
                             hx-push-url="false">
                         <option value="">Select Quarter</option>
                         {{ range $quarter := .Quarters }}
