@@ -1,0 +1,38 @@
+query ClubUser_Query(
+    $userId: ID!,
+    $clubId: ID!
+) {
+    lol
+    userById(id: $userId) {
+        id
+        username
+        displayName
+        avatarUrl
+        isBlocked
+        isMyFriend
+        hasPendingFriendInviteFromMe
+        badges {
+            badgeType
+            alias
+        }
+        gameProfiles {
+            id
+            game
+            codename
+            displayName
+            faction
+            factionColor
+            visibility
+            level
+            lastPlayedTimestampMs
+        }
+        isMember(clubId: $clubId)
+        clubRank(clubId: $clubId)
+        clubRoles(clubId: $clubId) {
+            id
+            name
+        }
+    }
+}
+
+

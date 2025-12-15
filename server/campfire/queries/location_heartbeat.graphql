@@ -3,9 +3,5 @@ mutation LocationHeartbeatMutation(
 ) {
   locationHeartbeat(input: $input) {
     success
-    me {
-      id
-      location
-    }
   }
 }
