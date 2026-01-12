@@ -106,18 +106,22 @@ func (c LogConfig) String() string {
 }
 
 type ServerConfig struct {
-	TrackerAddr      string `toml:"tracker_addr"`
-	PublicTrackerURL string `toml:"public_tracker_url"`
-	RewardsAddr      string `toml:"rewards_addr"`
-	PublicRewardsURL string `toml:"public_rewards_url"`
+	TrackerAddr       string `toml:"tracker_addr"`
+	PublicTrackerURL  string `toml:"public_tracker_url"`
+	RewardsAddr       string `toml:"rewards_addr"`
+	PublicRewardsURL  string `toml:"public_rewards_url"`
+	HomepageAddr      string `toml:"homepage_addr"`
+	PublicHomepageURL string `toml:"public_homepage_url"`
 }
 
 func (c ServerConfig) String() string {
-	return fmt.Sprintf("\n TrackerAddr: %s\n PublicTrackerURL: %s\n RewardsAddr: %s\n PublicRewardsURL: %s",
+	return fmt.Sprintf("\n TrackerAddr: %s\n PublicTrackerURL: %s\n RewardsAddr: %s\n PublicRewardsURL: %s\n HomepageAddr: %s\n PublicHomepageURL: %s",
 		c.TrackerAddr,
 		c.PublicTrackerURL,
 		c.RewardsAddr,
 		c.PublicRewardsURL,
+		c.HomepageAddr,
+		c.PublicHomepageURL,
 	)
 }
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/xslog"
 	"github.com/topi314/campfire-tools/server"
+	"github.com/topi314/campfire-tools/server/web/homepage"
 	"github.com/topi314/campfire-tools/server/web/rewards"
 	"github.com/topi314/campfire-tools/server/web/tracker"
 )
@@ -45,10 +46,14 @@ func main() {
 		return
 	}
 
-	go srv.Start(tracker.Routes(srv), rewards.Routes(srv))
+	go srv.Start(tracker.Routes(srv), rewards.Routes(srv), homepage.Routes(srv))
 	defer srv.Stop()
 
-	slog.Info("Servers started", slog.String("tracker_addr", cfg.Server.TrackerAddr), slog.String("rewards_addr", cfg.Server.RewardsAddr))
+	slog.Info("Servers started",
+		slog.String("tracker_addr", cfg.Server.TrackerAddr),
+		slog.String("rewards_addr", cfg.Server.RewardsAddr),
+		slog.String("homepage_addr", cfg.Server.HomepageAddr),
+	)
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)

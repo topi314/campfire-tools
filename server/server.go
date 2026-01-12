@@ -61,7 +61,7 @@ func New(cfg Config) (*Server, error) {
 		t = func() *template.Template {
 			return reloader.MustParseTemplate(template.Must(template.New("templates").
 				Funcs(templateFuncs).
-				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml")))
+				ParseFS(root.FS(), "templates/*.gohtml", "tracker/templates/*.gohtml", "rewards/templates/*.gohtml", "homepage/templates/*.gohtml")))
 		}
 		reloader.Start(root.FS())
 	} else {
@@ -73,7 +73,7 @@ func New(cfg Config) (*Server, error) {
 
 		st := reloader.MustParseTemplate(template.Must(template.New("templates").
 			Funcs(templateFuncs).
-			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml"),
+			ParseFS(templates, "web/templates/*.gohtml", "web/tracker/templates/*.gohtml", "web/rewards/templates/*.gohtml", "web/homepage/templates/*.gohtml"),
 		))
 
 		t = func() *template.Template {
@@ -113,6 +113,9 @@ func New(cfg Config) (*Server, error) {
 		},
 		RewardsServer: &http.Server{
 			Addr: cfg.Server.RewardsAddr,
+		},
+		HomepageServer: &http.Server{
+			Addr: cfg.Server.HomepageAddr,
 		},
 		HttpClient:    httpClient,
 		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
@@ -157,6 +160,7 @@ type Server struct {
 	Cfg                    Config
 	TrackerServer          *http.Server
 	RewardsServer          *http.Server
+	HomepageServer         *http.Server
 	HttpClient             *http.Client
 	Campfire               *campfire.Client
 	DB                     *database.Database
@@ -170,7 +174,7 @@ type Server struct {
 	Logo                   image.Image
 }
 
-func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler) {
+func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler, homepageHandler http.Handler) {
 	s.TrackerServer.Handler = cleanPathMiddleware(trackerHandler)
 	go func() {
 		if err := s.TrackerServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -182,6 +186,13 @@ func (s *Server) Start(trackerHandler http.Handler, rewardsHandler http.Handler)
 	go func() {
 		if err := s.RewardsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("Rewards server failed: %s\n", err)
+		}
+	}()
+
+	s.HomepageServer.Handler = cleanPathMiddleware(homepageHandler)
+	go func() {
+		if err := s.HomepageServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Homepage server failed: %s\n", err)
 		}
 	}()
 

@@ -11,6 +11,8 @@ tracker_addr = ":8084"
 public_tracker_url = "http://localhost:8084"
 rewards_addr = ":8085"
 public_rewards_url = "http://localhost:8085"
+homepage_addr = ":8086"
+public_homepage_url = "http://localhost:8086"
 
 [database]
 host = "localhost" # replace with db in case you run with the compose.yml
