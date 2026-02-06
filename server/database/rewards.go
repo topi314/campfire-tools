@@ -19,14 +19,15 @@ type Reward struct {
 }
 
 type RewardCode struct {
-	ID         int        `db:"reward_code_id"`
-	Code       string     `db:"reward_code_code"`
-	RewardID   int        `db:"reward_code_reward_id"`
-	ImportedAt time.Time  `db:"reward_code_imported_at"`
-	ImportedBy string     `db:"reward_code_imported_by"`
-	RedeemCode string     `db:"reward_code_redeem_code"`
-	RedeemedAt *time.Time `db:"reward_code_redeemed_at"`
-	RedeemedBy *string    `db:"reward_code_redeemed_by"`
+	ID           int        `db:"reward_code_id"`
+	Code         string     `db:"reward_code_code"`
+	RewardID     int        `db:"reward_code_reward_id"`
+	ImportedAt   time.Time  `db:"reward_code_imported_at"`
+	ImportedBy   string     `db:"reward_code_imported_by"`
+	RedeemCode   string     `db:"reward_code_redeem_code"`
+	RedeemedAt   *time.Time `db:"reward_code_redeemed_at"`
+	RedeemedBy   *string    `db:"reward_code_redeemed_by"`
+	VisitedCount int        `db:"reward_code_visited_count"`
 }
 
 type RewardCodeWithUser struct {
@@ -231,6 +232,19 @@ func (d *Database) GetRewardCodeByRedeemCode(ctx context.Context, redeemCode str
 	return &code, nil
 }
 
+func (d *Database) GetRewardCodeByRedeemCodeAndIncreaseVisitedCount(ctx context.Context, redeemCode string) (*RewardCodeWithUser, error) {
+	code, err := d.GetRewardCodeByRedeemCode(ctx, redeemCode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reward code by redeem code: %w", err)
+	}
+
+	if err = d.IncreaseRewardCodeVisitedCount(ctx, code.ID); err != nil {
+		return nil, fmt.Errorf("failed to increase reward code visited count: %w", err)
+	}
+
+	return code, nil
+}
+
 func (d *Database) GetRewardCodes(ctx context.Context, id int, filter string) ([]RewardCodeWithUser, error) {
 	query := `
 		SELECT reward_codes.*, 
@@ -263,4 +277,18 @@ func (d *Database) GetRewardCodes(ctx context.Context, id int, filter string) ([
 	}
 
 	return codes, nil
+}
+
+func (d *Database) IncreaseRewardCodeVisitedCount(ctx context.Context, id int) error {
+	query := `
+		UPDATE reward_codes
+		SET reward_code_visited_count = reward_code_visited_count + 1
+		WHERE reward_code_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, id); err != nil {
+		return fmt.Errorf("failed to increase reward code visited count: %w", err)
+	}
+
+	return nil
 }

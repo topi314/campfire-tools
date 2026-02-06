@@ -11,7 +11,11 @@
         {{ else }}
             <div class="reward-link">
                 <img src="{{ .Code.QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
-                <a href="{{ .RewardCodeURL }}" target="_blank">Link</a>
+                <div>
+                    <a href="{{ .RewardCodeURL }}" target="_blank">Reward Link</a>
+                    <span>-</span>
+                    <span>Visited: {{ .Code.VisitedCount }}</span>
+                </div>
             </div>
 
             <hr/>

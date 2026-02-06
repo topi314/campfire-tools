@@ -19,7 +19,7 @@ func (h *handler) Redeem(w http.ResponseWriter, r *http.Request) {
 
 	code := query.Get("code")
 
-	rewardCode, err := h.DB.GetRewardCodeByRedeemCode(ctx, code)
+	rewardCode, err := h.DB.GetRewardCodeByRedeemCodeAndIncreaseVisitedCount(ctx, code)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		slog.ErrorContext(ctx, "Failed to get reward by redeem code", slog.String("err", err.Error()))
 		http.Error(w, "Invalid redeem code", http.StatusBadRequest)

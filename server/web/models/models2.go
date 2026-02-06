@@ -23,28 +23,30 @@ func NewRewardCode(code database.RewardCode, importedBy database.DiscordUser, re
 		user = &u
 	}
 	return RewardCode{
-		ID:         code.ID,
-		URL:        fmt.Sprintf("/tracker/rewards/%d/codes/%d", code.RewardID, code.ID),
-		Code:       code.Code,
-		QRURL:      fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", code.RewardID, code.ID),
-		ImportedAt: code.ImportedAt,
-		ImportedBy: NewDiscordUser(importedBy),
-		RedeemCode: code.RedeemCode,
-		RedeemedAt: code.RedeemedAt,
-		RedeemedBy: user,
+		ID:           code.ID,
+		URL:          fmt.Sprintf("/tracker/rewards/%d/codes/%d", code.RewardID, code.ID),
+		Code:         code.Code,
+		QRURL:        fmt.Sprintf("/tracker/rewards/%d/codes/%d/qr", code.RewardID, code.ID),
+		ImportedAt:   code.ImportedAt,
+		ImportedBy:   NewDiscordUser(importedBy),
+		RedeemCode:   code.RedeemCode,
+		RedeemedAt:   code.RedeemedAt,
+		RedeemedBy:   user,
+		VisitedCount: code.VisitedCount,
 	}
 }
 
 type RewardCode struct {
-	ID         int
-	URL        string
-	Code       string
-	QRURL      string
-	ImportedAt time.Time
-	ImportedBy DiscordUser
-	RedeemCode string
-	RedeemedAt *time.Time
-	RedeemedBy *DiscordUser
+	ID           int
+	URL          string
+	Code         string
+	QRURL        string
+	ImportedAt   time.Time
+	ImportedBy   DiscordUser
+	RedeemCode   string
+	RedeemedAt   *time.Time
+	RedeemedBy   *DiscordUser
+	VisitedCount int
 }
 
 func (c RewardCode) IsRedeemed() bool {

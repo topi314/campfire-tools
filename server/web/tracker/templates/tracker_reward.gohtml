@@ -26,8 +26,9 @@
                 </label>
             </div>
         </div>
-        <div id="codes" class="table-6">
+        <div id="codes" class="table-7">
             <div>Code</div>
+            <div>Visits</div>
             <div>Imported At</div>
             <div>By</div>
             <div>Redeemed At</div>
@@ -35,6 +36,7 @@
             <div></div>
             {{ range $code := .Codes }}
                 <span class="left mono"><a href="{{ $code.RedeemCodeURL }}">{{ $code.Code }}</a></span>
+                <span>{{ $code.VisitedCount }}</span>
                 <span>{{ formatDayTime $code.ImportedAt }}</span>
                 <span>{{ template "discord_user" $code.ImportedBy }}</span>
                 <span>{{ if $code.RedeemedAt }}{{ formatDayTime $code.RedeemedAt }}{{ end }}</span>
@@ -42,6 +44,7 @@
                 <span><a href="{{ $code.URL }}" class="button small">Show</a></span>
             {{ else }}
                 <p>No codes available in this reward.</p>
+                <span></span>
                 <span></span>
                 <span></span>
                 <span></span>
