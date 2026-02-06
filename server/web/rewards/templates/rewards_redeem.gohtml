@@ -14,21 +14,30 @@
                 </p>
             {{ else }}
                 <div>
-                    <h3>Congratulations! You've earned a reward code.</h3>
+                    <h2>
+                        Congratulations!
+                        <br/>
+                        You've earned a reward code.
+                    </h2>
+                    <br/>
                     <p>
                         You can redeem this code in the <a href="https://store.pokemongo.com" target="_blank">web store</a> to claim your reward.
                         <br/>
-                        Click the code to copy it to your clipboard or directly redeem it using the button below.
+                        Just click the button below to open the redemption page with your code pre-filled, or copy the code and redeem it manually.
                     </p>
                 </div>
-                <h2 class="reward-code" title="Click to copy" id="redemption-code">{{ .Code.Code }}</h2>
-                <a href="{{ .Code.RedeemCodeURL }}" class="button"><img src="/static/webstore.png">Redeem in Web Store</a>
+                <br/>
+                <br/>
+                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank"><img src="/static/webstore.png">Redeem in Web Store</a>
+                <br/>
+                <br/>
+                <span class="reward-code" title="Click to copy" id="redemption-code">{{ .Code.Code }}</span>
             {{ end }}
         </div>
     </div>
 </div>
 <script>
-    document.getElementById("redemption-code")?.addEventListener("click", function() {
+    document.getElementById("redemption-code")?.addEventListener("click", function () {
         navigator.clipboard.writeText(this.textContent);
         alert("Code copied to clipboard!");
     });

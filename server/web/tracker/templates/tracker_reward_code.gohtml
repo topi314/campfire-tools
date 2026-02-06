@@ -6,14 +6,16 @@
     </div>
 
     <div class="section">
-        <img src="{{ .QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
+        <div class="reward-link">
+            <img src="{{ .QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
+            <a href="{{ .RewardCodeURL }}" target="_blank">Reward Link</a>
+        </div>
 
         <hr/>
 
         <div class="reward-redeem">
-            <h2 class="reward-code">{{ .Code }}</h2>
-            <a href="{{ .RewardCodeURL }}">Reward Link</a>
-            <a href="{{ .RedeemCodeURL }}" class="button"><img src="/static/webstore.png">Web Store Link</a>
+            <a href="{{ .RedeemCodeURL }}" class="button" target="_blank"><img src="/static/webstore.png">Open in Web Store</a>
+            <span class="reward-code">{{ .Code }}</span>
         </div>
 
         <hr/>

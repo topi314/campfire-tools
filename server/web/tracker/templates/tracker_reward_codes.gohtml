@@ -9,14 +9,16 @@
         {{ if eq .Code nil }}
             <p>No reward unredeemed codes available.</p>
         {{ else }}
-            <img src="{{ .Code.QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
+            <div class="reward-link">
+                <img src="{{ .Code.QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
+                <a href="{{ .RewardCodeURL }}" target="_blank">Link</a>
+            </div>
 
             <hr/>
 
             <div class="reward-redeem">
+                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank"><img src="/static/webstore.png">Web Store Link</a>
                 <h2 class="reward-code">{{ .Code.Code }}</h2>
-                <a href="{{ .RewardCodeURL }}" class="button">Reward Link</a>
-                <a href="{{ .Code.RedeemCodeURL }}" class="button"><img src="/static/webstore.png">Web Store Link</a>
             </div>
 
             <hr/>
