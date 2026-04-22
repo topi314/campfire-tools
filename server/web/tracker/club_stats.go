@@ -25,7 +25,8 @@ const (
 	LegendaryLeagueGoal = 1500
 )
 
-var OneMonthAverage = time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+// After January 2026 use 1 month average.
+var oneMonthAverage = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 type TrackerClubStatsVars struct {
 	models.Club
@@ -206,7 +207,7 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 	var digitalCodeMonths []DigitalCodeMonth
 	for date := startDate; !date.Before(endDate); date = date.AddDate(0, -1, 0) {
 		months := 3
-		if date.After(OneMonthAverage) {
+		if date.After(oneMonthAverage) {
 			months = 1
 		}
 		from := date.AddDate(0, -months, 0)
