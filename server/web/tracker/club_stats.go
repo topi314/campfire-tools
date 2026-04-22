@@ -25,6 +25,8 @@ const (
 	LegendaryLeagueGoal = 1500
 )
 
+var OneMonthAverage = time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+
 type TrackerClubStatsVars struct {
 	models.Club
 	EventsFilter
@@ -203,7 +205,11 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 
 	var digitalCodeMonths []DigitalCodeMonth
 	for date := startDate; !date.Before(endDate); date = date.AddDate(0, -1, 0) {
-		from := date.AddDate(0, -3, 0)
+		months := 3
+		if date.After(OneMonthAverage) {
+			months = 1
+		}
+		from := date.AddDate(0, -months, 0)
 		to := date.Add(-time.Second)
 		_, checkIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, true, "")
 		if err != nil {
@@ -211,8 +217,8 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 		}
 
 		predictedCheckIns, _, _ := models.CalcCAProjectedCheckIns(from, to, checkIns)
-		codes := int(float64(checkIns/3) * 0.25)
-		predictedCodes := int(float64(predictedCheckIns/3) * 0.25)
+		codes := int(float64(checkIns/months) * 0.25)
+		predictedCodes := int(float64(predictedCheckIns/months) * 0.25)
 
 		digitalCodeMonths = append(digitalCodeMonths, DigitalCodeMonth{
 			Date:              date,
