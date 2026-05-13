@@ -105,7 +105,9 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to decode logo: %w", err)
 	}
 
-	httpClient := &http.Client{
+	httpClient := &http.Client{}
+
+	campfireHTTPClient := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -119,7 +121,7 @@ func New(cfg Config) (*Server, error) {
 			Addr: cfg.Server.RewardsAddr,
 		},
 		HttpClient:    httpClient,
-		Campfire:      campfire.New(cfg.Campfire, httpClient, getCampfireToken(db)),
+		Campfire:      campfire.New(cfg.Campfire, campfireHTTPClient, getCampfireToken(db)),
 		DB:            db,
 		Auth:          auth.New(cfg.DiscordAuth, cfg.Server.PublicTrackerURL),
 		CampfireAuth:  cauth.New(cfg.CampfireAuth),
