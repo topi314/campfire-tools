@@ -30,6 +30,9 @@ func (c *Client) ResolveShortURL(ctx context.Context, shortURL string) (string, 
 		return "", fmt.Errorf("failed to resolve short URL: %w", err)
 	}
 	defer rs.Body.Close()
+	if rs.StatusCode == http.StatusTemporaryRedirect {
+		return rs.Header.Get("Location"), nil
+	}
 	if rs.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("short URL resolution failed with status: %s", rs.Status)
 	}

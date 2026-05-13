@@ -105,7 +105,11 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to decode logo: %w", err)
 	}
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	s := &Server{
 		Cfg: cfg,
 		TrackerServer: &http.Server{
