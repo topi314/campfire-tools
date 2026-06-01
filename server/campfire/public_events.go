@@ -23,24 +23,24 @@ func (c *Client) ResolveEventID(ctx context.Context, meetupURL string) (string, 
 	if err := c.limiter.Wait(ctx); err != nil {
 		return "", err
 	}
+	return c.resolveEventID(ctx, meetupURL)
+}
+
+func (c *Client) resolveEventID(ctx context.Context, meetupURL string) (string, error) {
+	if strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup-without-location/") {
+		return "", ErrUnsupportedMeetup
+	}
+
+	if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
+		newMeetupURL, err := c.ResolveShortURL(ctx, meetupURL)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve short URL: %w", err)
+		}
+		return c.resolveEventID(ctx, newMeetupURL)
+	}
 
 	var campfireEventID string
-	if !strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
-		if strings.HasPrefix(meetupURL, "https://cmpf.re/") {
-			var err error
-			meetupURL, err = c.ResolveShortURL(ctx, meetupURL)
-			if err != nil {
-				return "", fmt.Errorf("failed to resolve short URL: %w", err)
-			}
-		}
-
-		if strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup-without-location/") {
-			return "", ErrUnsupportedMeetup
-		}
-
-		if !strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
-			return "", errors.New("invalid URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
-		}
+	if strings.HasPrefix(meetupURL, "https://niantic-social.nianticlabs.com/public/meetup/") {
 		eventID := path.Base(meetupURL)
 		if eventID == "" {
 			return "", errors.New("could not extract event ID from URL")
@@ -61,12 +61,14 @@ func (c *Client) ResolveEventID(ctx context.Context, meetupURL string) (string, 
 			return "", fmt.Errorf("event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID)
 		}
 		campfireEventID = firstEvent.Event.ID
-	} else {
+	} else if strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
 		campfireEventID = path.Base(meetupURL)
+	} else {
+		return "", errors.New("invalid event URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
 	}
 
 	if campfireEventID == "" {
-		return "", fmt.Errorf("invalid URL: %s", meetupURL)
+		return "", fmt.Errorf("failed to resolve event ID from URL: %s", meetupURL)
 	}
 
 	return campfireEventID, nil
