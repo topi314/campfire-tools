@@ -11,15 +11,15 @@
         </h1>
     </div>
 
+    <div class="buttons" hx-boost="true">
+        <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
+        <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+        <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
+    </div>
+
     <div class="section">
         <div class="section-header">
-            <h2>Details </h2>
-
-            <div class="inline-form-control" hx-boost="true">
-                <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
-                <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
-                <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
-            </div>
+            <h2>Details</h2>
         </div>
         <p>
             <strong>Creator:</strong>

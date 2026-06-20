@@ -17,7 +17,7 @@ func NewClub(club database.ClubWithCreator) Club {
 		Name:                         club.Club.Name,
 		AvatarURL:                    ImageURL(club.Club.AvatarURL, 48),
 		Creator:                      NewMember(club.Member, club.Club.ID, 32),
-		CreatedByCommunityAmbassador: club.Club.CreatedByCommunityAmbassador,
+		CreatedByCommunityAmbassador: campfire.ClubCreatedByCommunityAmbassadorFromRaw(club.Club.CreatedByCommunityAmbassador, club.Club.RawJSON),
 		AutoEventImport:              club.Club.AutoEventImport,
 		LastAutoEventImportedAt:      club.Club.LastAutoEventImportedAt,
 		ImportedAt:                   club.Club.ImportedAt,

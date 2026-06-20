@@ -3,9 +3,30 @@ package campfire
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 )
+
+const BadgeGrantMarkedCAClub = "MARKED_CA_CLUB"
+
+func ClubCreatedByCommunityAmbassador(createdByCA bool, badgeGrants []string) bool {
+	return createdByCA || slices.Contains(badgeGrants, BadgeGrantMarkedCAClub)
+}
+
+func ClubCreatedByCommunityAmbassadorFromRaw(createdByCA bool, rawJSON []byte) bool {
+	if createdByCA {
+		return true
+	}
+	var partial struct {
+		CreatedByCommunityAmbassador bool     `json:"createdByCommunityAmbassador"`
+		BadgeGrants                  []string `json:"badgeGrants"`
+	}
+	if err := json.Unmarshal(rawJSON, &partial); err != nil {
+		return false
+	}
+	return ClubCreatedByCommunityAmbassador(partial.CreatedByCommunityAmbassador, partial.BadgeGrants)
+}
 
 type Req struct {
 	Query     string         `json:"query"`
@@ -163,6 +184,7 @@ func (c *Club) UnmarshalJSON(data []byte) error {
 	}
 	*c = Club(a)
 	c.Raw = data
+	c.CreatedByCommunityAmbassador = ClubCreatedByCommunityAmbassador(c.CreatedByCommunityAmbassador, c.BadgeGrants)
 	return nil
 }
 
