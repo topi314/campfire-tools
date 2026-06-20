@@ -7,24 +7,56 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
 )
 
 func (d *Database) SearchMembers(ctx context.Context, query string, limit int) ([]Member, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, nil
+	}
+
 	sqlQuery := `
 		SELECT m.*
 		FROM members m
-		WHERE m.member_username ILIKE $1
-			OR m.member_display_name ILIKE $1
-			OR m.member_id ILIKE $1
-		ORDER BY m.member_display_name, m.member_username, m.member_id
+		WHERE (
+				NULLIF(m.member_username, '') IS NOT NULL
+				AND strpos(lower(m.member_username), lower($1)) > 0
+			)
+			OR (
+				NULLIF(m.member_display_name, '') IS NOT NULL
+				AND strpos(lower(m.member_display_name), lower($1)) > 0
+			)
+			OR strpos(lower(m.member_id), lower($1)) > 0
+		ORDER BY
+			(NULLIF(m.member_username, '') IS NULL AND NULLIF(m.member_display_name, '') IS NULL)::int,
+			CASE
+				WHEN lower(m.member_username) = lower($1)
+					OR lower(m.member_display_name) = lower($1) THEN 0
+				WHEN lower(m.member_id) = lower($1) THEN 1
+				WHEN starts_with(lower(m.member_username), lower($1))
+					OR starts_with(lower(m.member_display_name), lower($1)) THEN 2
+				WHEN starts_with(lower(m.member_id), lower($1)) THEN 3
+				WHEN (
+					NULLIF(m.member_username, '') IS NOT NULL
+					AND strpos(lower(m.member_username), lower($1)) > 0
+				) OR (
+					NULLIF(m.member_display_name, '') IS NOT NULL
+					AND strpos(lower(m.member_display_name), lower($1)) > 0
+				) THEN 4
+				ELSE 5
+			END,
+			length(COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id)),
+			COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id),
+			m.member_id
 		LIMIT $2
 	`
 
 	var members []Member
-	if err := d.db.SelectContext(ctx, &members, sqlQuery, "%"+query+"%", limit); err != nil {
+	if err := d.db.SelectContext(ctx, &members, sqlQuery, query, limit); err != nil {
 		return nil, fmt.Errorf("failed to search members: %w", err)
 	}
 
