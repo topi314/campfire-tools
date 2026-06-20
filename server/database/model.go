@@ -73,6 +73,11 @@ type EventWithCheckIns struct {
 	CheckIns int `db:"check_ins"`
 }
 
+type EventWithClub struct {
+	Event
+	Club
+}
+
 type TopMember struct {
 	Member
 	Accepted int `db:"accepted"`

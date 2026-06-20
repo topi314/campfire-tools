@@ -5,6 +5,7 @@
         <h1>
             <img src="{{ .AvatarURL }}">
             {{ .Name }}
+            {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
 
@@ -23,18 +24,7 @@
         </div>
         <p>
             <strong>Creator:</strong>
-            {{ if .Creator.AvatarURL }}
-                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
-            {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png">
-            {{ end }}
-            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
-                {{ .Creator.DisplayName }}
-            </a>
-        </p>
-        <p>
-            <strong>Community Ambassador:</strong>
-            {{ template "checkbox" .CreatedByCommunityAmbassador }}
+            {{ template "campfire_member_inline" .Creator }}
         </p>
         <p>
             <strong>Imported At:</strong>
@@ -88,7 +78,7 @@
                     {{ end }}
                     <a href="{{ $event.URL }}" hx-boost="true">
                         {{ $event.Name }} ({{ $event.CheckIns }})
-                    </a>
+                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
                 </li>
             {{ else }}
                 <span>No events tracked yet.</span>

@@ -204,6 +204,42 @@ func (d *Database) GetAcceptedClubEventsByMember(ctx context.Context, clubID str
 	return events, nil
 }
 
+func (d *Database) GetAcceptedEventsByMember(ctx context.Context, memberID string) ([]EventWithClub, error) {
+	query := `
+		SELECT e.*, c.*
+		FROM events e
+		JOIN event_rsvps re ON e.event_id = re.event_rsvp_event_id
+		JOIN clubs c ON e.event_club_id = c.club_id
+		WHERE re.event_rsvp_member_id = $1 AND re.event_rsvp_status = 'ACCEPTED'
+		ORDER BY c.club_name, e.event_time DESC, e.event_name, e.event_id
+	`
+
+	var events []EventWithClub
+	if err := d.db.SelectContext(ctx, &events, query, memberID); err != nil {
+		return nil, fmt.Errorf("failed to get accepted events by member: %w", err)
+	}
+
+	return events, nil
+}
+
+func (d *Database) GetCheckedInEventsByMember(ctx context.Context, memberID string) ([]EventWithClub, error) {
+	query := `
+		SELECT e.*, c.*
+		FROM events e
+		JOIN event_rsvps re ON e.event_id = re.event_rsvp_event_id
+		JOIN clubs c ON e.event_club_id = c.club_id
+		WHERE re.event_rsvp_member_id = $1 AND re.event_rsvp_status = 'CHECKED_IN'
+		ORDER BY c.club_name, e.event_time DESC, e.event_name, e.event_id
+	`
+
+	var events []EventWithClub
+	if err := d.db.SelectContext(ctx, &events, query, memberID); err != nil {
+		return nil, fmt.Errorf("failed to get checked-in events by member: %w", err)
+	}
+
+	return events, nil
+}
+
 func (d *Database) UpdateEventLastAutoImported(ctx context.Context, eventID string) error {
 	query := `
 		UPDATE events

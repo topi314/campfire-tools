@@ -29,7 +29,7 @@
                 <div>
                     <a href="{{ $event.URL }}" hx-boost="true">
                         {{ $event.Name }}
-                    </a>
+                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
                 </div>
                 <span>{{ $event.Accepted }}</span>
                 <span>{{ $event.CheckIns }}</span>

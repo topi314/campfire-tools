@@ -28,14 +28,7 @@
         <p>
             <strong>Creator:</strong>
             <br/>
-            {{ if .Creator.AvatarURL }}
-                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
-            {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png">
-            {{ end }}
-            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
-                {{ .Creator.DisplayName }}
-            </a>
+            {{ template "campfire_member_inline" .Creator }}
         </p>
         <p>
             <strong>Club:</strong>
@@ -55,16 +48,7 @@
         <h2>Not Checked-In ({{ len .AcceptedMembers }})</h2>
         <ul class="list">
             {{ range $member := .AcceptedMembers }}
-                <li class="list-item">
-                    {{ if $member.AvatarURL }}
-                        <img src="{{ $member.AvatarURL }}">
-                    {{ else }}
-                        <img src="/static/default_avatar.png">
-                    {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
-                        {{ $member.DisplayName }}
-                    </a>
-                </li>
+                {{ template "campfire_member_list_item" $member }}
             {{ else }}
                 <span>No members have accepted and not checked in.</span>
             {{ end }}
@@ -75,16 +59,7 @@
         <h2>Checked-In ({{ len .CheckedInMembers }})</h2>
         <ul class="list">
             {{ range $member := .CheckedInMembers }}
-                <li class="list-item">
-                    {{ if $member.AvatarURL }}
-                        <img src="{{ $member.AvatarURL }}">
-                    {{ else }}
-                        <img src="/static/default_avatar.png">
-                    {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
-                        {{ $member.DisplayName }}
-                    </a>
-                </li>
+                {{ template "campfire_member_list_item" $member }}
             {{ else }}
                 <span>No members have checked in.</span>
             {{ end }}

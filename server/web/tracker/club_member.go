@@ -70,6 +70,6 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		Events:         trackerEvents,
 		AcceptedEvents: acceptedTrackerEvents,
 	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to render tracker club export template", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to render tracker club member template", slog.Any("err", err))
 	}
 }

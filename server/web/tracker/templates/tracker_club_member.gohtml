@@ -3,13 +3,12 @@
     <div class="container-header">
         {{ template "back_button" .Club.URL }}
         <h1>
-            {{ if .AvatarURL }}
-                <img src="{{ .AvatarURL }}">
-            {{ else }}
-                <img src="/static/default_avatar.png">
-            {{ end }}
-            <span title="{{ .Username }}">{{ .DisplayName }}</span>
+            {{ template "campfire_member_header" . }}
         </h1>
+    </div>
+
+    <div class="buttons" hx-boost="true">
+        <a href="{{ .ProfileURL }}" class="button">Global Profile</a>
     </div>
 
     <div class="section">
@@ -23,10 +22,6 @@
         <p>
             <strong>Display Name:</strong>
             {{ .DisplayName }}
-        </p>
-        <p>
-            <strong>Community Ambassador:</strong>
-            {{ template "checkbox" .IsCommunityAmbassador }}
         </p>
     </div>
 
@@ -44,7 +39,7 @@
                     {{ end }}
                     <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
                         {{ $event.Name }}
-                    </a>
+                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
                 </li>
             {{ else }}
                 <span>No events found.</span>
@@ -66,7 +61,7 @@
                     {{ end }}
                     <a href="{{ $event.URL }}" title="{{ .ID }}" hx-boost="true">
                         {{ $event.Name }}
-                    </a>
+                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
                 </li>
             {{ else }}
                 <span>No events found.</span>

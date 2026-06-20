@@ -31,6 +31,51 @@
     {{ if . }}✅️{{ else }}❌{{ end }}
 {{ end}}
 
+{{ define "community_ambassador_icon" }}
+    <img src="/static/community-ambassador.png" class="icon-32 ca-icon" alt="Community Ambassador" title="Community Ambassador">
+{{ end }}
+
+{{ define "community_ambassador_flag" }}
+    {{ if . }}{{ template "community_ambassador_icon" }}{{ end }}
+{{ end }}
+
+{{ define "campfire_member_name" }}
+    <a href="{{ .URL }}" title="{{ .Username }}" hx-boost="true">{{ .DisplayName }}</a>{{ template "community_ambassador_flag" .IsCommunityAmbassador }}
+{{ end }}
+
+{{ define "campfire_member_name_plain" }}
+    <span title="{{ .Username }}">{{ .DisplayName }}</span>{{ template "community_ambassador_flag" .IsCommunityAmbassador }}
+{{ end }}
+
+{{ define "campfire_member_inline" }}
+    {{ if .AvatarURL }}
+        <img class="icon-32" src="{{ .AvatarURL }}">
+    {{ else }}
+        <img class="icon-32" src="/static/default_avatar.png">
+    {{ end }}
+    {{ template "campfire_member_name" . }}
+{{ end }}
+
+{{ define "campfire_member_list_item" }}
+    <li class="list-item">
+        {{ if .AvatarURL }}
+            <img src="{{ .AvatarURL }}">
+        {{ else }}
+            <img src="/static/default_avatar.png">
+        {{ end }}
+        {{ template "campfire_member_name" . }}
+    </li>
+{{ end }}
+
+{{ define "campfire_member_header" }}
+    {{ if .AvatarURL }}
+        <img src="{{ .AvatarURL }}">
+    {{ else }}
+        <img src="/static/default_avatar.png">
+    {{ end }}
+    {{ template "campfire_member_name_plain" . }}
+{{ end }}
+
 {{ define "events_filter" }}
     <form id="events-filter" hx-get="{{ .FilterURL }}" hx-params="not quarter" hx-push-url="true" hx-target="body">
         <div class="inline-form-control">

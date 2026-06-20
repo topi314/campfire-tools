@@ -26,9 +26,7 @@
             {{ range $index, $member := .Members }}
                 <span>{{ add $index 1 }}</span>
                 <div>
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
-                        {{ $member.DisplayName }}
-                    </a>
+                    {{ template "campfire_member_name" $member }}
                 </div>
                 <span>{{ $member.Accepted }}</span>
                 <span>{{ $member.CheckIns }}</span>

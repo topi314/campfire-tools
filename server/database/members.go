@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+func (d *Database) SearchMembers(ctx context.Context, query string, limit int) ([]Member, error) {
+	sqlQuery := `
+		SELECT m.*
+		FROM members m
+		WHERE m.member_username ILIKE $1
+			OR m.member_display_name ILIKE $1
+			OR m.member_id ILIKE $1
+		ORDER BY m.member_display_name, m.member_username, m.member_id
+		LIMIT $2
+	`
+
+	var members []Member
+	if err := d.db.SelectContext(ctx, &members, sqlQuery, "%"+query+"%", limit); err != nil {
+		return nil, fmt.Errorf("failed to search members: %w", err)
+	}
+
+	return members, nil
+}
+
 func (d *Database) GetMember(ctx context.Context, memberID string) (*Member, error) {
 	query := `
 		SELECT *

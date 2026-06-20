@@ -30,7 +30,7 @@
                     {{ else }}
                         <img src="/static/default.png">
                     {{ end }}
-                    {{ if $club.Pinned }}📌{{ end }}<a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>
+                    {{ if $club.Pinned }}📌{{ end }}<a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>{{ template "community_ambassador_flag" $club.CreatedByCommunityAmbassador }}
                 </li>
             {{ else }}
                 <span>No clubs tracked yet.</span>

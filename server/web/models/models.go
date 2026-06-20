@@ -146,6 +146,17 @@ func NewMember(member database.Member, clubID string, iconSize int) Member {
 	return NewMemberFromCampfire(campfireMember, clubID, iconSize)
 }
 
+func memberProfileURL(memberID string) string {
+	return fmt.Sprintf("/tracker/members/%s", memberID)
+}
+
+func clubMemberURL(clubID, memberID string) string {
+	if clubID != "" {
+		return fmt.Sprintf("/tracker/club/%s/member/%s", clubID, memberID)
+	}
+	return memberProfileURL(memberID)
+}
+
 func NewMemberFromCampfire(member campfire.Member, clubID string, iconSize int) Member {
 	return Member{
 		ID:          member.ID,
@@ -155,8 +166,40 @@ func NewMemberFromCampfire(member campfire.Member, clubID string, iconSize int) 
 		IsCommunityAmbassador: slices.ContainsFunc(member.Badges, func(badge campfire.Badge) bool {
 			return badge.Alias == "PGO_COMMUNITY_AMBASSADOR"
 		}),
-		URL: fmt.Sprintf("/tracker/club/%s/member/%s", clubID, member.ID),
+		URL:        clubMemberURL(clubID, member.ID),
+		ProfileURL: memberProfileURL(member.ID),
 	}
+}
+
+func NewImportedMember(member database.Member, iconSize int) Member {
+	if member.ID == "" {
+		return Member{}
+	}
+
+	m := Member{
+		ID:          member.ID,
+		Username:    member.Username,
+		DisplayName: GetDisplayName(member.DisplayName, member.Username),
+		AvatarURL:   ImageURL(member.AvatarURL, iconSize),
+		URL:         memberProfileURL(member.ID),
+		ProfileURL:  memberProfileURL(member.ID),
+	}
+
+	if len(member.RawJSON) > 0 && string(member.RawJSON) != "{}" {
+		var campfireMember campfire.Member
+		if err := json.Unmarshal(member.RawJSON, &campfireMember); err == nil {
+			m.IsCommunityAmbassador = slices.ContainsFunc(campfireMember.Badges, func(badge campfire.Badge) bool {
+				return badge.Alias == "PGO_COMMUNITY_AMBASSADOR"
+			})
+		}
+	}
+
+	return m
+}
+
+type ImportedMember struct {
+	Member
+	ImportedAt time.Time
 }
 
 type Member struct {
@@ -166,11 +209,37 @@ type Member struct {
 	AvatarURL             string
 	IsCommunityAmbassador bool
 	URL                   string
+	ProfileURL            string
 }
 
 type Badge struct {
 	Alias     string
 	BadgeType string
+}
+
+type ClubMemberEvents struct {
+	Club   Club
+	Events []Event
+}
+
+func GroupEventsByClub(rows []database.EventWithClub, iconSize int) []ClubMemberEvents {
+	groups := make([]ClubMemberEvents, 0)
+	index := make(map[string]int)
+
+	for _, row := range rows {
+		if i, ok := index[row.Club.ID]; ok {
+			groups[i].Events = append(groups[i].Events, NewEvent(row.Event, iconSize))
+			continue
+		}
+
+		index[row.Club.ID] = len(groups)
+		groups = append(groups, ClubMemberEvents{
+			Club:   NewClub(database.ClubWithCreator{Club: row.Club}),
+			Events: []Event{NewEvent(row.Event, iconSize)},
+		})
+	}
+
+	return groups
 }
 
 func NewTopMember(member database.TopMember, clubID string, size int) TopMember {

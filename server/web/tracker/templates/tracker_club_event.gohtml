@@ -7,6 +7,7 @@
                 <img src="{{ .CoverPhotoURL }}">
             {{ end }}
             {{ .Name }}
+            {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
 
@@ -22,14 +23,7 @@
         </div>
         <p>
             <strong>Creator:</strong>
-            {{ if .Creator.AvatarURL }}
-                <img class="icon-32" src="{{ .Creator.AvatarURL }}">
-            {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png">
-            {{ end }}
-            <a href="{{ .Creator.URL }}" title="{{ .Creator.Username }}" hx-boost="true">
-                {{ .Creator.DisplayName }}
-            </a>
+            {{ template "campfire_member_inline" .Creator }}
         </p>
         <p>
             <strong>Club:</strong>
@@ -61,10 +55,6 @@
             </p>
         {{ end }}
         <p>
-            <strong>Created By Community Ambassador:</strong>
-            {{ template "checkbox" .CreatedByCommunityAmbassador }}
-        </p>
-        <p>
             <strong>Imported At:</strong>
             {{ formatTimeToRelDayTime .ImportedAt }}
         </p>
@@ -79,16 +69,7 @@
         <h2>Check-Ins ({{ len .CheckedInMembers }})</h2>
         <ul class="list">
             {{ range $member := .CheckedInMembers }}
-                <li class="list-item">
-                    {{ if $member.AvatarURL }}
-                        <img src="{{ $member.AvatarURL }}">
-                    {{ else }}
-                        <img src="/static/default_avatar.png">
-                    {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
-                        {{ $member.DisplayName }}
-                    </a>
-                </li>
+                {{ template "campfire_member_list_item" $member }}
             {{ else }}
                 <span>No members have checked in.</span>
             {{ end }}
@@ -100,16 +81,7 @@
         <h2>Accepted ({{ len .AcceptedMembers }})</h2>
         <ul class="list">
             {{ range $member := .AcceptedMembers }}
-                <li class="list-item">
-                    {{ if $member.AvatarURL }}
-                        <img src="{{ $member.AvatarURL }}">
-                    {{ else }}
-                        <img src="/static/default_avatar.png">
-                    {{ end }}
-                    <a href="{{ $member.URL }}" title="{{ $member.Username }}" hx-boost="true">
-                        {{ $member.DisplayName }}
-                    </a>
-                </li>
+                {{ template "campfire_member_list_item" $member }}
             {{ else }}
                 <span>No members have accepted and not checked in.</span>
             {{ end }}

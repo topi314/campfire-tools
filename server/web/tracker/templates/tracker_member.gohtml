@@ -1,0 +1,104 @@
+{{ template "head" addStr "Tracker - " .DisplayName }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker/members" }}
+        <h1>
+            {{ template "campfire_member_header" . }}
+        </h1>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Details</h2>
+        </div>
+        <p>
+            <strong>Member ID:</strong>
+            <span class="mono">{{ .ID }}</span>
+        </p>
+        <p>
+            <strong>Username:</strong>
+            {{ .Username }}
+        </p>
+        <p>
+            <strong>Display Name:</strong>
+            {{ .DisplayName }}
+        </p>
+        <p>
+            <strong>Imported At:</strong>
+            {{ formatDayTime .ImportedAt }}
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Check-Ins</h2>
+        </div>
+        {{ range $group := .CheckInEventsByClub }}
+            <div class="section-header">
+                <h3>
+                    {{ if $group.Club.AvatarURL }}
+                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32">
+                    {{ else }}
+                        <img src="/static/default.png" class="icon-32">
+                    {{ end }}
+                    <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
+                    {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
+                    ({{ len $group.Events }})
+                </h3>
+            </div>
+            <ul class="list">
+                {{ range $event := $group.Events }}
+                    <li class="list-item">
+                        {{ if $event.CoverPhotoURL }}
+                            <img src="{{ $event.CoverPhotoURL }}">
+                        {{ else }}
+                            <img src="/static/default.png">
+                        {{ end }}
+                        <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
+                            {{ $event.Name }}
+                        </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                    </li>
+                {{ end }}
+            </ul>
+        {{ else }}
+            <span>No events found.</span>
+        {{ end }}
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Accepted</h2>
+        </div>
+        {{ range $group := .AcceptedEventsByClub }}
+            <div class="section-header">
+                <h3>
+                    {{ if $group.Club.AvatarURL }}
+                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32">
+                    {{ else }}
+                        <img src="/static/default.png" class="icon-32">
+                    {{ end }}
+                    <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
+                    {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
+                    ({{ len $group.Events }})
+                </h3>
+            </div>
+            <ul class="list">
+                {{ range $event := $group.Events }}
+                    <li class="list-item">
+                        {{ if $event.CoverPhotoURL }}
+                            <img src="{{ $event.CoverPhotoURL }}">
+                        {{ else }}
+                            <img src="/static/default.png">
+                        {{ end }}
+                        <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
+                            {{ $event.Name }}
+                        </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                    </li>
+                {{ end }}
+            </ul>
+        {{ else }}
+            <span>No events found.</span>
+        {{ end }}
+    </div>
+</div>
+{{ template "tracker_footer" }}
