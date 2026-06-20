@@ -24,11 +24,19 @@ func (d *Database) SearchMembers(ctx context.Context, query string, limit int) (
 		FROM members m
 		WHERE (
 				NULLIF(m.member_username, '') IS NOT NULL
-				AND strpos(lower(m.member_username), lower($1)) > 0
+				AND (
+					m.member_username % $1
+					OR $1 <% m.member_username
+					OR strpos(lower(m.member_username), lower($1)) > 0
+				)
 			)
 			OR (
 				NULLIF(m.member_display_name, '') IS NOT NULL
-				AND strpos(lower(m.member_display_name), lower($1)) > 0
+				AND (
+					m.member_display_name % $1
+					OR $1 <% m.member_display_name
+					OR strpos(lower(m.member_display_name), lower($1)) > 0
+				)
 			)
 			OR strpos(lower(m.member_id), lower($1)) > 0
 		ORDER BY
@@ -40,15 +48,14 @@ func (d *Database) SearchMembers(ctx context.Context, query string, limit int) (
 				WHEN starts_with(lower(m.member_username), lower($1))
 					OR starts_with(lower(m.member_display_name), lower($1)) THEN 2
 				WHEN starts_with(lower(m.member_id), lower($1)) THEN 3
-				WHEN (
-					NULLIF(m.member_username, '') IS NOT NULL
-					AND strpos(lower(m.member_username), lower($1)) > 0
-				) OR (
-					NULLIF(m.member_display_name, '') IS NOT NULL
-					AND strpos(lower(m.member_display_name), lower($1)) > 0
-				) THEN 4
-				ELSE 5
+				ELSE 4
 			END,
+			GREATEST(
+				COALESCE(similarity(NULLIF(m.member_username, ''), $1), 0),
+				COALESCE(similarity(NULLIF(m.member_display_name, ''), $1), 0),
+				COALESCE(word_similarity($1, NULLIF(m.member_username, '')), 0),
+				COALESCE(word_similarity($1, NULLIF(m.member_display_name, '')), 0)
+			) DESC,
 			length(COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id)),
 			COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id),
 			m.member_id
