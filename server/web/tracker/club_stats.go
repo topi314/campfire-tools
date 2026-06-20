@@ -157,7 +157,7 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 	}
 	eventCategories := make(map[string]models.EventCategory)
 	for _, event := range events {
-		category := h.getEventCategories(event.CampfireLiveEventName)
+		category := h.getEventCategory(event.CampfireLiveEventName)
 
 		eventCategory, ok := eventCategories[category]
 		if !ok {
@@ -212,7 +212,7 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 		}
 		from := date.AddDate(0, -months, 0)
 		to := date.Add(-time.Second)
-		_, checkIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, true, "")
+		_, checkIns, err := h.DB.GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx, clubID, from, to, true, "", digitalCodeExcludePatterns())
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch total check-ins and accepted members for digital codes: %w", err)
 		}
@@ -316,33 +316,68 @@ const (
 )
 
 var AllEventCategories = map[string][]string{
-	"Raid Day":       {"Raid Day", "Mega Raid"},
-	"Raid Hour":      {"Raid Hour"},
-	"Max Monday":     {"Max Monday"},
-	"Research Day":   {"Research Day"},
-	"Hatch Day":      {"Hatch Day"},
-	"Community Day":  {"Community Day", "Community Classic Day"},
-	"Spotlight Hour": {"Spotlight Hour"},
-	"Max Battle":     {"Max Battle Weekend", "Max Battle Day", "Max Weekend", "Gigantamax", "GMAX"},
-	"GO Tour":        {"GO Tour"},
-	"GO Fest":        {"GO Fest"},
-	"GO Wild Area":   {"GOWA"},
+	"Raid Day":          {"Raid Day", "Mega Raid"},
+	"Raid Hour":         {"Raid Hour"},
+	"Max Monday":        {"Max Monday"},
+	"Research Day":      {"Research Day"},
+	"Hatch Day":         {"Hatch Day"},
+	"Community Day":     {"Community Day", "Community Classic Day"},
+	"Spotlight Hour":    {"Spotlight Hour"},
+	"Max Battle":        {"Max Battle Weekend", "Max Battle Day", "Max Weekend", "Gigantamax", "GMAX"},
+	"GO Tour":           {"GO Tour"},
+	"GO Fest":           {"GO Fest"},
+	"GO Wild Area":      {"GOWA"},
+	"Friendship Friday": {"Friendship Friday"},
 }
 
-func (h *handler) getEventCategories(eventName string) string {
-	eventName = strings.ToLower(eventName)
+var orderedEventCategories = []string{
+	"GO Wild Area",
+	"GO Fest",
+	"GO Tour",
+	"Community Day",
+	"Max Battle",
+	"Research Day",
+	"Hatch Day",
+	"Friendship Friday",
+	"Raid Day",
+	"Raid Hour",
+	"Max Monday",
+	"Spotlight Hour",
+}
+
+var DigitalCodeExcludedCategories = []string{
+	// "Friendship Friday",
+}
+
+func digitalCodeExcludePatterns() []string {
+	var patterns []string
+	for _, category := range DigitalCodeExcludedCategories {
+		for _, name := range AllEventCategories[category] {
+			patterns = append(patterns, "%"+name+"%")
+		}
+	}
+	return patterns
+}
+
+func eventCategoryFromName(eventName string) string {
+	eventName = strings.ToLower(strings.TrimSpace(eventName))
 	if eventName == "" {
 		return EventCategoryNoEvent
 	}
-	for name, names := range AllEventCategories {
-		for _, n := range names {
-			if strings.Contains(eventName, strings.ToLower(n)) {
-				return name
+	for _, category := range orderedEventCategories {
+		for _, pattern := range AllEventCategories[category] {
+			if strings.Contains(eventName, strings.ToLower(pattern)) {
+				return category
 			}
 		}
 	}
-	if h.Cfg.WarnUnknownEventCategories {
+	return EventCategoryOther
+}
+
+func (h *handler) getEventCategory(eventName string) string {
+	category := eventCategoryFromName(eventName)
+	if category == EventCategoryOther && h.Cfg.WarnUnknownEventCategories {
 		slog.Warn("Unknown event category", slog.String("event_name", eventName))
 	}
-	return EventCategoryOther
+	return category
 }

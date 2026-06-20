@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"slices"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 func (d *Database) SearchMembers(ctx context.Context, query string, limit int) ([]Member, error) {
@@ -180,6 +182,33 @@ func (d *Database) GetClubTotalCheckInsAccepted(ctx context.Context, clubID stri
 
 	var accepted, checkIns int
 	if err := d.db.QueryRowContext(ctx, query, clubID, from, to, caOnly, eventCreator).Scan(&accepted, &checkIns); err != nil {
+		return 0, 0, fmt.Errorf("failed to get total check-ins and accepted members: %w", err)
+	}
+
+	return accepted, checkIns, nil
+}
+
+func (d *Database) GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, excludeLiveEventPatterns []string) (int, int, error) {
+	if len(excludeLiveEventPatterns) == 0 {
+		return d.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, caOnly, eventCreator)
+	}
+
+	query := `
+		SELECT
+			COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
+			COUNT(CASE WHEN er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS check_ins
+		FROM event_rsvps er
+		JOIN events e ON er.event_rsvp_event_id = e.event_id
+		WHERE e.event_club_id = $1
+		AND ($2 = '0001-01-01 00:00:00'::timestamp OR e.event_time >= $2)
+		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
+		AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
+		AND ($5 = '' OR e.event_creator_id = $5)
+		AND NOT (e.event_campfire_live_event_name ILIKE ANY($6))
+	`
+
+	var accepted, checkIns int
+	if err := d.db.QueryRowContext(ctx, query, clubID, from, to, caOnly, eventCreator, pq.Array(excludeLiveEventPatterns)).Scan(&accepted, &checkIns); err != nil {
 		return 0, 0, fmt.Errorf("failed to get total check-ins and accepted members: %w", err)
 	}
 
