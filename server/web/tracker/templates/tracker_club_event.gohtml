@@ -14,7 +14,9 @@
     <div class="buttons" hx-boost="true">
         <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
         <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
-        <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
+        {{ if not .Finished }}
+            <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
+        {{ end }}
     </div>
 
     <div class="section">

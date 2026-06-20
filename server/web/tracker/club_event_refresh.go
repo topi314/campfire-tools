@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
 )
@@ -23,6 +24,11 @@ func (h *handler) TrackerClubEventRefresh(w http.ResponseWriter, r *http.Request
 		}
 		slog.ErrorContext(ctx, "Failed to fetch event", slog.String("event_id", eventID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch event: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if event.EventEndTime.Before(time.Now()) {
+		http.Error(w, "Cannot refresh an event that has ended", http.StatusBadRequest)
 		return
 	}
 
