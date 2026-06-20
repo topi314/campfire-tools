@@ -346,7 +346,7 @@ var orderedEventCategories = []string{
 }
 
 var DigitalCodeExcludedCategories = []string{
-	// "Friendship Friday",
+	"Friendship Friday",
 }
 
 func digitalCodeExcludePatterns() []string {
