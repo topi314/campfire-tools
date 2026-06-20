@@ -8,39 +8,41 @@
     <div id="members" class="section">
         <div class="section-header">
             <h2>Search Members</h2>
-            <form class="inline-form-control" hx-get="/tracker/members" hx-target="#members" hx-swap="outerHTML" hx-select="#members" hx-push-url="true" hx-trigger="submit, input changed delay:300ms from:input">
+            <form class="inline-form-control" hx-get="/tracker/members" hx-target="#members-results" hx-swap="outerHTML" hx-select="#members-results" hx-push-url="true" hx-trigger="submit, input changed delay:300ms from:input">
                 <label for="q">
                     <input type="search" id="q" name="q" value="{{ .Query }}" placeholder="Username, display name, or member ID" autofocus>
                 </label>
             </form>
         </div>
 
-        {{ if eq .Query "" }}
-            <p>Enter a username, display name, or member ID to search.</p>
-        {{ else if not .Members }}
-            <p>No members found for "{{ .Query }}".</p>
-        {{ else }}
-            <p>{{ len .Members }} result{{ if ne (len .Members) 1 }}s{{ end }}{{ if eq (len .Members) 100 }} (limited to 100){{ end }}</p>
-            <div class="table-3">
-                <span></span>
-                <span>Username</span>
-                <span>Display Name</span>
-                {{ range $member := .Members }}
-                    <span>
-                        {{ if $member.AvatarURL }}
-                            <img src="{{ $member.AvatarURL }}" class="icon-32">
-                        {{ else }}
-                            <img src="/static/default.png" class="icon-32">
-                        {{ end }}
-                    </span>
-                    <span>
-                        <a href="{{ $member.URL }}" hx-boost="true">{{ $member.Username }}</a>
-                        {{ template "community_ambassador_flag" $member.IsCommunityAmbassador }}
-                    </span>
-                    <span><a href="{{ $member.URL }}" hx-boost="true">{{ $member.DisplayName }}</a></span>
-                {{ end }}
-            </div>
-        {{ end }}
+        <div id="members-results">
+            {{ if eq .Query "" }}
+                <p>Enter a username, display name, or member ID to search.</p>
+            {{ else if not .Members }}
+                <p>No members found for "{{ .Query }}".</p>
+            {{ else }}
+                <p>{{ len .Members }} result{{ if ne (len .Members) 1 }}s{{ end }}{{ if eq (len .Members) 100 }} (limited to 100){{ end }}</p>
+                <div class="table-3">
+                    <span></span>
+                    <span>Username</span>
+                    <span>Display Name</span>
+                    {{ range $member := .Members }}
+                        <span>
+                            {{ if $member.AvatarURL }}
+                                <img src="{{ $member.AvatarURL }}" class="icon-32">
+                            {{ else }}
+                                <img src="/static/default.png" class="icon-32">
+                            {{ end }}
+                        </span>
+                        <span>
+                            <a href="{{ $member.URL }}" hx-boost="true">{{ $member.Username }}</a>
+                            {{ template "community_ambassador_flag" $member.IsCommunityAmbassador }}
+                        </span>
+                        <span><a href="{{ $member.URL }}" hx-boost="true">{{ $member.DisplayName }}</a></span>
+                    {{ end }}
+                </div>
+            {{ end }}
+        </div>
     </div>
 </div>
 {{ template "tracker_footer" }}
