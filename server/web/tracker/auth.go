@@ -134,10 +134,10 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if i := slices.IndexFunc(guilds, func(g discord.OAuth2Guild) bool {
-			return g.ID.String() == h.Cfg.DiscordAuth.GuildID
+			return slices.Contains(h.Cfg.DiscordAuth.GuildIDs, g.ID.String())
 		}); i == -1 {
-			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_id", h.Cfg.DiscordAuth.GuildID))
-			http.Error(w, "You are not whitelisted or a member of the required Discord guild", http.StatusForbidden)
+			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_ids", strings.Join(h.Cfg.DiscordAuth.GuildIDs, ", ")))
+			http.Error(w, "You are not whitelisted or a member of the required Discord guilds", http.StatusForbidden)
 			return
 		}
 	}
