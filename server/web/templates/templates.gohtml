@@ -31,6 +31,16 @@
     {{ if . }}✅️{{ else }}❌{{ end }}
 {{ end}}
 
+{{ define "event_cover" }}
+    {{ if .CoverPhotoURL }}
+        <img src="{{ .CoverPhotoURL }}">
+    {{ else if .ClubAvatarURL }}
+        <img src="{{ .ClubAvatarURL }}">
+    {{ else }}
+        <img src="/static/default.png">
+    {{ end }}
+{{ end }}
+
 {{ define "community_ambassador_icon" }}
     <img src="/static/community-ambassador.png" class="icon-32 ca-icon" alt="Community Ambassador" title="Community Ambassador">
 {{ end }}

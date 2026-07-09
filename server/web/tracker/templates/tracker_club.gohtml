@@ -71,11 +71,7 @@
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
-                    {{ if $event.CoverPhotoURL }}
-                        <img src="{{ $event.CoverPhotoURL }}">
-                    {{ else }}
-                        <img src="/static/default.png">
-                    {{ end }}
+                    {{ template "event_cover" $event }}
                     <a href="{{ $event.URL }}" hx-boost="true">
                         {{ $event.Name }} ({{ $event.CheckIns }})
                     </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}

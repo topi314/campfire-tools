@@ -96,6 +96,7 @@ type Event struct {
 	Name                         string
 	URL                          string
 	CoverPhotoURL                string
+	ClubAvatarURL                string
 	Details                      string
 	Time                         time.Time
 	EndTime                      time.Time
