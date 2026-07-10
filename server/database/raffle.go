@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
 func (d *Database) GetRafflesByUserID(ctx context.Context, userID string) ([]Raffle, error) {
@@ -41,6 +43,22 @@ func (d *Database) GetRaffleEvents(ctx context.Context, raffleID int) ([]Event, 
 	}
 
 	return events, nil
+}
+
+func (d *Database) AppendRaffleEvents(ctx context.Context, raffleID int, eventIDs []string) error {
+	query := `
+		UPDATE raffles
+		SET raffle_events = (
+			SELECT ARRAY(SELECT DISTINCT unnest(raffle_events || $2::varchar[]))
+		)
+		WHERE raffle_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, raffleID, pq.Array(eventIDs)); err != nil {
+		return fmt.Errorf("failed to append raffle events: %w", err)
+	}
+
+	return nil
 }
 
 func (d *Database) InsertRaffle(ctx context.Context, raffle Raffle) (int, error) {
