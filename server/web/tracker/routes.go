@@ -64,6 +64,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET /tracker/login/callback", h.LoginCallback)
 
 	mux.HandleFunc("GET /tracker/clubs", h.TrackerClubs)
+	mux.HandleFunc("GET /tracker/event-stats", h.TrackerEventStats)
 	mux.HandleFunc("GET /tracker/members", h.TrackerMembers)
 	mux.HandleFunc("GET /tracker/members/{member_id}", h.TrackerMember)
 

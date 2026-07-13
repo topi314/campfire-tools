@@ -1,0 +1,241 @@
+{{ template "head" "Event Stats" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/tracker" }}
+        <h1>Event Stats</h1>
+    </div>
+
+    {{ range $error := .Errors }}
+        <p class="error">{{ $error }}</p>
+    {{ end }}
+
+    <div class="section">
+        <form id="event-stats-filter" class="event-stats-form" hx-boost="true" hx-target="body" hx-push-url="true" method="get" action="/tracker/event-stats">
+            <label class="form-control" for="event">
+                Event
+                <select id="event" name="event" required>
+                    <option value="" {{ if eq .SelectedEventKey "" }}selected{{ end }} disabled>Select an event</option>
+                    {{ range $event := .Events }}
+                        <option value="{{ $event.Key }}" {{ if $event.Selected }}selected{{ end }}>{{ $event.Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
+            <div class="form-control">
+                <label>
+                    Clubs
+                    <span class="small-text">Pick a club to add it; a new dropdown appears for the next one.</span>
+                </label>
+                <div id="club-selects" class="club-selects">
+                    {{ range $clubID := .SelectedClubIDs }}
+                        <select class="club-select" name="club_id">
+                            <option value="">- Select a club -</option>
+                            {{ range $club := $.Clubs }}
+                                <option value="{{ $club.ID }}" {{ if eq $club.ID $clubID }}selected{{ end }}>{{ $club.Name }}</option>
+                            {{ end }}
+                        </select>
+                    {{ end }}
+                    <select class="club-select" name="club_id">
+                        <option value="">- Select a club -</option>
+                        {{ range $club := .Clubs }}
+                            <option value="{{ $club.ID }}">{{ $club.Name }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+            </div>
+            <button class="form-control" type="submit">Show Stats</button>
+        </form>
+        <template id="club-select-template">
+            <select class="club-select" name="club_id">
+                <option value="">- Select a club -</option>
+                {{ range $club := .Clubs }}
+                    <option value="{{ $club.ID }}">{{ $club.Name }}</option>
+                {{ end }}
+            </select>
+        </template>
+        <script>
+            (function () {
+                const container = document.getElementById("club-selects");
+                const tmpl = document.getElementById("club-select-template");
+                if (!container || !tmpl) return;
+
+                function refreshOptions() {
+                    const selects = Array.from(container.querySelectorAll(".club-select"));
+                    const taken = new Set(selects.map(s => s.value).filter(v => v !== ""));
+                    selects.forEach(function (select) {
+                        Array.from(select.options).forEach(function (option) {
+                            if (option.value === "") return;
+                            option.disabled = taken.has(option.value) && option.value !== select.value;
+                        });
+                    });
+                }
+
+                container.addEventListener("change", function (event) {
+                    const select = event.target.closest(".club-select");
+                    if (!select) return;
+
+                    const selects = Array.from(container.querySelectorAll(".club-select"));
+                    const isLast = select === selects[selects.length - 1];
+
+                    if (select.value === "" && !isLast) {
+                        select.remove();
+                    } else if (select.value !== "" && isLast) {
+                        container.appendChild(tmpl.content.cloneNode(true));
+                    }
+
+                    refreshOptions();
+                });
+
+                refreshOptions();
+            })();
+        </script>
+    </div>
+
+    {{ if .HasResults }}
+        <div class="section">
+            <div class="section-header">
+                <h2>{{ .EventName }}{{ if .MultiClub }} - Combined ({{ len .ClubNames }} clubs){{ else if .ClubNames }} - {{ index .ClubNames 0 }}{{ end }}</h2>
+            </div>
+            {{ template "event_stats_day_table" .Combined }}
+        </div>
+        {{ template "event_stats_lists" .Combined }}
+
+        {{ if .MultiClub }}
+            <div class="section">
+                <div class="section-header">
+                    <h2>Per-Club Comparison (Check-Ins)</h2>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Club</th>
+                            {{ range $day := .Combined.Days }}<th>{{ $day.Label }}</th>{{ end }}
+                            <th>Overall</th>
+                            <th>All Days</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range $club := .PerClub }}
+                            <tr>
+                                <td>{{ $club.Name }}</td>
+                                {{ range $day := $club.Days }}
+                                    <td class="stats-table-center">{{ $day.CheckIns.Count }}</td>
+                                {{ end }}
+                                <td class="stats-table-center">{{ $club.Overall.CheckIns.Count }}</td>
+                                <td class="stats-table-center">{{ $club.AttendedAll.Count }}</td>
+                            </tr>
+                        {{ end }}
+                        <tr class="stats-table-total">
+                            <td><strong>Combined (unique)</strong></td>
+                            {{ range $day := .Combined.Days }}
+                                <td class="stats-table-center"><a class="event-stats-link" href="#{{ $day.CheckIns.AnchorID }}"><strong>{{ $day.CheckIns.Count }}</strong></a></td>
+                            {{ end }}
+                            <td class="stats-table-center"><a class="event-stats-link" href="#{{ .Combined.Overall.CheckIns.AnchorID }}"><strong>{{ .Combined.Overall.CheckIns.Count }}</strong></a></td>
+                            <td class="stats-table-center"><a class="event-stats-link" href="#{{ .Combined.AttendedAll.AnchorID }}"><strong>{{ .Combined.AttendedAll.Count }}</strong></a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2>Who Checked In Where ({{ len .Where }})</h2>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            {{ range $name := .ClubNames }}<th>{{ $name }}</th>{{ end }}
+                            <th>Clubs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range $row := .Where }}
+                            <tr {{ if $row.MultiClub }}class="stats-table-highlight"{{ end }}>
+                                <td>{{ template "campfire_member_name" $row.Member }}</td>
+                                {{ range $checked := $row.CheckedIn }}
+                                    <td class="stats-table-center">{{ if $checked }}✅{{ end }}</td>
+                                {{ end }}
+                                <td class="stats-table-center">{{ $row.ClubCount }}</td>
+                            </tr>
+                        {{ else }}
+                            <tr>
+                                <td>No check-ins found.</td>
+                            </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        {{ end }}
+
+        <script>
+            (function () {
+                function openDetailsFor(id) {
+                    const target = document.getElementById(id);
+                    if (!target) return null;
+                    const details = target.matches("details") ? target : target.querySelector("details");
+                    if (details) details.open = true;
+                    return target;
+                }
+
+                document.querySelectorAll(".event-stats-link").forEach(function (link) {
+                    link.addEventListener("click", function () {
+                        const id = decodeURIComponent(link.getAttribute("href").slice(1));
+                        const target = openDetailsFor(id);
+                        if (target) target.scrollIntoView({behavior: "smooth", block: "start"});
+                    });
+                });
+
+                if (window.location.hash) {
+                    openDetailsFor(decodeURIComponent(window.location.hash.slice(1)));
+                }
+            })();
+        </script>
+    {{ end }}
+</div>
+{{ template "tracker_footer" }}
+
+{{ define "event_stats_day_table" }}
+    <div class="table-3">
+        <span>Day</span>
+        <span>Accepted</span>
+        <span>Check-Ins</span>
+        {{ range $day := .Days }}
+            <span>{{ $day.Label }}</span>
+            <span><a class="event-stats-link" href="#{{ $day.Accepted.AnchorID }}">{{ $day.Accepted.Count }}</a></span>
+            <span><a class="event-stats-link" href="#{{ $day.CheckIns.AnchorID }}">{{ $day.CheckIns.Count }}</a></span>
+        {{ end }}
+        <span><strong>{{ .Overall.Label }}</strong></span>
+        <span><a class="event-stats-link" href="#{{ .Overall.Accepted.AnchorID }}"><strong>{{ .Overall.Accepted.Count }}</strong></a></span>
+        <span><a class="event-stats-link" href="#{{ .Overall.CheckIns.AnchorID }}"><strong>{{ .Overall.CheckIns.Count }}</strong></a></span>
+        <span><strong>Attended All Days</strong></span>
+        <span></span>
+        <span><a class="event-stats-link" href="#{{ .AttendedAll.AnchorID }}"><strong>{{ .AttendedAll.Count }}</strong></a></span>
+    </div>
+{{ end }}
+
+{{ define "event_stats_lists" }}
+    <div class="stat-lists">
+        {{ range $day := .Days }}
+            {{ template "event_stats_member_list" $day.CheckIns }}
+            {{ template "event_stats_member_list" $day.Accepted }}
+        {{ end }}
+        {{ template "event_stats_member_list" .Overall.CheckIns }}
+        {{ template "event_stats_member_list" .Overall.Accepted }}
+        {{ template "event_stats_member_list" .AttendedAll }}
+    </div>
+{{ end }}
+
+{{ define "event_stats_member_list" }}
+    <div class="stat-list" id="{{ .AnchorID }}">
+        <details>
+            <summary>{{ .Title }} <span class="stat-list-count">{{ .Count }}</span></summary>
+            <ul class="list">
+                {{ range $member := .Members }}
+                    {{ template "campfire_member_list_item" $member }}
+                {{ else }}
+                    <li class="list-item">No members.</li>
+                {{ end }}
+            </ul>
+        </details>
+    </div>
+{{ end }}
