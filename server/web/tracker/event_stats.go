@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sort"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/database"
 	"github.com/topi314/campfire-tools/server/web/models"
@@ -15,34 +17,63 @@ func (h *handler) TrackerEventStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	query := r.URL.Query()
 
-	clubIDs := query["club_id"]
 	eventKey := query.Get("event")
 
-	session := auth.GetSession(r)
+	// Deduplicate and drop the empty selections coming from the growing club dropdowns.
+	selected := make(map[string]bool)
+	var clubIDs []string
+	for _, id := range query["club_id"] {
+		if id == "" || selected[id] {
+			continue
+		}
+		selected[id] = true
+		clubIDs = append(clubIDs, id)
+	}
 
-	clubs, err := h.DB.GetClubs(ctx, "")
-	if err != nil {
-		http.Error(w, "Failed to fetch clubs: "+err.Error(), http.StatusInternalServerError)
+	event, eventOK := findConfiguredEvent(eventKey)
+	var liveEventIDs []string
+	if eventOK {
+		liveEventIDs = event.LiveEventIDs()
+	}
+	runStats := len(clubIDs) > 0 && eventOK && len(liveEventIDs) > 0
+
+	// The club list (for the dropdowns) and the RSVP data are independent, so
+	// fetch them concurrently.
+	var (
+		clubRefs []database.ClubRef
+		rsvps    []database.LiveEventMemberRSVP
+	)
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		var err error
+		clubRefs, err = h.DB.GetClubOptions(egCtx)
+		return err
+	})
+	if runStats {
+		eg.Go(func() error {
+			var err error
+			rsvps, err = h.DB.GetLiveEventRSVPs(egCtx, clubIDs, liveEventIDs)
+			return err
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		http.Error(w, "Failed to fetch event stats: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	session := auth.GetSession(r)
 	vars := models.EventStatsVars{
 		User:             models.NewDiscordUser(session.DiscordUser),
 		SelectedEventKey: eventKey,
 	}
 
-	selected := make(map[string]bool, len(clubIDs))
-	for _, id := range clubIDs {
-		selected[id] = true
-	}
-
 	// Selected clubs in the order they appear in the club list (stable matrix order).
 	var selectedClubs []models.ClubOption
-	for _, club := range clubs {
+	for _, club := range clubRefs {
 		c := models.ClubOption{
-			ID:       club.Club.ID,
-			Name:     club.Club.Name,
-			Selected: selected[club.Club.ID],
+			ID:       club.ID,
+			Name:     club.Name,
+			Selected: selected[club.ID],
 		}
 		vars.Clubs = append(vars.Clubs, c)
 		if c.Selected {
@@ -52,36 +83,27 @@ func (h *handler) TrackerEventStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for _, event := range ConfiguredEvents {
+	for _, e := range ConfiguredEvents {
 		vars.Events = append(vars.Events, models.EventOption{
-			Key:      event.Key,
-			Name:     event.Name,
-			Selected: event.Key == eventKey,
+			Key:      e.Key,
+			Name:     e.Name,
+			Selected: e.Key == eventKey,
 		})
 	}
 
-	if len(selectedClubs) > 0 && eventKey != "" {
-		event, ok := findConfiguredEvent(eventKey)
-		if !ok {
+	if len(clubIDs) > 0 && eventKey != "" {
+		if !eventOK {
 			vars.Errors = append(vars.Errors, "Unknown event selected.")
-		} else if liveEventIDs := event.LiveEventIDs(); len(liveEventIDs) == 0 {
+		} else if len(liveEventIDs) == 0 {
 			vars.Errors = append(vars.Errors, "This event has no live event IDs configured yet.")
-		} else {
-			ids := make([]string, len(selectedClubs))
-			for i, c := range selectedClubs {
-				ids[i] = c.ID
-			}
-
-			rsvps, err := h.DB.GetLiveEventRSVPs(ctx, ids, liveEventIDs)
-			if err != nil {
-				http.Error(w, "Failed to fetch event stats: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-			buildEventStats(&vars, event, selectedClubs, rsvps)
 		}
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "tracker_event_stats.gohtml", vars); err != nil {
+	if runStats && len(selectedClubs) > 0 {
+		buildEventStats(&vars, event, selectedClubs, rsvps)
+	}
+
+	if err := h.Templates().ExecuteTemplate(w, "tracker_event_stats.gohtml", vars); err != nil {
 		slog.ErrorContext(ctx, "Failed to render event stats template", slog.Any("err", err))
 	}
 }
