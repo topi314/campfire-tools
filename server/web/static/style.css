@@ -689,3 +689,87 @@ hr {
     vertical-align: middle;
     margin-right: 10px;
 }
+
+.event-stats-form .form-control select {
+    width: 100%;
+}
+
+.club-selects {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.club-select {
+    width: 100%;
+}
+
+.stat-lists {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-list {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+}
+
+.stat-list > details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.stat-list .list {
+    list-style: none;
+    padding: 0 10px 10px;
+}
+
+.stat-list-count {
+    font-variant-numeric: tabular-nums;
+    background-color: var(--background2-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 1px 10px;
+    font-size: 14px;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+    overflow: auto;
+    display: block;
+}
+
+.stats-table th, .stats-table td {
+    padding: 5px 8px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.stats-table th {
+    font-weight: bold;
+    background-color: var(--background-color);
+}
+
+.stats-table .stats-table-total td {
+    font-weight: bold;
+    background-color: var(--background-color);
+}
+
+.stats-table .stats-table-highlight td {
+    background-color: var(--background-color);
+}
+
+.stats-table-center {
+    text-align: center;
+}
