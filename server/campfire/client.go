@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -21,10 +22,11 @@ const (
 )
 
 var (
-	ErrTooManyRetries  = errors.New("too many retries, please try again later")
-	ErrTooManyRequests = errors.New("too many requests, please try again later")
-	ErrBadGateway      = errors.New("bad gateway, please try again later")
-	ErrEventNotFound   = errors.New("event not found")
+	ErrTooManyRetries   = errors.New("too many retries, please try again later")
+	ErrTooManyRequests  = errors.New("too many requests, please try again later")
+	ErrDeadlineExceeded = errors.New("deadline exceeded, please try again later")
+	ErrBadGateway       = errors.New("bad gateway, please try again later")
+	ErrEventNotFound    = errors.New("event not found")
 )
 
 type TokenFunc func(ctx context.Context) (string, error)
@@ -48,7 +50,7 @@ type Client struct {
 func (c *Client) Do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
 	for range c.cfg.MaxRetries {
 		if err := c.do(ctx, token, query, vars, rsBody); err != nil {
-			if errors.Is(err, ErrTooManyRequests) || errors.Is(err, ErrBadGateway) {
+			if errors.Is(err, ErrTooManyRequests) || errors.Is(err, ErrBadGateway) || errors.Is(err, ErrDeadlineExceeded) {
 				time.Sleep(time.Second)
 				continue
 			}
@@ -110,11 +112,20 @@ func (c *Client) do(ctx context.Context, token string, query string, vars map[st
 	slog.DebugContext(ctx, "GraphQL response", slog.String("response", logBuf.String()))
 
 	if len(resp.Errors) > 0 {
-		var errs []any
+		var (
+			errs             []any
+			deadlineExceeded bool
+		)
 		for _, e := range resp.Errors {
+			if strings.Contains(e.Message, "DeadlineExceeded") {
+				deadlineExceeded = true
+			}
 			errs = append(errs, slog.String("message", e.String()))
 		}
 		slog.ErrorContext(ctx, "GraphQL errors", errs...)
+		if deadlineExceeded {
+			return ErrDeadlineExceeded
+		}
 	}
 
 	if err = json.Unmarshal(resp.Data, rsBody); err != nil {
