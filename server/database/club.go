@@ -29,6 +29,30 @@ func (d *Database) GetClubs(ctx context.Context, order string) ([]ClubWithEvents
 	return clubs, nil
 }
 
+// ClubRef is a lightweight club identifier used for dropdowns and pickers.
+type ClubRef struct {
+	ID   string `db:"club_id"`
+	Name string `db:"club_name"`
+}
+
+// GetClubOptions returns just the id and name of every club, ordered by name.
+// It avoids the events join/count and the jsonb columns loaded by GetClubs,
+// which matters when there are hundreds of clubs.
+func (d *Database) GetClubOptions(ctx context.Context) ([]ClubRef, error) {
+	query := `
+		SELECT club_id, club_name
+		FROM clubs
+		ORDER BY club_name ASC
+	`
+
+	var clubs []ClubRef
+	if err := d.db.SelectContext(ctx, &clubs, query); err != nil {
+		return nil, fmt.Errorf("failed to get club options: %w", err)
+	}
+
+	return clubs, nil
+}
+
 func (d *Database) GetClub(ctx context.Context, clubID string) (*ClubWithCreator, error) {
 	query := `
 		SELECT clubs.*, members.*

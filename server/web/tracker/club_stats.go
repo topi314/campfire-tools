@@ -25,8 +25,16 @@ const (
 	LegendaryLeagueGoal = 1500
 )
 
+const (
+	digitalCodeRate        = 0.25
+	digitalCodeSpecialRate = 0.35
+)
+
 // After January 2026 use 1 month average.
-var oneMonthAverage = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+var oneMonthAverage = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+// In July 2026 we get 35% of check-ins as digital codes
+var digitalCodeRateExceptionMonth = time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 
 type TrackerClubStatsVars struct {
 	models.Club
@@ -218,8 +226,12 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 		}
 
 		predictedCheckIns, _, _ := models.CalcCAProjectedCheckIns(from, to, checkIns)
-		codes := int(float64(checkIns/months) * 0.25)
-		predictedCodes := int(float64(predictedCheckIns/months) * 0.25)
+		rate := digitalCodeRate
+		if date.Month() == digitalCodeRateExceptionMonth.Month() && date.Year() == digitalCodeRateExceptionMonth.Year() {
+			rate = digitalCodeSpecialRate
+		}
+		codes := int(float64(checkIns/months) * rate)
+		predictedCodes := int(float64(predictedCheckIns/months) * rate)
 
 		digitalCodeMonths = append(digitalCodeMonths, DigitalCodeMonth{
 			Date:              date,

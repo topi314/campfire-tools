@@ -104,6 +104,16 @@ type EventRSVP struct {
 	ImportedAt time.Time `db:"event_rsvp_imported_at"`
 }
 
+// LiveEventMemberRSVP is one member's aggregated RSVP status within a single
+// Campfire live event (across all of that live event's meetups for a club).
+// StatusRank is 2 for CHECKED_IN, 1 for ACCEPTED only, 0 otherwise.
+type LiveEventMemberRSVP struct {
+	Member
+	ClubID      string `db:"club_id"`
+	LiveEventID string `db:"live_event_id"`
+	StatusRank  int    `db:"status_rank"`
+}
+
 type Raffle struct {
 	ID            int            `db:"raffle_id"`
 	UserID        string         `db:"raffle_user_id"`

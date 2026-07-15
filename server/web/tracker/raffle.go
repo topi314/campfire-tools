@@ -34,6 +34,7 @@ type RaffleResultVars struct {
 	Events          []models.Event
 	ClubID          string
 	RerunRaffleURL  string
+	AddEventsURL    string
 	Error           string
 	Winners         []models.Winner
 	PastWinners     []models.Winner
@@ -258,16 +259,13 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raffleEvents, err := h.DB.GetRaffleEvents(ctx, raffleID)
+	raffleEvents, err := h.fetchRaffleRenderEvents(ctx, clubID, raffle.Events)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get raffle events from database", slog.Any("err", err))
+		slog.ErrorContext(ctx, "Failed to fetch raffle events", slog.Any("err", err))
 		h.renderRaffleResult(w, r, database.Raffle{}, clubID, "Failed to get raffle events: "+err.Error())
 		return
 	}
-	renderEvents := make([]models.Event, 0, len(raffleEvents))
-	for _, event := range raffleEvents {
-		renderEvents = append(renderEvents, models.NewEvent(event, 32, ""))
-	}
+	renderEvents := raffleEvents
 
 	session := auth.GetSession(r)
 	if raffle.UserID != "" && raffle.UserID != session.UserID {
@@ -293,10 +291,13 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var backURL string
+	var addEventsURL string
 	if clubID != "" {
 		backURL = fmt.Sprintf("/tracker/club/%s/raffle", clubID)
+		addEventsURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/events", clubID, raffleID)
 	} else {
 		backURL = "/raffle"
+		addEventsURL = fmt.Sprintf("/raffle/%d/events", raffleID)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
@@ -304,6 +305,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		Events:          renderEvents,
 		ClubID:          clubID,
 		RerunRaffleURL:  r.URL.Path,
+		AddEventsURL:    addEventsURL,
 		Winners:         winners,
 		PastWinners:     pastWinners,
 		PastWinnersOpen: pastWinnersOpen,
@@ -391,6 +393,54 @@ func (h *handler) raffleWinners(ctx context.Context, raffle database.Raffle, pas
 	}
 
 	return winners, nil
+}
+
+func (h *handler) fetchRaffleRenderEvents(ctx context.Context, clubID string, eventIDs []string) ([]models.Event, error) {
+	if len(eventIDs) == 0 {
+		return nil, nil
+	}
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	results := make([]models.Event, len(eventIDs))
+	for i, eventID := range eventIDs {
+		eg.Go(func() error {
+			if dbEvent, err := h.DB.GetEvent(egCtx, eventID); err == nil {
+				event := models.NewEvent(dbEvent.Event, 32, "")
+				if clubID == "" {
+					event.URL = fmt.Sprintf("/event/%s", event.ID)
+				}
+				results[i] = event
+				return nil
+			}
+
+			event, err := h.fetchEvent(egCtx, eventID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch event id %q: %w", eventID, err)
+			}
+
+			renderEvent := models.Event{
+				ID:                           event.ID,
+				Name:                         event.Name,
+				CoverPhotoURL:                models.ImageURL(event.CoverPhotoURL, 32),
+				Details:                      event.Details,
+				Time:                         event.EventTime,
+				EndTime:                      event.EventEndTime,
+				CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+			}
+			if clubID != "" {
+				renderEvent.URL = fmt.Sprintf("/tracker/event/%s", renderEvent.ID)
+			} else {
+				renderEvent.URL = fmt.Sprintf("/event/%s", renderEvent.ID)
+			}
+			results[i] = renderEvent
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (h *handler) processRaffleWinners(ctx context.Context, raffleID int, winners []campfire.Member, create bool) error {
