@@ -51,9 +51,11 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	clubModel := models.NewClub(*club)
+
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEventWithCheckIns(event, 32)
+		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, clubModel.AvatarURL)
 	}
 
 	eventCreators, err := h.getEventCreators(ctx, clubID)
@@ -64,7 +66,7 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_export.gohtml", TrackerClubExportVars{
-		Club: models.NewClub(*club),
+		Club: clubModel,
 		EventsFilter: EventsFilter{
 			FilterURL:            r.URL.Path,
 			From:                 from,

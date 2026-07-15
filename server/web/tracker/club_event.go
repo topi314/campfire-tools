@@ -67,8 +67,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clubModel := models.NewClub(*club)
-	eventModel := models.NewEventWithCreator(*event)
-	eventModel.ClubAvatarURL = clubModel.AvatarURL
+	eventModel := models.NewEventWithCreator(*event, clubModel.AvatarURL)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
 		Event:            eventModel,

@@ -80,6 +80,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		clubImportedAt = club.Club.ImportedAt
 	}
 
+	eventClubAvatarURL := models.ImageURL(event.Club.AvatarURL, 48)
 	clubAvatarURL := models.ImageURL(event.Club.AvatarURL, 32)
 
 	if err = h.Templates().ExecuteTemplate(w, "event_details.gohtml", TrackerEventCheckIns{
@@ -88,7 +89,7 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 			Name:                         event.Name,
 			URL:                          fmt.Sprintf("/tracker/event/%s", event.ID),
 			CoverPhotoURL:                models.ImageURL(event.CoverPhotoURL, 48),
-			ClubAvatarURL:                clubAvatarURL,
+			ClubAvatarURL:                eventClubAvatarURL,
 			Details:                      event.Details,
 			Time:                         event.EventTime,
 			EndTime:                      event.EventEndTime,

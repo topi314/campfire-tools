@@ -44,8 +44,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEventWithCheckIns(event, 32)
-		trackerEvents[i].ClubAvatarURL = clubModel.AvatarURL
+		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, clubModel.AvatarURL)
 	}
 
 	session := auth.GetSession(r)

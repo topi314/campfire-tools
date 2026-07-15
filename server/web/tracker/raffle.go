@@ -266,7 +266,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 	renderEvents := make([]models.Event, 0, len(raffleEvents))
 	for _, event := range raffleEvents {
-		renderEvents = append(renderEvents, models.NewEvent(event, 32))
+		renderEvents = append(renderEvents, models.NewEvent(event, 32, ""))
 	}
 
 	session := auth.GetSession(r)
