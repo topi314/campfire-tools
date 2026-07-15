@@ -40,9 +40,12 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
+
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEventWithCheckIns(event, 32)
+		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, eventClubAvatarURL)
 	}
 
 	session := auth.GetSession(r)
@@ -55,7 +58,7 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	pinned := slices.Contains(pinnedClubs, clubID)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
-		Club:   models.NewClub(*club),
+		Club:   clubModel,
 		Events: trackerEvents,
 		Pinned: pinned,
 	}); err != nil {

@@ -58,12 +58,13 @@ type ClubWithEvents struct {
 	Pinned bool
 }
 
-func NewEvent(event database.Event, iconSize int) Event {
+func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 	return Event{
 		ID:            event.ID,
 		Name:          event.Name,
 		URL:           fmt.Sprintf("/tracker/event/%s", event.ID),
 		CoverPhotoURL: ImageURL(event.CoverPhotoURL, iconSize),
+		ClubAvatarURL: clubAvatarURL,
 		Creator: Member{
 			ID: event.CreatorID,
 		},
@@ -78,15 +79,15 @@ func NewEvent(event database.Event, iconSize int) Event {
 	}
 }
 
-func NewEventWithCheckIns(event database.EventWithCheckIns, iconSize int) Event {
-	e := NewEvent(event.Event, iconSize)
+func NewEventWithCheckIns(event database.EventWithCheckIns, iconSize int, clubAvatarURL string) Event {
+	e := NewEvent(event.Event, iconSize, clubAvatarURL)
 	e.Accepted = event.Accepted
 	e.CheckIns = event.CheckIns
 	return e
 }
 
-func NewEventWithCreator(event database.EventWithCreator) Event {
-	e := NewEvent(event.Event, 48)
+func NewEventWithCreator(event database.EventWithCreator, clubAvatarURL string) Event {
+	e := NewEvent(event.Event, 48, clubAvatarURL)
 	e.Creator = NewMember(event.Member, event.Event.ClubID, 32)
 	return e
 }
@@ -96,6 +97,7 @@ type Event struct {
 	Name                         string
 	URL                          string
 	CoverPhotoURL                string
+	ClubAvatarURL                string
 	Details                      string
 	Time                         time.Time
 	EndTime                      time.Time
@@ -227,15 +229,17 @@ func GroupEventsByClub(rows []database.EventWithClub, iconSize int) []ClubMember
 	index := make(map[string]int)
 
 	for _, row := range rows {
+		clubAvatarURL := ImageURL(row.Club.AvatarURL, iconSize)
+
 		if i, ok := index[row.Club.ID]; ok {
-			groups[i].Events = append(groups[i].Events, NewEvent(row.Event, iconSize))
+			groups[i].Events = append(groups[i].Events, NewEvent(row.Event, iconSize, clubAvatarURL))
 			continue
 		}
 
 		index[row.Club.ID] = len(groups)
 		groups = append(groups, ClubMemberEvents{
 			Club:   NewClub(database.ClubWithCreator{Club: row.Club}),
-			Events: []Event{NewEvent(row.Event, iconSize)},
+			Events: []Event{NewEvent(row.Event, iconSize, clubAvatarURL)},
 		})
 	}
 
@@ -258,9 +262,9 @@ type TopMember struct {
 	CheckInRate float64
 }
 
-func NewTopEvent(event database.EventWithCheckIns, iconSize int) TopEvent {
+func NewTopEvent(event database.EventWithCheckIns, iconSize int, clubAvatarURL string) TopEvent {
 	return TopEvent{
-		Event:       NewEvent(event.Event, iconSize),
+		Event:       NewEvent(event.Event, iconSize, clubAvatarURL),
 		Accepted:    event.Accepted,
 		CheckIns:    event.CheckIns,
 		CheckInRate: CalcCheckInRate(event.Accepted, event.CheckIns),

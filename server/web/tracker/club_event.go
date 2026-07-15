@@ -66,9 +66,12 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		acceptedTrackerMembers[i] = models.NewMember(member, event.ClubID, 32)
 	}
 
+	clubModel := models.NewClub(*club)
+	eventModel := models.NewEventWithCreator(*event, clubModel.AvatarURL)
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
-		Event:            models.NewEventWithCreator(*event),
-		Club:             models.NewClub(*club),
+		Event:            eventModel,
+		Club:             clubModel,
 		CheckedInMembers: checkedInTrackerMembers,
 		AcceptedMembers:  acceptedTrackerMembers,
 	}); err != nil {

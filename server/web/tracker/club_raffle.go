@@ -50,9 +50,12 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
+
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEventWithCheckIns(event, 32)
+		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, eventClubAvatarURL)
 	}
 
 	eventCreators, err := h.getEventCreators(ctx, clubID)
@@ -63,7 +66,7 @@ func (h *handler) renderTrackerClubRaffle(w http.ResponseWriter, r *http.Request
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle.gohtml", TrackerClubRaffleVars{
-		Club: models.NewClub(*club),
+		Club: clubModel,
 		EventsFilter: EventsFilter{
 			FilterURL:            r.URL.Path,
 			From:                 from,

@@ -59,9 +59,12 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
+
 	trackerEvents := make([]models.TopEvent, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewTopEvent(event, 32)
+		trackerEvents[i] = models.NewTopEvent(event, 32, eventClubAvatarURL)
 	}
 
 	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
@@ -73,7 +76,7 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 	totalCheckInRate := models.CalcCheckInRate(totalAccepted, totalCheckIns)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_events.gohtml", TrackerClubEventsVars{
-		Club: models.NewClub(*club),
+		Club: clubModel,
 		EventsFilter: EventsFilter{
 			FilterURL:            r.URL.Path,
 			From:                 from,

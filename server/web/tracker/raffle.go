@@ -405,7 +405,7 @@ func (h *handler) fetchRaffleRenderEvents(ctx context.Context, clubID string, ev
 	for i, eventID := range eventIDs {
 		eg.Go(func() error {
 			if dbEvent, err := h.DB.GetEvent(egCtx, eventID); err == nil {
-				event := models.NewEvent(dbEvent.Event, 32)
+				event := models.NewEvent(dbEvent.Event, 32, "")
 				if clubID == "" {
 					event.URL = fmt.Sprintf("/event/%s", event.ID)
 				}

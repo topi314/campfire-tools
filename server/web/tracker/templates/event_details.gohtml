@@ -3,9 +3,7 @@
     <div class="container-header">
         {{ template "back_button" "/event" }}
         <h1>
-            {{ if .CoverPhotoURL }}
-                <img src="{{ .CoverPhotoURL }}">
-            {{ end }}
+            {{ template "event_cover" . }}
             {{ .Name }}
         </h1>
     </div>
