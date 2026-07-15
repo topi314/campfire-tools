@@ -60,10 +60,11 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
 
 	trackerEvents := make([]models.TopEvent, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewTopEvent(event, 32, clubModel.AvatarURL)
+		trackerEvents[i] = models.NewTopEvent(event, 32, eventClubAvatarURL)
 	}
 
 	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)

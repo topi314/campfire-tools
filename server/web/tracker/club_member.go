@@ -49,10 +49,11 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
 
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEvent(event, 32, clubModel.AvatarURL)
+		trackerEvents[i] = models.NewEvent(event, 32, eventClubAvatarURL)
 	}
 
 	acceptedEvents, err := h.DB.GetAcceptedClubEventsByMember(ctx, clubID, memberID)
@@ -63,7 +64,7 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 	}
 	acceptedTrackerEvents := make([]models.Event, len(acceptedEvents))
 	for i, event := range acceptedEvents {
-		acceptedTrackerEvents[i] = models.NewEvent(event, 32, clubModel.AvatarURL)
+		acceptedTrackerEvents[i] = models.NewEvent(event, 32, eventClubAvatarURL)
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{

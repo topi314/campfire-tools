@@ -235,6 +235,7 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 	}
 
 	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
 
 	existingSet := make(map[string]struct{}, len(existingEventIDs))
 	for _, id := range existingEventIDs {
@@ -246,7 +247,7 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 		if _, exists := existingSet[event.Event.ID]; exists {
 			continue
 		}
-		availableEvents = append(availableEvents, models.NewEventWithCheckIns(event, 32, clubModel.AvatarURL))
+		availableEvents = append(availableEvents, models.NewEventWithCheckIns(event, 32, eventClubAvatarURL))
 	}
 
 	eventCreators, err := h.getEventCreators(ctx, clubID)

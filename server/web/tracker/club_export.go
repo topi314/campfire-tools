@@ -52,10 +52,11 @@ func (h *handler) renderTrackerClubExport(w http.ResponseWriter, r *http.Request
 	}
 
 	clubModel := models.NewClub(*club)
+	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
 
 	trackerEvents := make([]models.Event, len(events))
 	for i, event := range events {
-		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, clubModel.AvatarURL)
+		trackerEvents[i] = models.NewEventWithCheckIns(event, 32, eventClubAvatarURL)
 	}
 
 	eventCreators, err := h.getEventCreators(ctx, clubID)
