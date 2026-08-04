@@ -8,6 +8,7 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/xquery"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/web/models"
 )
 
 type UpcomingClubEvent struct {
@@ -106,6 +107,10 @@ func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, 
 		}
 
 		exportEvent := toExportEvent(campfireEvent, loc)
+		exportEvent.CoverPhotoURL = models.ImageURL(exportEvent.CoverPhotoURL, 0)
+		exportEvent.Club.AvatarURL = models.ImageURL(exportEvent.Club.AvatarURL, 0)
+		exportEvent.Club.Creator.AvatarURL = models.ImageURL(exportEvent.Club.Creator.AvatarURL, 0)
+
 		upcomingEvents = append(upcomingEvents, UpcomingClubEvent{
 			ID:                           exportEvent.ID,
 			Name:                         exportEvent.Name,

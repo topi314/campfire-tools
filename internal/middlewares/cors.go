@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// CORS adds permissive CORS headers for /api routes and handles OPTIONS preflight.
+// CORS adds permissive CORS headers for /api and /images routes and handles OPTIONS preflight.
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/images") {
 			header := w.Header()
 			header.Set("Access-Control-Allow-Origin", "*")
 			header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
