@@ -107,9 +107,9 @@ func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, 
 		}
 
 		exportEvent := toExportEvent(campfireEvent, loc)
-		exportEvent.CoverPhotoURL = models.ImageURL(exportEvent.CoverPhotoURL, 0)
-		exportEvent.Club.AvatarURL = models.ImageURL(exportEvent.Club.AvatarURL, 0)
-		exportEvent.Club.Creator.AvatarURL = models.ImageURL(exportEvent.Club.Creator.AvatarURL, 0)
+		exportEvent.CoverPhotoURL = h.absoluteImageURL(exportEvent.CoverPhotoURL)
+		exportEvent.Club.AvatarURL = h.absoluteImageURL(exportEvent.Club.AvatarURL)
+		exportEvent.Club.Creator.AvatarURL = h.absoluteImageURL(exportEvent.Club.Creator.AvatarURL)
 
 		upcomingEvents = append(upcomingEvents, UpcomingClubEvent{
 			ID:                           exportEvent.ID,
@@ -138,4 +138,12 @@ func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, 
 	}
 
 	slog.InfoContext(ctx, "Upcoming club events export completed successfully", slog.Int("events", len(upcomingEvents)))
+}
+
+func (h *handler) absoluteImageURL(imageURL string) string {
+	proxied := models.ImageURL(imageURL, 0)
+	if proxied == "" {
+		return ""
+	}
+	return h.Cfg.Server.PublicTrackerURL + proxied
 }
