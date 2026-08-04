@@ -87,45 +87,53 @@ func badgeTypes(badges []campfire.Badge) []string {
 	return badgeList
 }
 
+func toExportEvent(event campfire.Event, loc *time.Location) ExportEvent {
+	if loc == nil {
+		loc = time.UTC
+	}
+
+	return ExportEvent{
+		ID:            event.ID,
+		Name:          event.Name,
+		Address:       event.Address,
+		CoverPhotoURL: event.CoverPhotoURL,
+		Details:       event.Details,
+		URL:           eventURL(event.ID),
+		Time:          event.EventTime.In(loc),
+		EndTime:       event.EventEndTime.In(loc),
+		Club: ExportClub{
+			ID:                           event.ClubID,
+			Name:                         event.Club.Name,
+			AvatarURL:                    event.Club.AvatarURL,
+			Badges:                       event.Club.BadgeGrants,
+			CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
+			Creator: ExportMember{
+				ID:          event.Club.Creator.ID,
+				Username:    event.Club.Creator.Username,
+				DisplayName: event.Club.Creator.DisplayName,
+				AvatarURL:   event.Club.Creator.AvatarURL,
+				Badges:      badgeTypes(event.Club.Creator.Badges),
+			},
+		},
+		Creator: ExportMember{
+			ID:          event.Creator.ID,
+			Username:    event.Creator.Username,
+			DisplayName: event.Creator.DisplayName,
+		},
+		DiscordInterested:            event.DiscordInterested,
+		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
+		Badges:                       event.BadgeGrants,
+		CampfireLiveEvent: ExportCampfireLiveEvent{
+			ID:   event.CampfireLiveEventID,
+			Name: event.CampfireLiveEvent.EventName,
+		},
+	}
+}
+
 func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfire.Event) {
 	var exportEvents []ExportEvent
 	for _, event := range events {
-		exportEvent := ExportEvent{
-			ID:            event.ID,
-			Name:          event.Name,
-			Address:       event.Address,
-			CoverPhotoURL: event.CoverPhotoURL,
-			Details:       event.Details,
-			URL:           eventURL(event.ID),
-			Time:          event.EventTime,
-			EndTime:       event.EventEndTime,
-			Club: ExportClub{
-				ID:                           event.ClubID,
-				Name:                         event.Club.Name,
-				AvatarURL:                    event.Club.AvatarURL,
-				Badges:                       event.Club.BadgeGrants,
-				CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
-				Creator: ExportMember{
-					ID:          event.Club.Creator.ID,
-					Username:    event.Club.Creator.Username,
-					DisplayName: event.Club.Creator.DisplayName,
-					AvatarURL:   event.Club.Creator.AvatarURL,
-					Badges:      badgeTypes(event.Club.Creator.Badges),
-				},
-			},
-			Creator: ExportMember{
-				ID:          event.Creator.ID,
-				Username:    event.Creator.Username,
-				DisplayName: event.Creator.DisplayName,
-			},
-			DiscordInterested:            event.DiscordInterested,
-			CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
-			Badges:                       event.BadgeGrants,
-			CampfireLiveEvent: ExportCampfireLiveEvent{
-				ID:   event.CampfireLiveEventID,
-				Name: event.CampfireLiveEvent.EventName,
-			},
-		}
+		exportEvent := toExportEvent(event, nil)
 
 		for _, rsvpStatus := range event.RSVPStatuses {
 			member, _ := campfire.FindMember(rsvpStatus.UserID, event)

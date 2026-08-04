@@ -103,6 +103,33 @@ func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time,
 	return events, nil
 }
 
+func (d *Database) GetUpcomingClubEvents(ctx context.Context, clubID string) ([]EventWithCheckIns, error) {
+	query := `
+		SELECT e.*,
+			COALESCE(r.accepted, 0) AS accepted,
+			COALESCE(r.check_ins, 0) AS check_ins
+		FROM events e
+		LEFT JOIN LATERAL (
+			SELECT
+				COUNT(*) AS accepted,
+				COUNT(*) FILTER (WHERE event_rsvp_status = 'CHECKED_IN') AS check_ins
+			FROM event_rsvps
+			WHERE event_rsvp_event_id = e.event_id
+			AND event_rsvp_status IN ('ACCEPTED', 'CHECKED_IN')
+		) r ON true
+		WHERE e.event_club_id = $1
+		AND e.event_end_time >= now()
+		ORDER BY e.event_time ASC, e.event_name ASC
+	`
+
+	var events []EventWithCheckIns
+	if err := d.db.SelectContext(ctx, &events, query, clubID); err != nil {
+		return nil, fmt.Errorf("failed to get upcoming club events: %w", err)
+	}
+
+	return events, nil
+}
+
 func (d *Database) GetAllEvents(ctx context.Context) ([]Event, error) {
 	query := `
 		SELECT * FROM events

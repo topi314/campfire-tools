@@ -85,11 +85,70 @@
             <li><strong><code>club_id</code></strong>: The ID of the club to return events for</li>
         </ul>
 
-        <p>Example:</p>
+        <p>Query Parameters:</p>
+        <ul>
+            <li><strong><code>upcoming</code></strong>: When <code>true</code>, return only upcoming and currently running events (end time in the future or now). Defaults to <code>false</code>.</li>
+            <li><strong><code>timezone</code></strong>: Optional IANA timezone name used to convert event times when <code>upcoming=true</code>. Defaults to <code>UTC</code>. Invalid values return <code>400</code>.</li>
+        </ul>
+
+        <p>Example (all club events):</p>
         <pre><code>{{ .BaseURL }}/api/clubs/b632fc8e-0b41-49de-ade2-21b0cd81db69/events</code></pre>
 
-        <p>Response:</p>
+        <p>Response (default):</p>
         <p>Returns a JSON array with the same structure as <a href="#events">Events</a>, but filtered to the specified club.</p>
+
+        <p>Example (upcoming events):</p>
+        <pre><code>{{ .BaseURL }}/api/clubs/b632fc8e-0b41-49de-ade2-21b0cd81db69/events?upcoming=true&amp;timezone=Europe/Berlin</code></pre>
+
+        <p>Response (<code>upcoming=true</code>):</p>
+        <p>
+            Returns upcoming and currently running events from the local database.
+            Same structure as <a href="#events">Events</a> <strong>without</strong> the <code>members</code> array,
+            plus <code>accepted</code> and <code>checked_in</code> counts. Times are returned in the requested timezone.
+            An empty list returns <code>[]</code>.
+        </p>
+        <pre><code>[
+  {
+    "id": "88213c3f-d5fe-4fc9-acbe-e43671e36edc",
+    "name": "Raidstunde: Terrakion",
+    "address": "Some Address",
+    "cover_photo_url": "https://...",
+    "details": "Event details",
+    "url": "https://campfire.nianticlabs.com/discover/meetup/88213c3f-d5fe-4fc9-acbe-e43671e36edc",
+    "time": "2025-07-16T18:00:00+02:00",
+    "end_time": "2025-07-16T19:00:00+02:00",
+    "club": {
+      "id": "b632fc8e-0b41-49de-ade2-21b0cd81db69",
+      "name": "Example Club",
+      "avatar_url": "https://...",
+      "badges": [],
+      "created_by_community_ambassador": true,
+      "creator": {
+        "id": "E:...",
+        "username": "topi314",
+        "display_name": "topi",
+        "avatar_url": "https://...",
+        "badges": []
+      }
+    },
+    "creator": {
+      "id": "E:...",
+      "username": "topi314",
+      "display_name": "topi",
+      "avatar_url": "",
+      "badges": null
+    },
+    "discord_interested": 0,
+    "created_by_community_ambassador": true,
+    "badges": [],
+    "campfire_live_event": {
+      "id": "fbb2a356-3b5c-4722-b021-ffdb3591b4a1",
+      "name": "Terrakion Raid Hour"
+    },
+    "accepted": 12,
+    "checked_in": 5
+  }
+]</code></pre>
     </div>
 
     <div class="section">
