@@ -112,7 +112,7 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("/", h.NotFound)
 
-	return h.auth(mux)
+	return middlewares.CORS(h.auth(mux))
 }
 
 func (h *handler) NotFound(w http.ResponseWriter, r *http.Request) {
