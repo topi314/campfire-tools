@@ -97,6 +97,38 @@ type EventNumbers struct {
 	Accepted              int    `db:"accepted"`
 }
 
+type ClubStatsTotals struct {
+	Events             int       `db:"events"`
+	UniqueParticipants int       `db:"unique_participants"`
+	TotalRSVPs         int       `db:"total_rsvps"`
+	TotalCheckIns      int       `db:"total_check_ins"`
+	TotalAccepted      int       `db:"total_accepted"`
+	TotalDeclined      int       `db:"total_declined"`
+	FirstEventDate     time.Time `db:"first_event_date"`
+	LastEventDate      time.Time `db:"last_event_date"`
+}
+
+type ClubStatsEventRow struct {
+	Event
+	Accepted int `db:"accepted"`
+	CheckIns int `db:"check_ins"`
+	Declined int `db:"declined"`
+	RSVPs    int `db:"rsvps"`
+}
+
+type ClubStatsMonthRow struct {
+	Month     string `db:"month"`
+	Events    int    `db:"events"`
+	CheckIns  int    `db:"check_ins"`
+	RSVPs     int    `db:"rsvps"`
+	NewPeople int    `db:"new_participants"`
+}
+
+type ClubMemberCheckInCount struct {
+	MemberID string `db:"member_id"`
+	CheckIns int    `db:"check_ins"`
+}
+
 type EventRSVP struct {
 	EventID    string    `db:"event_rsvp_event_id"`
 	MemberID   string    `db:"event_rsvp_member_id"`
