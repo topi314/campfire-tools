@@ -109,19 +109,6 @@ type APIClubStatsLoyaltyElite struct {
 	AtLeast150 int `json:"at_least_150"`
 }
 
-var apiEventTypePatterns = []struct {
-	Type     string
-	Patterns []string
-}{
-	{Type: "go_tour", Patterns: []string{"go tour", "go fest"}},
-	{Type: "wild_area", Patterns: []string{"gowa", "wild area"}},
-	{Type: "max_dynamax", Patterns: []string{"max battle", "gigantamax", "gmax", "max monday", "max weekend"}},
-	{Type: "community_day", Patterns: []string{"community day", "community classic"}},
-	{Type: "spotlight", Patterns: []string{"spotlight hour"}},
-	{Type: "research", Patterns: []string{"research day"}},
-	{Type: "raids", Patterns: []string{"raid day", "raid hour", "mega raid"}},
-}
-
 type loyaltyTierDef struct {
 	Key       string
 	Range     string
@@ -534,18 +521,11 @@ func toAPIClubStatsEvent(event database.ClubStatsEventRow) APIClubStatsEvent {
 }
 
 func apiEventTypeFromName(liveEventName string) string {
-	name := strings.ToLower(strings.TrimSpace(liveEventName))
-	if name == "" {
+	category := eventCategoryFromName(liveEventName)
+	switch category {
+	case EventCategoryOther, EventCategoryNoEvent:
 		return "other"
+	default:
+		return strings.ReplaceAll(strings.ToLower(category), " ", "_")
 	}
-
-	for _, entry := range apiEventTypePatterns {
-		for _, pattern := range entry.Patterns {
-			if strings.Contains(name, pattern) {
-				return entry.Type
-			}
-		}
-	}
-
-	return "other"
 }
