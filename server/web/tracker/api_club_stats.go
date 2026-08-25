@@ -24,8 +24,8 @@ const (
 )
 
 type APIClubStatsResponse struct {
-	GeneratedAt time.Time       `json:"generated_at"`
-	Stats       APIClubStats    `json:"stats"`
+	GeneratedAt time.Time    `json:"generated_at"`
+	Stats       APIClubStats `json:"stats"`
 }
 
 type APIClubStats struct {
@@ -44,27 +44,27 @@ type APIClubStatsClub struct {
 }
 
 type APIClubStatsTotals struct {
-	Events               int                `json:"events"`
-	UniqueParticipants   int                `json:"unique_participants"`
-	TotalRSVPs           int                `json:"total_rsvps"`
-	TotalCheckIns        int                `json:"total_check_ins"`
-	TotalAccepted        int                `json:"total_accepted"`
-	TotalDeclined        int                `json:"total_declined"`
-	AvgCheckInsPerEvent  int                `json:"avg_check_ins_per_event"`
-	CheckInRate          float64            `json:"check_in_rate"`
-	FirstEventDate       *time.Time         `json:"first_event_date,omitempty"`
-	LastEventDate        *time.Time         `json:"last_event_date,omitempty"`
-	BiggestEvent         *APIClubStatsEvent `json:"biggest_event,omitempty"`
-	FirstEvent           *APIClubStatsEvent `json:"first_event,omitempty"`
+	Events              int                `json:"events"`
+	UniqueParticipants  int                `json:"unique_participants"`
+	TotalRSVPs          int                `json:"total_rsvps"`
+	TotalCheckIns       int                `json:"total_check_ins"`
+	TotalAccepted       int                `json:"total_accepted"`
+	TotalDeclined       int                `json:"total_declined"`
+	AvgCheckInsPerEvent int                `json:"avg_check_ins_per_event"`
+	CheckInRate         float64            `json:"check_in_rate"`
+	FirstEventDate      *time.Time         `json:"first_event_date,omitempty"`
+	LastEventDate       *time.Time         `json:"last_event_date,omitempty"`
+	BiggestEvent        *APIClubStatsEvent `json:"biggest_event,omitempty"`
+	FirstEvent          *APIClubStatsEvent `json:"first_event,omitempty"`
 }
 
 type APIClubStatsMonth struct {
-	Month                   string `json:"month"`
-	Events                  int    `json:"events"`
-	CheckIns                int    `json:"check_ins"`
-	RSVPs                   int    `json:"rsvps"`
-	NewParticipants         int    `json:"new_participants"`
-	CumulativeParticipants  int    `json:"cumulative_participants"`
+	Month                  string `json:"month"`
+	Events                 int    `json:"events"`
+	CheckIns               int    `json:"check_ins"`
+	RSVPs                  int    `json:"rsvps"`
+	NewParticipants        int    `json:"new_participants"`
+	CumulativeParticipants int    `json:"cumulative_participants"`
 }
 
 type APIClubStatsEvent struct {
@@ -87,12 +87,12 @@ type APIClubStatsType struct {
 }
 
 type APIClubStatsLoyalty struct {
-	EverCheckedIn   int                    `json:"ever_checked_in"`
-	ActiveThreshold int                    `json:"active_threshold"`
-	ActiveMembers   int                    `json:"active_members"`
-	MedianActive    int                    `json:"median_active"`
-	AvgActive       int                    `json:"avg_active"`
-	Tiers           []APIClubStatsTier     `json:"tiers"`
+	EverCheckedIn   int                      `json:"ever_checked_in"`
+	ActiveThreshold int                      `json:"active_threshold"`
+	ActiveMembers   int                      `json:"active_members"`
+	MedianActive    int                      `json:"median_active"`
+	AvgActive       int                      `json:"avg_active"`
+	Tiers           []APIClubStatsTier       `json:"tiers"`
 	Elite           APIClubStatsLoyaltyElite `json:"elite"`
 }
 
@@ -110,12 +110,12 @@ type APIClubStatsLoyaltyElite struct {
 }
 
 type loyaltyTierDef struct {
-	Key       string
-	Range     string
-	Casual    bool
-	Min       int
-	Max       int
-	Champion  bool
+	Key      string
+	Range    string
+	Casual   bool
+	Min      int
+	Max      int
+	Champion bool
 }
 
 func formatCheckInRange(min, max int) string {
@@ -162,23 +162,24 @@ func buildLoyaltyTierDefs(topCheckIns int) []loyaltyTierDef {
 		})
 	}
 
-	if topCheckIns < 5 {
+	// Reserve topCheckIns for champion; split 5..upperMax across regular, core, and legend.
+	upperMax := topCheckIns - 1
+	if upperMax < 5 {
 		return append(defs, champion)
 	}
 
-	// Split 5..topCheckIns across regular, core, and legend.
 	upperKeys := loyaltyTierKeys[2:]
 	maxUpper := maxLoyaltyTiers - len(defs) - 1
 	numUpper := min(len(upperKeys), maxUpper)
 
 	start := 5
-	for i := 0; i < numUpper && start <= topCheckIns; i++ {
-		remaining := topCheckIns - start + 1
+	for i := 0; i < numUpper && start <= upperMax; i++ {
+		remaining := upperMax - start + 1
 		bandsLeft := numUpper - i
 		width := int(math.Ceil(float64(remaining) / float64(bandsLeft)))
 		end := start + width - 1
-		if i == numUpper-1 || end > topCheckIns {
-			end = topCheckIns
+		if i == numUpper-1 || end > upperMax {
+			end = upperMax
 		}
 
 		key := upperKeys[i]
