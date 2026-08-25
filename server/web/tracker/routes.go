@@ -10,11 +10,13 @@ import (
 
 type handler struct {
 	*server.Server
+	clubStatsCache *clubStatsCache
 }
 
 func Routes(srv *server.Server) http.Handler {
 	h := &handler{
-		Server: srv,
+		Server:         srv,
+		clubStatsCache: newClubStatsCache(),
 	}
 
 	fs := srv.Reloader.CacheMiddleware(http.FileServer(h.StaticFS))
@@ -102,6 +104,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /api/events", h.APIExportEvents)
 	mux.HandleFunc("POST /api/events", h.APIImportEvents)
 	mux.HandleFunc("GET  /api/clubs/{club_id}/events", h.APIClubEvents)
+	mux.Handle("GET  /api/clubs/{club_id}/stats", middlewares.CacheWithMaxAge(86400)(http.HandlerFunc(h.APIClubStats)))
 
 	mux.HandleFunc("GET /images/{image_id}", h.Image)
 

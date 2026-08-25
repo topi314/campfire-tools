@@ -15,6 +15,7 @@
         <ul>
             <li><a href="#events">Events Export</a> - Return events with check-ins from Campfire</li>
             <li><a href="#club-events">Club Events</a> - Return a club's imported events with check-ins from Campfire</li>
+            <li><a href="#club-stats">Club Stats</a> - Return aggregated all-time statistics for a club</li>
             <li><a href="#events-import">Events Import</a> - Import events from Campfire</li>
         </ul>
     </div>
@@ -149,6 +150,68 @@
     "checked_in": 5
   }
 ]</code></pre>
+    </div>
+
+    <div class="section">
+        <h2 id="club-stats">Club Stats</h2>
+        <p>
+            <strong><code>GET</code></strong> <code>/api/clubs/{club_id}/stats</code>
+        </p>
+
+        <p>Path Parameters:</p>
+        <ul>
+            <li><strong><code>club_id</code></strong>: The ID of the club to return statistics for</li>
+        </ul>
+
+        <p>Returns all-time aggregated statistics for the club, including totals, monthly trends, top events, event type breakdown, and member loyalty tiers.</p>
+
+        <p>Responses are cached for 24 hours (both server-side and via <code>Cache-Control: max-age=86400</code>).</p>
+
+        <p>Example:</p>
+        <pre><code>{{ .BaseURL }}/api/clubs/b632fc8e-0b41-49de-ade2-21b0cd81db69/stats</code></pre>
+
+        <p>Response:</p>
+        <pre><code>{
+  "generated_at": "2026-08-23T21:28:09Z",
+  "stats": {
+    "generated_from": "389 events",
+    "data_as_of": "2026-08-23",
+    "club": { "name": "Example Club" },
+    "totals": {
+      "events": 389,
+      "unique_participants": 2090,
+      "total_rsvps": 14569,
+      "total_check_ins": 10599,
+      "total_accepted": 3188,
+      "total_declined": 782,
+      "avg_check_ins_per_event": 27,
+      "check_in_rate": 0.728,
+      "first_event_date": "2024-03-17T13:00:00Z",
+      "last_event_date": "2026-08-26T16:00:00Z",
+      "biggest_event": { "id": "...", "name": "...", "date": "...", "address": "...", "rsvps": 311, "check_ins": 248, "accepted": 48, "declined": 15, "type": "go_tour" },
+      "first_event": { "id": "...", "name": "...", "date": "...", "address": "...", "rsvps": 39, "check_ins": 6, "accepted": 23, "declined": 10, "type": "raid_day" }
+    },
+    "monthly": [
+      { "month": "2024-03", "events": 4, "check_ins": 16, "rsvps": 87, "new_participants": 58, "cumulative_participants": 58 }
+    ],
+    "top_events": [ ... ],
+    "event_types": [
+      { "type": "raid_day", "count": 189, "check_ins": 5014, "avg_check_ins": 27 }
+    ],
+    "loyalty": {
+      "ever_checked_in": 772,
+      "active_threshold": 5,
+      "active_members": 318,
+      "median_active": 13,
+      "avg_active": 31,
+      "tiers": [
+        { "key": "intro", "range": "1", "casual": true, "people": 265 },
+        { "key": "champion", "range": "217", "casual": false, "people": 1 }
+      ],
+      "elite": { "at_least_50": 54, "at_least_100": 23, "at_least_150": 12 }
+    }
+  }
+}</code></pre>
     </div>
 
     <div class="section">
