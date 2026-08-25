@@ -338,7 +338,7 @@ var AllEventCategories = map[string][]string{
 	"Max Battle":        {"Max Battle Weekend", "Max Battle Day", "Max Weekend", "Gigantamax", "GMAX"},
 	"GO Tour":           {"GO Tour"},
 	"GO Fest":           {"GO Fest"},
-	"GO Wild Area":      {"GOWA"},
+	"GO Wild Area":      {"GOWA", "GO Wild Area"},
 	"Friendship Friday": {"Friendship Friday"},
 }
 
