@@ -21,6 +21,7 @@ const (
 	loyaltyActiveThreshold = 5
 	topEventsLimit         = 5
 	maxLoyaltyTiers        = 6
+	coreTierMinFraction    = 0.33 // 33% of top check-ins
 )
 
 type APIClubStatsResponse struct {
@@ -118,6 +119,20 @@ type loyaltyTierDef struct {
 	Champion bool
 }
 
+func tierThreshold(max int, fraction float64) int {
+	if max <= 1 {
+		return 1
+	}
+	min := int(math.Ceil(fraction * float64(max)))
+	if min < 1 {
+		return 1
+	}
+	if min >= max {
+		return max - 1
+	}
+	return min
+}
+
 func formatCheckInRange(min, max int) string {
 	if min == max {
 		return fmt.Sprintf("%d", min)
@@ -193,7 +208,45 @@ func buildLoyaltyTierDefs(topCheckIns int) []loyaltyTierDef {
 		start = end + 1
 	}
 
+	shrinkCoreTierLowerBarrier(defs, topCheckIns)
+
 	return append(defs, champion)
+}
+
+func shrinkCoreTierLowerBarrier(defs []loyaltyTierDef, topCheckIns int) {
+	coreMin := tierThreshold(topCheckIns, coreTierMinFraction)
+	if coreMin < 5 {
+		return
+	}
+
+	var regularIdx, coreIdx, legendIdx = -1, -1, -1
+	for i, def := range defs {
+		switch def.Key {
+		case "regular":
+			regularIdx = i
+		case "core":
+			coreIdx = i
+		case "legend":
+			legendIdx = i
+		}
+	}
+	if coreIdx == -1 || coreMin >= defs[coreIdx].Min {
+		return
+	}
+
+	coreWidth := defs[coreIdx].Max - defs[coreIdx].Min + 1
+	defs[coreIdx].Min = coreMin
+	defs[coreIdx].Max = coreMin + coreWidth - 1
+	defs[coreIdx].Range = formatCheckInRange(defs[coreIdx].Min, defs[coreIdx].Max)
+
+	if regularIdx != -1 {
+		defs[regularIdx].Max = coreMin - 1
+		defs[regularIdx].Range = formatCheckInRange(defs[regularIdx].Min, defs[regularIdx].Max)
+	}
+	if legendIdx != -1 {
+		defs[legendIdx].Min = defs[coreIdx].Max + 1
+		defs[legendIdx].Range = formatCheckInRange(defs[legendIdx].Min, defs[legendIdx].Max)
+	}
 }
 
 func (h *handler) APIClubStats(w http.ResponseWriter, r *http.Request) {
