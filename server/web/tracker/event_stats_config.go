@@ -8,6 +8,27 @@ package tracker
 // days.
 var ConfiguredEvents = []ConfiguredEvent{
 	{
+		Key:  "go-fest-2026-mega-finale",
+		Name: "GO Fest 2026 Mega Finale",
+		Days: []ConfiguredDay{
+			{Label: "Saturday", LiveEventID: "7e406109-29a8-4540-b7b3-547a0385754f"},
+			{Label: "Sunday", LiveEventID: "91eaf9f5-3748-4a5e-b941-2b964a1ff15a"},
+		},
+	},
+	{
+		Key:  "go-fest-2026-mega-ascension",
+		Name: "GO Fest 2026 Mega Finale & Mega Ascension",
+		Days: []ConfiguredDay{
+			{Label: "Monday", LiveEventID: "1de817d2-652c-4b93-ba4b-94f9eed3ee40"},
+			{Label: "Tuesday", LiveEventID: "3a5a27bd-0288-423b-82c4-6409de2fa677"},
+			{Label: "Wednesday", LiveEventID: "ae8f5e7c-10e0-4498-8882-0c0839c1e246"},
+			{Label: "Thursday", LiveEventID: "4da4f261-683b-4428-bc2a-dc64c48352a4"},
+			{Label: "Friday", LiveEventID: "33a12168-8289-4475-b1ff-c1411b606db6"},
+			{Label: "Saturday", LiveEventID: "7e406109-29a8-4540-b7b3-547a0385754f"},
+			{Label: "Sunday", LiveEventID: "91eaf9f5-3748-4a5e-b941-2b964a1ff15a"},
+		},
+	},
+	{
 		Key:  "go-fest-2026",
 		Name: "GO Fest 2026",
 		Days: []ConfiguredDay{
