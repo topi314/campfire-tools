@@ -126,16 +126,20 @@ func (h *handler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !slices.Contains(h.Cfg.DiscordAuth.Whitelist, user.ID.String()) {
-		guilds, err := h.getDiscordUserGuilds(ctx, token.AccessToken)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to get user guilds from Discord", slog.Any("error", err))
-			http.Error(w, "Failed to get user guilds from Discord", http.StatusInternalServerError)
-			return
+		var member bool
+		for _, guildID := range h.Cfg.DiscordAuth.GuildIDs {
+			ok, err := h.isDiscordGuildMember(ctx, token.AccessToken, guildID)
+			if err != nil {
+				slog.ErrorContext(ctx, "failed to check Discord guild membership", slog.String("guild_id", guildID), slog.Any("error", err))
+				http.Error(w, "Failed to check Discord guild membership", http.StatusInternalServerError)
+				return
+			}
+			if ok {
+				member = true
+				break
+			}
 		}
-
-		if i := slices.IndexFunc(guilds, func(g discord.OAuth2Guild) bool {
-			return slices.Contains(h.Cfg.DiscordAuth.GuildIDs, g.ID.String())
-		}); i == -1 {
+		if !member {
 			slog.ErrorContext(ctx, "user is not whitelisted or a member of the required Discord guild", slog.String("guild_ids", strings.Join(h.Cfg.DiscordAuth.GuildIDs, ", ")))
 			http.Error(w, "You are not whitelisted or a member of the required Discord guilds", http.StatusForbidden)
 			return
@@ -202,29 +206,27 @@ func (h *handler) getDiscordUser(ctx context.Context, accessToken string) (*disc
 	return &user, nil
 }
 
-func (h *handler) getDiscordUserGuilds(ctx context.Context, accessToken string) ([]discord.OAuth2Guild, error) {
-	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me/guilds", nil)
+func (h *handler) isDiscordGuildMember(ctx context.Context, accessToken string, guildID string) (bool, error) {
+	rq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/v10/users/@me/guilds/"+guildID+"/member", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return false, fmt.Errorf("failed to create request: %w", err)
 	}
 	rq.Header.Set("Authorization", "Bearer "+accessToken)
 
 	rs, err := h.HttpClient.Do(rq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %w", err)
+		return false, fmt.Errorf("failed to do request: %w", err)
 	}
 	defer rs.Body.Close()
 
-	if rs.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", rs.StatusCode)
+	switch rs.StatusCode {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected status code: %d", rs.StatusCode)
 	}
-
-	var guilds []discord.OAuth2Guild
-	if err = json.NewDecoder(rs.Body).Decode(&guilds); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return guilds, nil
 }
 
 func addOauthCookie(w http.ResponseWriter, state string, expiration time.Time) {

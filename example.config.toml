@@ -28,7 +28,7 @@ max_retries = 3
 [discord_auth]
 client_id = "123456789012345678"
 client_secret = "your_client_secret"
-guild_id = "123456789012345678"
+guild_ids = ["123456789012345678"]
 whitelist = ["123456789012345678"]
 admins = ["123456789012345678"]
 

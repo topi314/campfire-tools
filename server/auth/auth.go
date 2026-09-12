@@ -29,7 +29,7 @@ func New(cfg Config, publicURL string) *Auth {
 			ClientSecret: cfg.ClientSecret,
 			Endpoint:     endpoints.Discord,
 			RedirectURL:  publicURL + "/tracker/login/callback",
-			Scopes:       []string{"identify", "guilds"},
+			Scopes:       []string{"identify", "guilds.members.read"},
 		},
 		states: make(map[string]loginState),
 	}
