@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -422,7 +423,7 @@ func buildTopEvents(events []database.ClubStatsEventRow) []APIClubStatsEvent {
 func buildEventTypes(events []database.ClubStatsEventRow) []APIClubStatsType {
 	typeAgg := make(map[string]*APIClubStatsType)
 	for _, event := range events {
-		eventType := apiEventTypeFromName(event.CampfireLiveEventName)
+		eventType := apiEventTypeFromCategory(eventCategoryForStats(event))
 		agg, ok := typeAgg[eventType]
 		if !ok {
 			agg = &APIClubStatsType{Type: eventType}
@@ -570,16 +571,24 @@ func toAPIClubStatsEvent(event database.ClubStatsEventRow) APIClubStatsEvent {
 		CheckIns: event.CheckIns,
 		Accepted: event.Accepted,
 		Declined: event.Declined,
-		Type:     apiEventTypeFromName(event.CampfireLiveEventName),
+		Type:     apiEventTypeFromCategory(eventCategoryForStats(event)),
 	}
 }
 
-func apiEventTypeFromName(liveEventName string) string {
-	category := eventCategoryFromName(liveEventName)
-	switch category {
-	case EventCategoryOther, EventCategoryNoEvent:
-		return "other"
-	default:
-		return strings.ReplaceAll(strings.ToLower(category), " ", "_")
+func eventCategoryForStats(event database.ClubStatsEventRow) string {
+	if event.Category != "" {
+		return event.Category
 	}
+	return eventCategoryFromName(event.CampfireLiveEventName)
+}
+
+func apiEventTypeFromCategory(category string) string {
+	if category == EventCategoryOther || category == EventCategoryNoEvent || !eventcategory.IsPreset(category) {
+		return "other"
+	}
+	return strings.ReplaceAll(strings.ToLower(category), " ", "_")
+}
+
+func apiEventTypeFromName(liveEventName string) string {
+	return apiEventTypeFromCategory(eventCategoryFromName(liveEventName))
 }

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -93,6 +94,7 @@ func (s *Server) importClubEvents(ctx context.Context, job database.ClubImportJo
 					CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 					CampfireLiveEventID:          event.CampfireLiveEventID,
 					CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
+					Category:                     eventcategory.FromName(event.CampfireLiveEvent.EventName),
 					ClubID:                       event.ClubID,
 					RawJSON:                      event.Raw,
 				},

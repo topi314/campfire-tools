@@ -37,9 +37,9 @@
             <div class="section-header">
                 <h3>
                     {{ if $group.Club.AvatarURL }}
-                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32">
+                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
                     {{ else }}
-                        <img src="/static/default.png" class="icon-32">
+                        <img src="/static/default.png" class="icon-32" alt="">
                     {{ end }}
                     <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
                     {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
@@ -73,9 +73,9 @@
             <div class="section-header">
                 <h3>
                     {{ if $group.Club.AvatarURL }}
-                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32">
+                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
                     {{ else }}
-                        <img src="/static/default.png" class="icon-32">
+                        <img src="/static/default.png" class="icon-32" alt="">
                     {{ end }}
                     <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
                     {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}

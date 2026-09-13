@@ -1,22 +1,41 @@
 {{ template "head" addStr "Tracker - " .Name " - Statistics" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" .URL }}
         <h1>
-            <img src="{{ .AvatarURL }}">
+            <img src="{{ .AvatarURL }}" alt="">
             {{ .Name }} Statistics
+            {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
+
+    {{ template "club_nav" dict "URL" .URL "Active" "stats" }}
 
     <div class="section">
         {{ template "events_filter" . }}
 
         <input form="events-filter" id="field-event-categories-closed" type="hidden" name="event-categories-closed" value="{{ if .EventCategories.Open }}false{{ else }}true{{ end }}">
+        <input form="events-filter" id="field-digital-codes-closed" type="hidden" name="digital-codes-closed" value="{{ if .DigitalCodes.Open }}false{{ else }}true{{ end }}">
+        <input form="events-filter" id="field-league-goals-closed" type="hidden" name="league-goals-closed" value="{{ if .LeagueGoals.Open }}false{{ else }}true{{ end }}">
     </div>
 
     <div class="section">
         <div class="section-header">
             <h2>Event Categories</h2>
+            <div class="inline-form-control">
+                <label for="category-sort">
+                    Sort
+                    <select id="category-sort" name="category-sort" form="events-filter"
+                            onchange="document.getElementById('events-filter').requestSubmit()">
+                        <option value="check-ins" {{ if eq .CategorySort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .CategorySort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="events" {{ if eq .CategorySort "events" }}selected{{ end }}>Events (high → low)</option>
+                        <option value="events-asc" {{ if eq .CategorySort "events-asc" }}selected{{ end }}>Events (low → high)</option>
+                        <option value="name" {{ if eq .CategorySort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .CategorySort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
 
         <details id="event-categories-closed" {{ if .EventCategories.Open }}open{{ end }}>
@@ -33,21 +52,27 @@
                 <span>Rate</span>
                 <span>Total Rate</span>
                 {{ range $index, $category := .EventCategories.Categories }}
-                    <span>{{ add $index 1 }}</span>
-                    <span>{{ $category.Name }}</span>
-                    <span>{{ $category.Events }}</span>
-                    <span>{{ $category.Accepted }}</span>
-                    <span>{{ $category.CheckIns }}</span>
-                    <span>{{ $category.CheckInRate }}%</span>
-                    <span>{{ $category.TotalCheckInRate }}%</span>
+                    {{ if eq $category.Name "Total" }}
+                        <span class="table-totals"></span>
+                        <span class="table-totals">{{ $category.Name }}</span>
+                        <span class="table-totals">{{ $category.Events }}</span>
+                        <span class="table-totals">{{ $category.Accepted }}</span>
+                        <span class="table-totals">{{ $category.CheckIns }}</span>
+                        <span class="table-totals">{{ $category.CheckInRate }}%</span>
+                        <span class="table-totals">{{ $category.TotalCheckInRate }}%</span>
+                    {{ else }}
+                        <span>{{ add $index 1 }}</span>
+                        <span>
+                            <a href="{{ $.URL }}/events?event-category={{ urlquery $category.Name }}{{ if not $.From.IsZero }}&from={{ formatDate $.From }}{{ end }}{{ if not $.To.IsZero }}&to={{ formatDate $.To }}{{ end }}{{ if $.OnlyCAEvents }}&only-ca-events=true{{ end }}{{ if $.SelectedEventCreator }}&event-creator={{ urlquery $.SelectedEventCreator }}{{ end }}" hx-boost="true">{{ formatEventCategory $category.Name }}</a>
+                        </span>
+                        <span>{{ $category.Events }}</span>
+                        <span>{{ $category.Accepted }}</span>
+                        <span>{{ $category.CheckIns }}</span>
+                        <span>{{ $category.CheckInRate }}%</span>
+                        <span>{{ $category.TotalCheckInRate }}%</span>
+                    {{ end }}
                 {{ else }}
-                    <span>No events found.</span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span class="table-empty">No events found.</span>
                 {{ end }}
             </div>
         </details>
@@ -80,11 +105,7 @@
                     <span>{{ $month.Codes }}</span>
                     <span>{{ $month.PredictedCodes }}</span>
                 {{ else }}
-                    <span>No data found.</span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span class="table-empty">No data found.</span>
                 {{ end }}
             </div>
         </details>
@@ -116,6 +137,7 @@
 
             <div class="inline-form-control">
                 <label for="league-goal-quarter">
+                    Quarter
                     <select id="league-goal-quarter">
                         {{ range $quarter := .Quarters }}
                             <option value="{{ $quarter.Value }}" {{ if eq $quarter.Value $.LeagueGoals.Quarter }}selected{{ end }}>
@@ -151,10 +173,10 @@
                     {{ template "league_progress" $league.Progress }}
                     <span>{{ template "checkbox" $league.Projection }}</span>
                 {{ end }}
-                <span></span>
-                <span></span>
-                <span>{{ .LeagueGoals.TotalCheckIns }}</span>
-                <span>{{ .LeagueGoals.ProjectedCheckIns }}</span>
+                <span class="table-totals"></span>
+                <span class="table-totals"></span>
+                <span class="table-totals">{{ .LeagueGoals.TotalCheckIns }}</span>
+                <span class="table-totals">{{ .LeagueGoals.ProjectedCheckIns }}</span>
             </div>
         </details>
     </div>
@@ -169,7 +191,20 @@
     })
 
     document.getElementById("league-goals-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, "league-goals-closed");
+        // Default is collapsed; persist open as league-goals-closed=false.
+        const url = new URL(window.location);
+        if (event.target.open) {
+            url.searchParams.set("league-goals-closed", "false");
+        } else {
+            url.searchParams.delete("league-goals-closed");
+        }
+
+        const field = document.getElementById("field-league-goals-closed");
+        if (field) {
+            field.value = event.target.open ? "false" : "true";
+        }
+
+        window.history.replaceState(null, "", url.toString());
     })
 
     document.getElementById("league-goal-quarter").addEventListener("change", (event) => {

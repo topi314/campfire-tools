@@ -21,7 +21,7 @@
                             {{ if not $winner.Confirmed }}
                                 <form action="{{ $winner.ConfirmURL }}" method="POST">
                                     <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
-                                    <button type="submit" class="delete-button">
+                                    <button type="submit" class="button success">
                                         Confirm
                                     </button>
                                 </form>

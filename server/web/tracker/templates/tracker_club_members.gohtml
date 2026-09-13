@@ -1,12 +1,15 @@
 {{ template "head" addStr "Tracker - " .Name " - Members" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" addStr "/tracker/club/" .Club.ID }}
         <h1>
-            <img src="{{ .AvatarURL }}">
+            <img src="{{ .AvatarURL }}" alt="">
             {{ .Name }}
+            {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
+
+    {{ template "club_nav" dict "URL" .URL "Active" "members" }}
 
     <div class="section">
         {{ template "events_filter" . }}
@@ -15,6 +18,18 @@
     <div class="section">
         <div class="section-header">
             <h2>Members ({{ len .Members }})</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    Sort
+                    <select id="sort" name="sort" form="events-filter"
+                            onchange="document.getElementById('events-filter').requestSubmit()">
+                        <option value="check-ins" {{ if eq .Sort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .Sort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
 
         <div class="table-5">
@@ -32,11 +47,14 @@
                 <span>{{ $member.CheckIns }}</span>
                 <span>{{ $member.CheckInRate }}%</span>
             {{ else }}
-                <span>No members found.</span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
+                <span class="table-empty">No members found.</span>
+            {{ end }}
+            {{ if gt .TotalAccepted 0 }}
+                <span class="table-totals"></span>
+                <span class="table-totals"></span>
+                <span class="table-totals">{{ .TotalAccepted }}</span>
+                <span class="table-totals">{{ .TotalCheckIns }}</span>
+                <span class="table-totals">{{ .TotalCheckInRate }}%</span>
             {{ end }}
         </div>
     </div>

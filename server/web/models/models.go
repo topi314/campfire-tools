@@ -74,6 +74,7 @@ func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 		Finished:                     event.Finished,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEventName,
+		Category:                     event.Category,
 		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 		ImportedAt:                   event.ImportedAt,
 	}
@@ -104,6 +105,7 @@ type Event struct {
 	Finished                     bool
 	CampfireLiveEventID          string
 	CampfireLiveEventName        string
+	Category                     string
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	ImportedAt                   time.Time
@@ -140,12 +142,29 @@ func NewMember(member database.Member, clubID string, iconSize int) Member {
 		return Member{}
 	}
 
-	var campfireMember campfire.Member
-	if err := json.Unmarshal(member.RawJSON, &campfireMember); err != nil {
-		panic(fmt.Errorf("failed to unmarshal member: %w", err))
+	if len(member.RawJSON) > 0 && string(member.RawJSON) != "{}" {
+		var campfireMember campfire.Member
+		if err := json.Unmarshal(member.RawJSON, &campfireMember); err != nil {
+			panic(fmt.Errorf("failed to unmarshal member: %w", err))
+		}
+		if campfireMember.ID != "" {
+			return NewMemberFromCampfire(campfireMember, clubID, iconSize)
+		}
 	}
 
-	return NewMemberFromCampfire(campfireMember, clubID, iconSize)
+	// Stub members (RSVP-only imports) have no RawJSON profile yet.
+	displayName := GetDisplayName(member.DisplayName, member.Username)
+	if displayName == "<unknown>" {
+		displayName = member.ID
+	}
+	return Member{
+		ID:          member.ID,
+		Username:    member.Username,
+		DisplayName: displayName,
+		AvatarURL:   ImageURL(member.AvatarURL, iconSize),
+		URL:         clubMemberURL(clubID, member.ID),
+		ProfileURL:  memberProfileURL(member.ID),
+	}
 }
 
 func memberProfileURL(memberID string) string {
@@ -178,10 +197,15 @@ func NewImportedMember(member database.Member, iconSize int) Member {
 		return Member{}
 	}
 
+	displayName := GetDisplayName(member.DisplayName, member.Username)
+	if displayName == "<unknown>" {
+		displayName = member.ID
+	}
+
 	m := Member{
 		ID:          member.ID,
 		Username:    member.Username,
-		DisplayName: GetDisplayName(member.DisplayName, member.Username),
+		DisplayName: displayName,
 		AvatarURL:   ImageURL(member.AvatarURL, iconSize),
 		URL:         memberProfileURL(member.ID),
 		ProfileURL:  memberProfileURL(member.ID),

@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func (h *handler) TrackerClubRefresh(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx := context.WithoutCancel(r.Context())
 
 	clubID := r.PathValue("club_id")
 
@@ -41,6 +42,12 @@ func (h *handler) TrackerClubRefresh(w http.ResponseWriter, r *http.Request) {
 	}}); err != nil {
 		slog.ErrorContext(ctx, "Failed to insert club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to insert club: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.ImportActiveClubEvents(ctx, clubID); err != nil {
+		slog.ErrorContext(ctx, "Failed to import upcoming club events", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to import upcoming events: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

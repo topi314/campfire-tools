@@ -37,6 +37,7 @@ type Event struct {
 	CreatedByCommunityAmbassador bool            `db:"event_created_by_community_ambassador"`
 	CampfireLiveEventID          string          `db:"event_campfire_live_event_id"`
 	CampfireLiveEventName        string          `db:"event_campfire_live_event_name"`
+	Category                     string          `db:"event_category"`
 	ClubID                       string          `db:"event_club_id"`
 	ImportedAt                   time.Time       `db:"event_imported_at"`
 	RawJSON                      json.RawMessage `db:"event_raw_json"`
@@ -92,6 +93,7 @@ type EventMember struct {
 type EventNumbers struct {
 	CampfireLiveEventID   string `db:"event_campfire_live_event_id"`
 	CampfireLiveEventName string `db:"event_campfire_live_event_name"`
+	Category              string `db:"event_category"`
 	Events                int    `db:"events"`
 	CheckIns              int    `db:"check_ins"`
 	Accepted              int    `db:"accepted"`

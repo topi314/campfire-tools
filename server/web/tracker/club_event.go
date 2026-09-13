@@ -5,16 +5,20 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
 type TrackerClubEventVars struct {
 	models.Event
 
-	Club             models.Club
-	CheckedInMembers []models.Member
-	AcceptedMembers  []models.Member
+	Club               models.Club
+	ClubCategories     []string
+	IsCustomCategory   bool
+	CheckedInMembers   []models.Member
+	AcceptedMembers    []models.Member
 }
 
 func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +46,25 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(ctx, "Failed to fetch club", slog.String("club_id", event.ClubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch club: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	clubCategories, err := h.DB.GetClubEventCategories(ctx, event.ClubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch club event categories", slog.String("club_id", event.ClubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if event.Category != "" {
+		found := false
+		for _, category := range clubCategories {
+			if category == event.Category {
+				found = true
+				break
+			}
+		}
+		if !found {
+			clubCategories = eventcategory.Sort(append(clubCategories, event.Category))
+		}
 	}
 
 	checkedInMembers, err := h.DB.GetCheckedInMembersByEvent(ctx, eventID)
@@ -72,9 +95,44 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
 		Event:            eventModel,
 		Club:             clubModel,
+		ClubCategories:   clubCategories,
+		IsCustomCategory: len(clubCategories) == 0,
 		CheckedInMembers: checkedInTrackerMembers,
 		AcceptedMembers:  acceptedTrackerMembers,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club event template", slog.String("event_id", eventID), slog.Any("err", err))
 	}
+}
+
+func (h *handler) TrackerClubEventCategory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	eventID := r.PathValue("event_id")
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	category := strings.TrimSpace(r.FormValue("event-category"))
+	if category == "" || category == "__custom__" {
+		http.Error(w, "Category is required", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.DB.GetEvent(ctx, eventID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.NotFound(w, r)
+			return
+		}
+		http.Error(w, "Failed to fetch event: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.DB.UpdateEventCategory(ctx, eventID, category); err != nil {
+		slog.ErrorContext(ctx, "Failed to update event category", slog.String("event_id", eventID), slog.Any("err", err))
+		http.Error(w, "Failed to update event category: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/tracker/event/"+eventID, http.StatusSeeOther)
 }

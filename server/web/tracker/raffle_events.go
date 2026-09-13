@@ -258,6 +258,7 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 	}
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
+	eventCategory := query.Get("event-category")
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -266,7 +267,7 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID, from, to, onlyCAEvents, eventCreator)
+	events, err := h.DB.GetEvents(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -296,6 +297,13 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	eventCategories, err := h.DB.GetClubEventCategories(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event categories for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle_add_events.gohtml", RaffleAddEventsVars{
 		RaffleID:         raffleID,
 		ClubID:           clubID,
@@ -304,13 +312,15 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 		RemoveFormAction: formAction + "/remove",
 		Club:             clubModel,
 		EventsFilter: EventsFilter{
-			FilterURL:            r.URL.Path,
-			From:                 from,
-			To:                   to,
-			OnlyCAEvents:         onlyCAEvents,
-			Quarters:             xtime.GetQuarters(),
-			EventCreators:        eventCreators,
-			SelectedEventCreator: eventCreator,
+			FilterURL:             r.URL.Path,
+			From:                  from,
+			To:                    to,
+			OnlyCAEvents:          onlyCAEvents,
+			Quarters:              xtime.GetQuarters(),
+			EventCreators:         eventCreators,
+			SelectedEventCreator:  eventCreator,
+			CategoryOptions:       eventCategories,
+			SelectedEventCategory: eventCategory,
 		},
 		Events:   availableEvents,
 		Existing: renderExisting,

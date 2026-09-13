@@ -17,7 +17,11 @@ type TrackerClubMembersVars struct {
 	models.Club
 	EventsFilter
 
-	Members []models.TopMember
+	Members          []models.TopMember
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
+	Sort             string
 }
 
 func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +36,13 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
+	eventCategory := query.Get("event-category")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "name", "name-desc", "check-ins", "check-ins-asc":
+	default:
+		sortBy = "check-ins"
+	}
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -50,7 +61,14 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, -1)
+	eventCategories, err := h.DB.GetClubEventCategories(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event categories for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	members, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, sortBy, -1)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -58,22 +76,31 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trackerMembers := make([]models.TopMember, len(members))
+	var totalAccepted, totalCheckIns int
 	for i, member := range members {
 		trackerMembers[i] = models.NewTopMember(member, clubID, 32)
+		totalAccepted += trackerMembers[i].Accepted
+		totalCheckIns += trackerMembers[i].CheckIns
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_members.gohtml", TrackerClubMembersVars{
 		Club: models.NewClub(*club),
 		EventsFilter: EventsFilter{
-			FilterURL:            r.URL.Path,
-			From:                 from,
-			To:                   to,
-			OnlyCAEvents:         onlyCAEvents,
-			Quarters:             xtime.GetQuarters(),
-			EventCreators:        eventCreators,
-			SelectedEventCreator: eventCreator,
+			FilterURL:             r.URL.Path,
+			From:                  from,
+			To:                    to,
+			OnlyCAEvents:          onlyCAEvents,
+			Quarters:              xtime.GetQuarters(),
+			EventCreators:         eventCreators,
+			SelectedEventCreator:  eventCreator,
+			CategoryOptions:       eventCategories,
+			SelectedEventCategory: eventCategory,
 		},
-		Members: trackerMembers,
+		Members:          trackerMembers,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
+		Sort:             sortBy,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club members template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

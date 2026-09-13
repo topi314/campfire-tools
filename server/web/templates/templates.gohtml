@@ -33,11 +33,11 @@
 
 {{ define "event_cover" }}
     {{ if .CoverPhotoURL }}
-        <img src="{{ .CoverPhotoURL }}">
+        <img src="{{ .CoverPhotoURL }}" alt="">
     {{ else if .ClubAvatarURL }}
-        <img src="{{ .ClubAvatarURL }}">
+        <img src="{{ .ClubAvatarURL }}" alt="">
     {{ else }}
-        <img src="/static/default.png">
+        <img src="/static/default.png" alt="">
     {{ end }}
 {{ end }}
 
@@ -59,9 +59,9 @@
 
 {{ define "campfire_member_inline" }}
     {{ if .AvatarURL }}
-        <img class="icon-32" src="{{ .AvatarURL }}">
+        <img class="icon-32" src="{{ .AvatarURL }}" alt="">
     {{ else }}
-        <img class="icon-32" src="/static/default_avatar.png">
+        <img class="icon-32" src="/static/default_avatar.png" alt="">
     {{ end }}
     {{ template "campfire_member_name" . }}
 {{ end }}
@@ -69,9 +69,9 @@
 {{ define "campfire_member_list_item" }}
     <li class="list-item">
         {{ if .AvatarURL }}
-            <img src="{{ .AvatarURL }}">
+            <img src="{{ .AvatarURL }}" alt="">
         {{ else }}
-            <img src="/static/default_avatar.png">
+            <img src="/static/default_avatar.png" alt="">
         {{ end }}
         {{ template "campfire_member_name" . }}
     </li>
@@ -79,9 +79,9 @@
 
 {{ define "campfire_member_header" }}
     {{ if .AvatarURL }}
-        <img src="{{ .AvatarURL }}">
+        <img src="{{ .AvatarURL }}" alt="">
     {{ else }}
-        <img src="/static/default_avatar.png">
+        <img src="/static/default_avatar.png" alt="">
     {{ end }}
     {{ template "campfire_member_name_plain" . }}
 {{ end }}
@@ -106,6 +106,7 @@
                         <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
                     </label>
                     <label class="form-control" for="event-creator">
+                        Event Creator
                         <select id="event-creator" name="event-creator">
                             <option value="">All Event Creators</option>
                             {{ range $creator := .EventCreators }}
@@ -115,11 +116,23 @@
                             {{ end }}
                         </select>
                     </label>
+                    <label class="form-control" for="event-category">
+                        Event Category
+                        <select id="event-category" name="event-category">
+                            <option value="">All Event Categories</option>
+                            {{ range $category := .CategoryOptions }}
+                                <option value="{{ $category }}" {{ if eq $.SelectedEventCategory $category }}selected{{ end }}>
+                                    {{ formatEventCategory $category }}
+                                </option>
+                            {{ end }}
+                        </select>
+                    </label>
                 </div>
             </div>
 
             <div class="stacked-form-control">
-                <label for="date-preset">
+                <label class="form-control" for="date-preset">
+                    Quarter
                     <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
                             hx-push-url="false">
                         <option value="">Select Quarter</option>
@@ -161,11 +174,67 @@
 {{ end }}
 
 {{ define "back_button" }}
-    <a href="{{ . }}" class="back" hx-boost="true">
+    <a href="{{ . }}" class="back" hx-boost="true" aria-label="Back">
         <img src="/static/back.svg" alt="Back">
     </a>
 {{ end }}
 
+{{ define "club_nav" }}
+    <div class="buttons" hx-boost="true">
+        {{ if eq .Active "stats" }}
+            <span class="button button-current">Statistics</span>
+        {{ else }}
+            <a href="{{ .URL }}/stats" class="button">Statistics</a>
+        {{ end }}
+        {{ if eq .Active "events" }}
+            <span class="button button-current">Events</span>
+        {{ else }}
+            <a href="{{ .URL }}/events" class="button">Events</a>
+        {{ end }}
+        {{ if eq .Active "members" }}
+            <span class="button button-current">Members</span>
+        {{ else }}
+            <a href="{{ .URL }}/members" class="button">Members</a>
+        {{ end }}
+        {{ if eq .Active "raffle" }}
+            <span class="button button-current">Raffle</span>
+        {{ else }}
+            <a href="{{ .URL }}/raffle" class="button">Raffle</a>
+        {{ end }}
+        {{ if eq .Active "export" }}
+            <span class="button button-current">Export</span>
+        {{ else }}
+            <a href="{{ .URL }}/export" class="button">Export</a>
+        {{ end }}
+        <a href="{{ .URL }}/refresh" class="button">Refresh</a>
+    </div>
+{{ end }}
+
+{{ define "tracker_nav" }}
+    <div class="buttons" hx-boost="true">
+        {{ if eq . "clubs" }}
+            <span class="button button-current">Clubs</span>
+        {{ else }}
+            <a href="/tracker/clubs" class="button">Clubs</a>
+        {{ end }}
+        {{ if eq . "event-stats" }}
+            <span class="button button-current">Event Stats</span>
+        {{ else }}
+            <a href="/tracker/event-stats" class="button">Event Stats</a>
+        {{ end }}
+        {{ if eq . "members" }}
+            <span class="button button-current">Members</span>
+        {{ else }}
+            <a href="/tracker/members" class="button">Members</a>
+        {{ end }}
+        {{ if eq . "rewards" }}
+            <span class="button button-current">Rewards</span>
+        {{ else }}
+            <a href="/tracker/rewards" class="button">Rewards</a>
+        {{ end }}
+    </div>
+{{ end }}
+
 {{ define "discord_user" }}
-    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-18"> {{ .EffectiveName }}</span>
+    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-18" alt=""> {{ .EffectiveName }}</span>
 {{ end }}

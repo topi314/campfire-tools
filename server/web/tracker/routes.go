@@ -100,6 +100,8 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /tracker/event/import", h.TrackerEventDoImport)
 
 	mux.HandleFunc("GET /tracker/event/{event_id}", h.TrackerClubEvent)
+	mux.HandleFunc("POST /tracker/event/{event_id}/category", h.TrackerClubEventCategory)
+	mux.HandleFunc("POST /tracker/event/{event_id}/share-link", h.TrackerClubEventShareLink)
 	mux.HandleFunc("GET /tracker/event/{event_id}/refresh", h.TrackerClubEventRefresh)
 
 	mux.HandleFunc("GET  /api/docs", h.APIDocs)
