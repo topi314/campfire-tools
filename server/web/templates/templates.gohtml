@@ -115,6 +115,16 @@
                             {{ end }}
                         </select>
                     </label>
+                    <label class="form-control" for="event-category">
+                        <select id="event-category" name="event-category">
+                            <option value="">All Event Categories</option>
+                            {{ range $category := .CategoryOptions }}
+                                <option value="{{ $category }}" {{ if eq $.SelectedEventCategory $category }}selected{{ end }}>
+                                    {{ $category }}
+                                </option>
+                            {{ end }}
+                        </select>
+                    </label>
                 </div>
             </div>
 

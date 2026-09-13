@@ -34,7 +34,13 @@
                 <span>Total Rate</span>
                 {{ range $index, $category := .EventCategories.Categories }}
                     <span>{{ add $index 1 }}</span>
-                    <span>{{ $category.Name }}</span>
+                    <span>
+                        {{ if eq $category.Name "Total" }}
+                            {{ $category.Name }}
+                        {{ else }}
+                            <a href="{{ $.URL }}/events?event-category={{ urlquery $category.Name }}{{ if not $.From.IsZero }}&from={{ formatDate $.From }}{{ end }}{{ if not $.To.IsZero }}&to={{ formatDate $.To }}{{ end }}{{ if $.OnlyCAEvents }}&only-ca-events=true{{ end }}{{ if $.SelectedEventCreator }}&event-creator={{ urlquery $.SelectedEventCreator }}{{ end }}" hx-boost="true">{{ $category.Name }}</a>
+                        {{ end }}
+                    </span>
                     <span>{{ $category.Events }}</span>
                     <span>{{ $category.Accepted }}</span>
                     <span>{{ $category.CheckIns }}</span>

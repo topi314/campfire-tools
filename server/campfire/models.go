@@ -29,8 +29,8 @@ func ClubCreatedByCommunityAmbassadorFromRaw(createdByCA bool, rawJSON []byte) b
 }
 
 type Req struct {
-	Query     string         `json:"query"`
-	Variables map[string]any `json:"variables"`
+	Query     string `json:"query"`
+	Variables any    `json:"variables"`
 }
 
 type Resp[T any] struct {

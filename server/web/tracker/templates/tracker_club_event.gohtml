@@ -15,7 +15,15 @@
         {{ if not .Finished }}
             <a href="/tracker/event/{{ .ID }}/refresh" class="button">Refresh</a>
         {{ end }}
+        <button class="button" type="button"
+                hx-post="/tracker/event/{{ .ID }}/share-link"
+                hx-target="#share-link-result"
+                hx-swap="innerHTML"
+                hx-boost="false">
+            Generate Share Link
+        </button>
     </div>
+    <div id="share-link-result"></div>
 
     <div class="section">
         <div class="section-header">
@@ -54,6 +62,40 @@
                 <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span>
             </p>
         {{ end }}
+        <form class="stacked-form-control" method="post" action="/tracker/event/{{ .ID }}/category" hx-boost="false">
+            <label class="form-control" for="event-category">
+                <strong>Category</strong>
+                <select id="event-category" name="event-category" required
+                        onchange="toggleCustomCategory(this)">
+                    {{ range $category := .ClubCategories }}
+                        <option value="{{ $category }}" {{ if eq $.Category $category }}selected{{ end }}>{{ $category }}</option>
+                    {{ end }}
+                    <option value="__custom__" {{ if .IsCustomCategory }}selected{{ end }}>Custom…</option>
+                </select>
+            </label>
+            <div id="custom-category-field" class="form-control" style="{{ if not .IsCustomCategory }}display:none{{ end }}">
+                <label for="custom-category">
+                    Custom category
+                    <input type="text" id="custom-category" name="custom-category"
+                           placeholder="Enter a category name"
+                           {{ if .IsCustomCategory }}required{{ end }}
+                           autocomplete="off">
+                </label>
+            </div>
+            <button type="submit">Save Category</button>
+        </form>
+        <script>
+            function toggleCustomCategory(select) {
+                const custom = select.value === '__custom__';
+                const field = document.getElementById('custom-category-field');
+                const input = document.getElementById('custom-category');
+                field.style.display = custom ? '' : 'none';
+                input.required = custom;
+                if (!custom) {
+                    input.value = '';
+                }
+            }
+        </script>
         <p>
             <strong>Imported At:</strong>
             {{ formatTimeToRelDayTime .ImportedAt }}

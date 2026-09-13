@@ -74,6 +74,7 @@ func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 		Finished:                     event.Finished,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEventName,
+		Category:                     event.Category,
 		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 		ImportedAt:                   event.ImportedAt,
 	}
@@ -104,6 +105,7 @@ type Event struct {
 	Finished                     bool
 	CampfireLiveEventID          string
 	CampfireLiveEventName        string
+	Category                     string
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	ImportedAt                   time.Time

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/campfire"
 	"github.com/topi314/campfire-tools/server/database"
 )
@@ -152,6 +153,7 @@ func (s *Server) ProcessEventImport(ctx context.Context, event campfire.Event, m
 		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
+		Category:                     eventcategory.FromName(event.CampfireLiveEvent.EventName),
 		ClubID:                       event.ClubID,
 		RawJSON:                      event.Raw,
 	}

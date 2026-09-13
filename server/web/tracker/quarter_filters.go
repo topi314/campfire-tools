@@ -15,9 +15,11 @@ type EventsFilter struct {
 	To           time.Time
 	OnlyCAEvents bool
 
-	Quarters             []xtime.Quarter
-	EventCreators        []models.Member
-	SelectedEventCreator string
+	Quarters              []xtime.Quarter
+	EventCreators         []models.Member
+	SelectedEventCreator  string
+	CategoryOptions       []string
+	SelectedEventCategory string
 }
 
 func (h *handler) GetQuarterFilters(w http.ResponseWriter, r *http.Request) {
