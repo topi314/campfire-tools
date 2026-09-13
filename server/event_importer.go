@@ -41,7 +41,7 @@ func (s *Server) doImportNextEvent(ctx context.Context) error {
 
 	slog.InfoContext(ctx, "Importing events for club", slog.String("club_id", club.ID), slog.String("club_name", club.Name))
 
-	importErr := s.importActiveClubEvents(ctx, club.ID)
+	importErr := s.ImportActiveClubEvents(ctx, club.ID)
 
 	if err = s.DB.UpdateClubLastAutoEventImported(ctx, club.ID); err != nil {
 		slog.ErrorContext(ctx, "Failed to update club last auto event import", slog.String("club_id", club.ID), slog.Any("err", err))
@@ -50,7 +50,7 @@ func (s *Server) doImportNextEvent(ctx context.Context) error {
 	return importErr
 }
 
-func (s *Server) importActiveClubEvents(ctx context.Context, clubID string) error {
+func (s *Server) ImportActiveClubEvents(ctx context.Context, clubID string) error {
 	events, _, err := s.Campfire.GetFutureEvents(ctx, clubID, nil)
 	if err != nil {
 		return err

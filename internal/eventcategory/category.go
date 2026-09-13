@@ -1,6 +1,9 @@
 package eventcategory
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 const (
 	Other   = "Other"
@@ -64,4 +67,55 @@ func FromName(eventName string) string {
 		}
 	}
 	return Other
+}
+
+func IsPreset(name string) bool {
+	if name == Other || name == NoEvent {
+		return true
+	}
+	_, ok := All[name]
+	return ok
+}
+
+func Format(name string) string {
+	if name == "" || IsPreset(name) {
+		return name
+	}
+	return name + " (Custom)"
+}
+
+// Sort orders preset categories by Ordered, then Other, then No Event,
+// then custom categories alphabetically.
+func Sort(categories []string) []string {
+	if len(categories) == 0 {
+		return categories
+	}
+
+	index := make(map[string]struct{}, len(categories))
+	for _, category := range categories {
+		index[category] = struct{}{}
+	}
+
+	sorted := make([]string, 0, len(categories))
+	for _, category := range Ordered {
+		if _, ok := index[category]; ok {
+			sorted = append(sorted, category)
+			delete(index, category)
+		}
+	}
+	if _, ok := index[Other]; ok {
+		sorted = append(sorted, Other)
+		delete(index, Other)
+	}
+	if _, ok := index[NoEvent]; ok {
+		sorted = append(sorted, NoEvent)
+		delete(index, NoEvent)
+	}
+
+	customs := make([]string, 0, len(index))
+	for category := range index {
+		customs = append(customs, category)
+	}
+	slices.Sort(customs)
+	return append(sorted, customs...)
 }

@@ -18,6 +18,7 @@ type TrackerClubMembersVars struct {
 	EventsFilter
 
 	Members []models.TopMember
+	Sort    string
 }
 
 func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,12 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
 	eventCategory := query.Get("event-category")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "name", "name-desc", "check-ins", "check-ins-asc":
+	default:
+		sortBy = "check-ins"
+	}
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -58,7 +65,7 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, -1)
+	members, err := h.DB.GetTopMembersByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, sortBy, -1)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -84,6 +91,7 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 			SelectedEventCategory: eventCategory,
 		},
 		Members: trackerMembers,
+		Sort:    sortBy,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club members template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

@@ -120,7 +120,7 @@
                             <option value="">All Event Categories</option>
                             {{ range $category := .CategoryOptions }}
                                 <option value="{{ $category }}" {{ if eq $.SelectedEventCategory $category }}selected{{ end }}>
-                                    {{ $category }}
+                                    {{ formatEventCategory $category }}
                                 </option>
                             {{ end }}
                         </select>

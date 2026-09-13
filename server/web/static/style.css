@@ -773,3 +773,60 @@ hr {
 .stats-table-center {
     text-align: center;
 }
+
+.dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    background-color: var(--background-color);
+    color: inherit;
+    width: min(420px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+    max-height: min(90vh, calc(100dvh - 32px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.dialog h3 {
+    margin: 0 0 10px;
+    text-align: left;
+}
+
+.dialog form {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    gap: 12px;
+}
+
+.dialog .form-control,
+.dialog label,
+.dialog input {
+    width: 100%;
+    max-width: 100%;
+}
+
+.dialog .buttons {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.dialog .share-link-url {
+    word-break: break-all;
+    text-align: left;
+    margin: 0;
+}

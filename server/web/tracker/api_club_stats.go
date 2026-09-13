@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -582,12 +583,10 @@ func eventCategoryForStats(event database.ClubStatsEventRow) string {
 }
 
 func apiEventTypeFromCategory(category string) string {
-	switch category {
-	case EventCategoryOther, EventCategoryNoEvent:
+	if category == EventCategoryOther || category == EventCategoryNoEvent || !eventcategory.IsPreset(category) {
 		return "other"
-	default:
-		return strings.ReplaceAll(strings.ToLower(category), " ", "_")
 	}
+	return strings.ReplaceAll(strings.ToLower(category), " ", "_")
 }
 
 func apiEventTypeFromName(liveEventName string) string {

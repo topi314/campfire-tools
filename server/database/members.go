@@ -179,7 +179,19 @@ func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string
 	return members, nil
 }
 
-func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string, limit int) ([]TopMember, error) {
+func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string, sort string, limit int) ([]TopMember, error) {
+	orderBy := `check_ins DESC, accepted DESC, m.member_display_name, m.member_username, m.member_id`
+	switch sort {
+	case "check-ins-asc":
+		orderBy = `check_ins ASC, accepted ASC, m.member_display_name, m.member_username, m.member_id`
+	case "name":
+		orderBy = `m.member_display_name ASC, m.member_username ASC, m.member_id`
+	case "name-desc":
+		orderBy = `m.member_display_name DESC, m.member_username DESC, m.member_id`
+	case "check-ins":
+		// default
+	}
+
 	query := `
 		SELECT m.*,
 			COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' or er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) AS accepted,
@@ -194,7 +206,8 @@ func (d *Database) GetTopMembersByClub(ctx context.Context, clubID string, from 
 		AND ($5 = '' OR e.event_creator_id = $5)
 		AND ($6 = '' OR e.event_category = $6)
 		GROUP BY m.member_id, m.member_username, m.member_display_name, m.member_avatar_url
-		ORDER BY check_ins DESC, accepted DESC, m.member_display_name, m.member_username, m.member_id
+		HAVING COUNT(CASE WHEN er.event_rsvp_status = 'ACCEPTED' OR er.event_rsvp_status = 'CHECKED_IN' THEN 1 END) > 0
+		ORDER BY ` + orderBy + `
 		LIMIT CASE WHEN $7 < 0 THEN NULL ELSE $7 END
 	`
 

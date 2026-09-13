@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"encoding/json"
 	"html"
 	"log/slog"
 	"net/http"
@@ -20,6 +21,15 @@ func (h *handler) TrackerClubEventShareLink(w http.ResponseWriter, r *http.Reque
 	}
 
 	escaped := html.EscapeString(url)
+	urlJSON, err := json.Marshal(url)
+	if err != nil {
+		urlJSON = []byte(`""`)
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<p class="section"><strong>Share Link:</strong> <a href="` + escaped + `" target="_blank" rel="noopener noreferrer">` + escaped + `</a></p>`))
+	_, _ = w.Write([]byte(
+		`<h3>Share link copied</h3>` +
+			`<p class="share-link-url"><a href="` + escaped + `" target="_blank" rel="noopener noreferrer">` + escaped + `</a></p>` +
+			`<script>navigator.clipboard.writeText(` + string(urlJSON) + `);</script>`,
+	))
 }

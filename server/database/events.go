@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 )
 
 func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
@@ -173,7 +175,23 @@ func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, fr
 	return &event, nil
 }
 
-func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string, limit int) ([]EventWithCheckIns, error) {
+func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string, sort string, limit int) ([]EventWithCheckIns, error) {
+	orderBy := `check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id`
+	switch sort {
+	case "check-ins-asc":
+		orderBy = `check_ins ASC, accepted ASC, e.event_time DESC, e.event_name DESC, e.event_id`
+	case "time":
+		orderBy = `e.event_time DESC, e.event_name DESC, e.event_id`
+	case "time-asc":
+		orderBy = `e.event_time ASC, e.event_name ASC, e.event_id`
+	case "name":
+		orderBy = `e.event_name ASC, e.event_time DESC, e.event_id`
+	case "name-desc":
+		orderBy = `e.event_name DESC, e.event_time DESC, e.event_id`
+	case "check-ins":
+		// default
+	}
+
 	query := `
         SELECT
             e.*, 
@@ -188,7 +206,7 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
         AND ($5 = '' OR e.event_creator_id = $5)
         AND ($6 = '' OR e.event_category = $6)
         GROUP BY e.event_id, e.event_time, e.event_name
-        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id
+        ORDER BY ` + orderBy + `
         LIMIT CASE WHEN $7 < 0 THEN NULL ELSE $7 END
 	`
 
@@ -304,7 +322,6 @@ func (d *Database) GetClubEventCategories(ctx context.Context, clubID string) ([
 		FROM events
 		WHERE event_club_id = $1
 		AND event_category <> ''
-		ORDER BY event_category ASC
 	`
 
 	var categories []string
@@ -312,7 +329,7 @@ func (d *Database) GetClubEventCategories(ctx context.Context, clubID string) ([
 		return nil, fmt.Errorf("failed to get club event categories: %w", err)
 	}
 
-	return categories, nil
+	return eventcategory.Sort(categories), nil
 }
 
 func (d *Database) GetNextUpdateEvent(ctx context.Context) (*Event, error) {

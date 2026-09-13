@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/server/web/models"
 )
 
@@ -62,7 +63,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !found {
-			clubCategories = append([]string{event.Category}, clubCategories...)
+			clubCategories = eventcategory.Sort(append(clubCategories, event.Category))
 		}
 	}
 
@@ -113,9 +114,6 @@ func (h *handler) TrackerClubEventCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	category := strings.TrimSpace(r.FormValue("event-category"))
-	if category == "__custom__" {
-		category = strings.TrimSpace(r.FormValue("custom-category"))
-	}
 	if category == "" || category == "__custom__" {
 		http.Error(w, "Category is required", http.StatusBadRequest)
 		return

@@ -15,6 +15,17 @@
     <div class="section">
         <div class="section-header">
             <h2>Members ({{ len .Members }})</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    <select id="sort" name="sort" form="events-filter"
+                            onchange="document.getElementById('events-filter').requestSubmit()">
+                        <option value="check-ins" {{ if eq .Sort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .Sort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
 
         <div class="table-5">

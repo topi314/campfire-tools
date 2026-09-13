@@ -12,11 +12,25 @@
         {{ template "events_filter" . }}
 
         <input form="events-filter" id="field-event-categories-closed" type="hidden" name="event-categories-closed" value="{{ if .EventCategories.Open }}false{{ else }}true{{ end }}">
+        <input form="events-filter" id="field-league-goals-closed" type="hidden" name="league-goals-closed" value="{{ if .LeagueGoals.Open }}false{{ else }}true{{ end }}">
     </div>
 
     <div class="section">
         <div class="section-header">
             <h2>Event Categories</h2>
+            <div class="inline-form-control">
+                <label for="category-sort">
+                    <select id="category-sort" name="category-sort" form="events-filter"
+                            onchange="document.getElementById('events-filter').requestSubmit()">
+                        <option value="check-ins" {{ if eq .CategorySort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .CategorySort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="events" {{ if eq .CategorySort "events" }}selected{{ end }}>Events (high → low)</option>
+                        <option value="events-asc" {{ if eq .CategorySort "events-asc" }}selected{{ end }}>Events (low → high)</option>
+                        <option value="name" {{ if eq .CategorySort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .CategorySort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
 
         <details id="event-categories-closed" {{ if .EventCategories.Open }}open{{ end }}>
@@ -38,7 +52,7 @@
                         {{ if eq $category.Name "Total" }}
                             {{ $category.Name }}
                         {{ else }}
-                            <a href="{{ $.URL }}/events?event-category={{ urlquery $category.Name }}{{ if not $.From.IsZero }}&from={{ formatDate $.From }}{{ end }}{{ if not $.To.IsZero }}&to={{ formatDate $.To }}{{ end }}{{ if $.OnlyCAEvents }}&only-ca-events=true{{ end }}{{ if $.SelectedEventCreator }}&event-creator={{ urlquery $.SelectedEventCreator }}{{ end }}" hx-boost="true">{{ $category.Name }}</a>
+                            <a href="{{ $.URL }}/events?event-category={{ urlquery $category.Name }}{{ if not $.From.IsZero }}&from={{ formatDate $.From }}{{ end }}{{ if not $.To.IsZero }}&to={{ formatDate $.To }}{{ end }}{{ if $.OnlyCAEvents }}&only-ca-events=true{{ end }}{{ if $.SelectedEventCreator }}&event-creator={{ urlquery $.SelectedEventCreator }}{{ end }}" hx-boost="true">{{ formatEventCategory $category.Name }}</a>
                         {{ end }}
                     </span>
                     <span>{{ $category.Events }}</span>
@@ -175,7 +189,20 @@
     })
 
     document.getElementById("league-goals-closed").addEventListener("toggle", (event) => {
-        toggleParam(event.target, "league-goals-closed");
+        // Default is collapsed; persist open as league-goals-closed=false.
+        const url = new URL(window.location);
+        if (event.target.open) {
+            url.searchParams.set("league-goals-closed", "false");
+        } else {
+            url.searchParams.delete("league-goals-closed");
+        }
+
+        const field = document.getElementById("field-league-goals-closed");
+        if (field) {
+            field.value = event.target.open ? "false" : "true";
+        }
+
+        window.history.replaceState(null, "", url.toString());
     })
 
     document.getElementById("league-goal-quarter").addEventListener("change", (event) => {

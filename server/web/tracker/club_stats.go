@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/topi314/campfire-tools/internal/eventcategory"
@@ -43,6 +44,7 @@ type TrackerClubStatsVars struct {
 	EventCategories models.EventCategories
 	LeagueGoals     LeagueGoals
 	DigitalCodes    DigitalCodes
+	CategorySort    string
 }
 
 type LeagueGoals struct {
@@ -93,9 +95,15 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
 	eventCategory := query.Get("event-category")
+	categorySort := query.Get("category-sort")
+	switch categorySort {
+	case "check-ins", "check-ins-asc", "name", "name-desc", "events", "events-asc":
+	default:
+		categorySort = "check-ins"
+	}
 	categoriesClosed := xquery.ParseBool(query, "event-categories-closed", false)
 	digitalCodesClosed := xquery.ParseBool(query, "digital-codes-closed", false)
-	leagueGoalsClosed := xquery.ParseBool(query, "league-goals-closed", false)
+	leagueGoalsClosed := xquery.ParseBool(query, "league-goals-closed", true)
 	leagueGoalQuarter := query.Get("league-goal-quarter")
 
 	club, err := h.DB.GetClub(ctx, clubID)
@@ -124,7 +132,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventCategories, err := h.calculateEventCategories(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, categoriesClosed)
+	eventCategories, err := h.calculateEventCategories(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, categorySort, categoriesClosed)
 	if err != nil {
 		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -152,18 +160,19 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 			Quarters:              xtime.GetQuarters(),
 			EventCreators:         eventCreators,
 			SelectedEventCreator:  eventCreator,
-			CategoryOptions:        eventCategoriesList,
+			CategoryOptions:       eventCategoriesList,
 			SelectedEventCategory: eventCategory,
 		},
 		EventCategories: *eventCategories,
 		DigitalCodes:    *digitalCodes,
 		LeagueGoals:     *goals,
+		CategorySort:    categorySort,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club stats template", slog.String("club_id", clubID), slog.Any("err", err))
 	}
 }
 
-func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, eventCategory string, categoriesClosed bool) (*models.EventCategories, error) {
+func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, eventCategory string, sort string, categoriesClosed bool) (*models.EventCategories, error) {
 	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch total check-ins and accepted members: %w", err)
@@ -200,10 +209,32 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 
 	categories := slices.Collect(maps.Values(eventCategories))
 	slices.SortFunc(categories, func(a, b models.EventCategory) int {
-		if a.CheckIns == b.CheckIns {
-			return a.Accepted - b.Accepted
+		switch sort {
+		case "check-ins-asc":
+			if a.CheckIns == b.CheckIns {
+				return a.Accepted - b.Accepted
+			}
+			return a.CheckIns - b.CheckIns
+		case "name":
+			return strings.Compare(a.Name, b.Name)
+		case "name-desc":
+			return strings.Compare(b.Name, a.Name)
+		case "events":
+			if a.Events == b.Events {
+				return b.CheckIns - a.CheckIns
+			}
+			return b.Events - a.Events
+		case "events-asc":
+			if a.Events == b.Events {
+				return a.CheckIns - b.CheckIns
+			}
+			return a.Events - b.Events
+		default: // check-ins
+			if a.CheckIns == b.CheckIns {
+				return b.Accepted - a.Accepted
+			}
+			return b.CheckIns - a.CheckIns
 		}
-		return b.CheckIns - a.CheckIns
 	})
 	categories = append(categories, models.EventCategory{
 		Name:             "Total",
