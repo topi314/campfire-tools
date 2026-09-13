@@ -61,6 +61,25 @@ func (d *Database) AppendRaffleEvents(ctx context.Context, raffleID int, eventID
 	return nil
 }
 
+func (d *Database) RemoveRaffleEvents(ctx context.Context, raffleID int, eventIDs []string) error {
+	query := `
+		UPDATE raffles
+		SET raffle_events = (
+			SELECT ARRAY(
+				SELECT e FROM unnest(raffle_events) AS e
+				WHERE e <> ALL($2::varchar[])
+			)
+		)
+		WHERE raffle_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, raffleID, pq.Array(eventIDs)); err != nil {
+		return fmt.Errorf("failed to remove raffle events: %w", err)
+	}
+
+	return nil
+}
+
 func (d *Database) InsertRaffle(ctx context.Context, raffle Raffle) (int, error) {
 	query := `
 		INSERT INTO raffles (raffle_user_id, raffle_events, raffle_winner_count, raffle_only_checked_in, raffle_single_entry)

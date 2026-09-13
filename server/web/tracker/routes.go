@@ -39,6 +39,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /raffle/{raffle_id}", h.GetRaffle)
 	mux.HandleFunc("GET  /raffle/{raffle_id}/events", h.AddRaffleEvents)
 	mux.HandleFunc("POST /raffle/{raffle_id}/events", h.PostAddRaffleEvents)
+	mux.HandleFunc("POST /raffle/{raffle_id}/events/remove", h.PostRemoveRaffleEvents)
 	mux.HandleFunc("POST /raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
 
 	mux.HandleFunc("GET  /export", h.Export)
@@ -92,6 +93,7 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle/{raffle_id}", h.GetRaffle)
 	mux.HandleFunc("GET  /tracker/club/{club_id}/raffle/{raffle_id}/events", h.AddRaffleEvents)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/events", h.PostAddRaffleEvents)
+	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/events/remove", h.PostRemoveRaffleEvents)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
 
 	mux.HandleFunc("GET  /tracker/event/import", h.TrackerEventImport)

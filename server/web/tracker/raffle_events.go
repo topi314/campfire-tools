@@ -22,13 +22,14 @@ import (
 )
 
 type RaffleAddEventsVars struct {
-	RaffleID   int
-	ClubID     string
-	BackURL    string
-	FormAction string
-	Events     []models.Event
-	Existing   []models.Event
-	Error      string
+	RaffleID         int
+	ClubID           string
+	BackURL          string
+	FormAction       string
+	RemoveFormAction string
+	Events           []models.Event
+	Existing         []models.Event
+	Error            string
 	models.Club
 	EventsFilter
 }
@@ -67,10 +68,11 @@ func (h *handler) AddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	backURL = fmt.Sprintf("/raffle/%d", raffleID)
 	formAction = fmt.Sprintf("/raffle/%d/events", raffleID)
 	if err = h.Templates().ExecuteTemplate(w, "raffle_add_events.gohtml", RaffleAddEventsVars{
-		RaffleID:   raffleID,
-		BackURL:    backURL,
-		FormAction: formAction,
-		Existing:   existingEvents,
+		RaffleID:         raffleID,
+		BackURL:          backURL,
+		FormAction:       formAction,
+		RemoveFormAction: formAction + "/remove",
+		Existing:         existingEvents,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render add raffle events template", slog.Any("err", err))
 	}
@@ -157,6 +159,42 @@ func (h *handler) PostAddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	redirectRaffle(w, r, raffleID, clubID, "")
 }
 
+func (h *handler) PostRemoveRaffleEvents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	clubID := r.PathValue("club_id")
+
+	if err := r.ParseForm(); err != nil {
+		slog.ErrorContext(ctx, "Failed to parse form data", slog.Any("err", err))
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	raffleID, raffle, err := h.getAuthorizedRaffle(ctx, r, r.PathValue("raffle_id"))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.NotFound(w, r)
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to get raffle", slog.Any("err", err))
+		http.Error(w, "Failed to get raffle: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	eventIDs := r.Form["ids"]
+	if len(eventIDs) == 0 {
+		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Missing events to remove")
+		return
+	}
+
+	if err = h.DB.RemoveRaffleEvents(ctx, raffleID, eventIDs); err != nil {
+		slog.ErrorContext(ctx, "Failed to remove raffle events", slog.Any("err", err))
+		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Failed to remove events: "+err.Error())
+		return
+	}
+
+	redirectRaffle(w, r, raffleID, clubID, "")
+}
+
 func (h *handler) getAuthorizedRaffle(ctx context.Context, r *http.Request, raffleIDStr string) (int, *database.Raffle, error) {
 	raffleID, err := strconv.Atoi(raffleIDStr)
 	if err != nil {
@@ -198,11 +236,12 @@ func (h *handler) renderAddRaffleEventsError(w http.ResponseWriter, r *http.Requ
 	backURL = fmt.Sprintf("/raffle/%d", raffleID)
 	formAction = fmt.Sprintf("/raffle/%d/events", raffleID)
 	if err = h.Templates().ExecuteTemplate(w, "raffle_add_events.gohtml", RaffleAddEventsVars{
-		RaffleID:   raffleID,
-		BackURL:    backURL,
-		FormAction: formAction,
-		Existing:   existingEvents,
-		Error:      errorMessage,
+		RaffleID:         raffleID,
+		BackURL:          backURL,
+		FormAction:       formAction,
+		RemoveFormAction: formAction + "/remove",
+		Existing:         existingEvents,
+		Error:            errorMessage,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render add raffle events template", slog.Any("err", err))
 	}
@@ -258,11 +297,12 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle_add_events.gohtml", RaffleAddEventsVars{
-		RaffleID:   raffleID,
-		ClubID:     clubID,
-		BackURL:    backURL,
-		FormAction: formAction,
-		Club:       clubModel,
+		RaffleID:         raffleID,
+		ClubID:           clubID,
+		BackURL:          backURL,
+		FormAction:       formAction,
+		RemoveFormAction: formAction + "/remove",
+		Club:             clubModel,
 		EventsFilter: EventsFilter{
 			FilterURL:            r.URL.Path,
 			From:                 from,
