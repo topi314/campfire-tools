@@ -1,5 +1,5 @@
 {{ template "head" addStr "Tracker - " .Name }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" .Club.URL }}
         <h1>
@@ -8,6 +8,8 @@
             {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
+
+    {{ template "club_nav" dict "URL" .Club.URL "Active" "" }}
 
     <div class="buttons" hx-boost="true">
         <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
@@ -36,9 +38,9 @@
         <p>
             <strong>Club:</strong>
             {{ if .Club.AvatarURL }}
-                <img class="icon-32" src="{{ .Club.AvatarURL }}">
+                <img class="icon-32" src="{{ .Club.AvatarURL }}" alt="">
             {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png">
+                <img class="icon-32" src="/static/default_avatar.png" alt="">
             {{ end }}
             <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
                 {{ .Club.Name }}
@@ -194,7 +196,6 @@
 
     {{ if .IsCustomCategory }}
     categorySelect.value = '__custom__';
-    onCategoryChange(categorySelect);
     {{ end }}
 </script>
 {{ template "tracker_footer" }}

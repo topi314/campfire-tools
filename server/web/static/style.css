@@ -32,6 +32,11 @@ input[type="checkbox"]:focus {
     border-color: var(--primary-color);
 }
 
+input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
 label:has(input[type="checkbox"]) {
     padding: 10px;
 }
@@ -39,6 +44,11 @@ label:has(input[type="checkbox"]) {
 input:focus, textarea:focus {
     border-color: var(--primary-color);
     outline: none;
+}
+
+input:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 label {
@@ -64,6 +74,25 @@ button, .button {
 
 button:hover, .button:hover {
     background-color: var(--primary-color-hover);
+}
+
+button:focus-visible, .button:focus-visible, a.back:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.button-current {
+    background-color: var(--primary-color-hover);
+    cursor: default;
+    pointer-events: none;
+}
+
+.delete-button {
+    background-color: var(--color-success);
+}
+
+.delete-button:hover {
+    background-color: var(--color-success-hover);
 }
 
 button.loading, .button.loading {
@@ -133,6 +162,11 @@ select {
 select:focus {
     border-color: var(--primary-color);
     outline: none;
+}
+
+select:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 select option {
@@ -229,6 +263,26 @@ pre:has(code) {
     gap: 10px;
 }
 
+.container-wide {
+    max-width: 960px;
+}
+
+footer {
+    margin-top: auto;
+    padding: 16px 20px 24px;
+    text-align: center;
+    color: var(--text2-color);
+    font-size: 14px;
+}
+
+footer p {
+    margin: 6px 0;
+}
+
+footer a {
+    color: var(--text-color);
+}
+
 .container-header {
     width: 100%;
     display: flex;
@@ -259,7 +313,7 @@ pre:has(code) {
     justify-content: space-between;
 }
 
-.error {
+.error, .error-message {
     color: var(--error-color);
     font-size: 16px;
     text-align: left;
@@ -607,6 +661,66 @@ hr {
 .color-danger {
     background-color: var(--color-danger);
     color: #000000;
+}
+
+.green {
+    color: var(--color-success);
+    font-weight: bold;
+}
+
+.yellow {
+    color: var(--color-info);
+    font-weight: bold;
+}
+
+.orange {
+    color: var(--color-warning);
+    font-weight: bold;
+}
+
+.red {
+    color: var(--color-danger);
+    font-weight: bold;
+}
+
+.table-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 10px;
+    color: var(--text2-color);
+}
+
+.table-totals {
+    font-weight: bold;
+    background-color: var(--background-color);
+}
+
+.table-3 > *:hover,
+.table-4 > *:hover,
+.table-5 > *:hover,
+.table-6 > *:hover,
+.table-7 > *:hover {
+    background-color: rgba(0, 123, 255, 0.08);
+}
+
+.stats-table tbody tr:hover td {
+    background-color: rgba(0, 123, 255, 0.08);
+}
+
+.ca-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+h1 > img.ca-icon,
+h2 > img.ca-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    object-fit: contain;
 }
 
 .no-wrap {

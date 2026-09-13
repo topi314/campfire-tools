@@ -1,5 +1,5 @@
 {{ template "head" "Admin" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/" }}
         <h1>Admin</h1>
@@ -20,6 +20,8 @@
                 <span class="no-wrap">{{ formatTimeToRelDayTime $token.ExpiresAt }}</span>
                 <span class="no-wrap">{{ $token.Email }}</span>
                 <span class="wrap">{{ $token.Token }}</span>
+            {{ else }}
+                <span class="table-empty">No tokens yet.</span>
             {{ end }}
         </div>
         <br/>

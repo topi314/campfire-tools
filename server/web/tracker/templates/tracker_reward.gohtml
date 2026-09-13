@@ -1,9 +1,9 @@
 {{ template "head" "Reward" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
         <h1>Reward: {{ .Name }}</h1>
-        <a href="{{ .EditURL }}" class="button button-primary">Edit</a>
+        <a href="{{ .EditURL }}" class="button">Edit</a>
     </div>
 
     {{ if .Description }}
@@ -18,6 +18,7 @@
             <h2>Codes ({{ .RedeemedCodes }}/{{ .TotalCodes }})</h2>
             <div class="inline-form-control">
                 <label for="filter">
+                    Filter
                     <select id="filter" name="filter" hx-get="{{ .URL }}" hx-target="#codes" hx-swap="outerHTML" hx-select="#codes" hx-push-url="true">
                         <option value="all" {{ if eq .Filter "all" }}selected{{ end }}>All Codes</option>
                         <option value="redeemed" {{ if eq .Filter "redeemed" }}selected{{ end }}>Redeemed Codes</option>
@@ -43,13 +44,7 @@
                 <span>{{ if $code.RedeemedBy }}{{ template "discord_user" $code.RedeemedBy }}{{ end }}</span>
                 <span><a href="{{ $code.URL }}" class="button small">Show</a></span>
             {{ else }}
-                <p>No codes available in this reward.</p>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
+                <span class="table-empty">No codes available in this reward.</span>
             {{ end }}
         </div>
     </div>

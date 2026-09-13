@@ -32,9 +32,9 @@
             <strong>Club:</strong>
             <br/>
             {{ if .Club.AvatarURL }}
-                <img class="icon-32" src="{{ .Club.AvatarURL }}">
+                <img class="icon-32" src="{{ .Club.AvatarURL }}" alt="">
             {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png">
+                <img class="icon-32" src="/static/default_avatar.png" alt="">
             {{ end }}
             <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
                 {{ .Club.Name }}

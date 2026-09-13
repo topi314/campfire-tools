@@ -1,5 +1,5 @@
 {{ template "head" "Campfire Tracker Club Import" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/clubs" }}
         <h1>Tracker Club Import</h1>
@@ -45,7 +45,7 @@
                 <div>{{ formatTimeToRelDayTime $job.CreatedAt }}</div>
                 <div>{{ if not $job.CompletedAt.IsZero }}{{ formatTimeToRelDayTime $job.CompletedAt }}{{ end }}</div>
                 <div>{{ if not $job.LastTriedAt.IsZero }}{{ formatTimeToRelDayTime $job.LastTriedAt }}{{ end }}</div>
-                <div>{{ $job.Status }}</div>
+                <div class="{{ if eq $job.Status "completed" }}color-success{{ else if eq $job.Status "failed" }}color-danger{{ else if eq $job.Status "pending" }}color-warning{{ end }}">{{ $job.Status }}</div>
                 {{ if $.IsAdmin }}
                     <div>{{ $job.Error }}</div>
                 {{ end }}

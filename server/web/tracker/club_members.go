@@ -17,8 +17,11 @@ type TrackerClubMembersVars struct {
 	models.Club
 	EventsFilter
 
-	Members []models.TopMember
-	Sort    string
+	Members          []models.TopMember
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
+	Sort             string
 }
 
 func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
@@ -73,8 +76,11 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trackerMembers := make([]models.TopMember, len(members))
+	var totalAccepted, totalCheckIns int
 	for i, member := range members {
 		trackerMembers[i] = models.NewTopMember(member, clubID, 32)
+		totalAccepted += trackerMembers[i].Accepted
+		totalCheckIns += trackerMembers[i].CheckIns
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_members.gohtml", TrackerClubMembersVars{
@@ -90,8 +96,11 @@ func (h *handler) TrackerClubMembers(w http.ResponseWriter, r *http.Request) {
 			CategoryOptions:       eventCategories,
 			SelectedEventCategory: eventCategory,
 		},
-		Members: trackerMembers,
-		Sort:    sortBy,
+		Members:          trackerMembers,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
+		Sort:             sortBy,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club members template", slog.String("club_id", clubID), slog.Any("err", err))
 	}
