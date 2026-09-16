@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/lib/pq"
 
 	"github.com/topi314/campfire-tools/internal/eventcategory"
 )
@@ -314,6 +315,67 @@ func (d *Database) UpdateEventCategory(ctx context.Context, eventID string, cate
 	}
 
 	return nil
+}
+
+func (d *Database) CountEventsWithoutCategory(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM events
+		WHERE event_category = ''
+	`
+
+	var count int
+	if err := d.db.GetContext(ctx, &count, query); err != nil {
+		return 0, fmt.Errorf("failed to count events without category: %w", err)
+	}
+	return count, nil
+}
+
+type eventCategoryBackfillRow struct {
+	ID                    string `db:"event_id"`
+	CampfireLiveEventName string `db:"event_campfire_live_event_name"`
+}
+
+// BackfillEmptyEventCategories sets event_category from the Campfire live event
+// name for every event that still has an empty category. Returns the number of
+// rows updated.
+func (d *Database) BackfillEmptyEventCategories(ctx context.Context) (int, error) {
+	query := `
+		SELECT event_id, event_campfire_live_event_name
+		FROM events
+		WHERE event_category = ''
+	`
+
+	var rows []eventCategoryBackfillRow
+	if err := d.db.SelectContext(ctx, &rows, query); err != nil {
+		return 0, fmt.Errorf("failed to list events without category: %w", err)
+	}
+	if len(rows) == 0 {
+		return 0, nil
+	}
+
+	byCategory := make(map[string][]string)
+	for _, row := range rows {
+		category := eventcategory.FromName(row.CampfireLiveEventName)
+		byCategory[category] = append(byCategory[category], row.ID)
+	}
+
+	updated := 0
+	for category, ids := range byCategory {
+		res, err := d.db.ExecContext(ctx, `
+			UPDATE events
+			SET event_category = $1
+			WHERE event_id = ANY($2)
+			AND event_category = ''
+		`, category, pq.Array(ids))
+		if err != nil {
+			return updated, fmt.Errorf("failed to backfill event category %q: %w", category, err)
+		}
+		n, _ := res.RowsAffected()
+		updated += int(n)
+	}
+
+	return updated, nil
 }
 
 func (d *Database) GetClubEventCategories(ctx context.Context, clubID string) ([]string, error) {
