@@ -1,9 +1,9 @@
 {{ template "head" "Reward" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
         <h1>Reward: {{ .Name }}</h1>
-        <a href="{{ .EditURL }}" class="button button-primary">Edit</a>
+        <a href="{{ .EditURL }}" class="button">Edit</a>
     </div>
 
     {{ if .Description }}
@@ -43,13 +43,7 @@
                 <span>{{ if $code.RedeemedBy }}{{ template "discord_user" $code.RedeemedBy }}{{ end }}</span>
                 <span><a href="{{ $code.URL }}" class="button small">Show</a></span>
             {{ else }}
-                <p>No codes available in this reward.</p>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
+                <span class="table-empty">No codes available in this reward.</span>
             {{ end }}
         </div>
     </div>

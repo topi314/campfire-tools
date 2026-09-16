@@ -1,80 +1,145 @@
 {{ template "head" addStr "Tracker - " .Name }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/clubs" }}
         <h1>
-            <img src="{{ .AvatarURL }}">
+            <img src="{{ .AvatarURL }}" alt="">
             {{ .Name }}
             {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
 
-    <div class="buttons" hx-boost="true">
-        <a href="{{ .URL }}/stats" class="button">Statistics</a>
-        <a href="{{ .URL }}/events" class="button">Events</a>
-        <a href="{{ .URL }}/members" class="button">Members</a>
-        <a href="{{ .URL }}/raffle" class="button">Raffle</a>
-        <a href="{{ .URL }}/export" class="button">Export</a>
-        <a href="{{ .URL }}/refresh" class="button">Refresh</a>
+    {{ template "club_nav" dict "URL" .URL "Active" "club" }}
+
+    <div class="section">
+        <div class="event-stats">
+            <div class="event-stat">
+                <span class="event-stat-value">{{ len .Events }}</span>
+                <span class="event-stat-label">Events</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckIns }}</span>
+                <span class="event-stat-label">Check-Ins</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalAccepted }}</span>
+                <span class="event-stat-label">Accepted</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckInRate }}%</span>
+                <span class="event-stat-label">Check-In Rate</span>
+            </div>
+        </div>
     </div>
 
     <div class="section">
         <div class="section-header">
-            <h2>Details</h2>
+            <h2>Overview</h2>
+            <a href="{{ .URL }}/refresh" class="button">Refresh</a>
         </div>
-        <p>
-            <strong>Creator:</strong>
-            {{ template "campfire_member_inline" .Creator }}
-        </p>
-        <p>
-            <strong>Imported At:</strong>
-            {{ if .ImportedAt }}
-                {{ formatTimeToRelDayTime .ImportedAt }}
+
+        <div class="event-overview">
+            <div class="event-overview-item">
+                <strong>Creator</strong>
+                <div>{{ template "campfire_member_inline" .Creator }}</div>
+            </div>
+
+            <div class="event-overview-item">
+                <strong>Members</strong>
+                <div>{{ .Members }}</div>
+            </div>
+
+            {{ if .Address }}
+                <div class="event-overview-item">
+                    <strong>Address</strong>
+                    <div class="event-description">
+                        {{ if .MapURL }}
+                            <a href="{{ .MapURL }}" target="_blank" rel="noopener noreferrer">{{ .Address }}</a>
+                        {{ else }}
+                            {{ .Address }}
+                        {{ end }}
+                    </div>
+                </div>
+            {{ else if .MapURL }}
+                <div class="event-overview-item">
+                    <strong>Location</strong>
+                    <div><a href="{{ .MapURL }}" target="_blank" rel="noopener noreferrer">View on Maps</a></div>
+                </div>
             {{ end }}
-        </p>
-        {{ if not .LastAutoEventImportedAt.IsZero }}
-            <p>
-                <strong>Last Auto Event Import At:</strong>
-                {{ formatTimeToRelDayTime .LastAutoEventImportedAt }}
-            </p>
-        {{ end }}
+
+            <div class="event-overview-item">
+                <strong>Imported</strong>
+                <div>
+                    {{ if .ImportedAt }}
+                        {{ formatTimeToRelDayTime .ImportedAt }}
+                    {{ else }}
+                        —
+                    {{ end }}
+                </div>
+            </div>
+
+            {{ if not .LastAutoEventImportedAt.IsZero }}
+                <div class="event-overview-item">
+                    <strong>Last Auto Event Import</strong>
+                    <div>{{ formatTimeToRelDayTime .LastAutoEventImportedAt }}</div>
+                </div>
+            {{ end }}
+        </div>
     </div>
 
     <div class="section">
-        <div class="section-header">
-            <h2>Settings</h2>
-        </div>
+        <details class="club-settings-details">
+            <summary><h2>Settings</h2></summary>
+            <form action="/tracker/club/{{ .ID }}" method="post" class="club-settings">
+                <label class="club-setting" for="pinned">
+                    <span class="club-setting-text">
+                        <span class="club-setting-title">Pinned</span>
+                        <span class="club-setting-desc">Keep this club at the top of your clubs list.</span>
+                    </span>
+                    <input type="checkbox" id="pinned" name="pinned" {{ if .Pinned }}checked{{ end }}>
+                </label>
 
-        <details>
-            <summary>Show Settings</summary>
-            <form action="/tracker/club/{{ .ID }}" method="post" class="form-control">
-                <div class="stacked-form-control">
-                    <label class="form-control">
-                        Pinned
-                        <input type="checkbox" name="pinned" {{ if .Pinned }}checked{{end}}>
-                    </label>
+                <label class="club-setting" for="auto_event_import">
+                    <span class="club-setting-text">
+                        <span class="club-setting-title">Auto Event Import</span>
+                        <span class="club-setting-desc">Automatically import new and updated events for this club.</span>
+                    </span>
+                    <input type="checkbox" id="auto_event_import" name="auto_event_import" {{ if .AutoEventImport }}checked{{ end }}>
+                </label>
 
-                    <label class="form-control">
-                        Auto Event Import
-                        <input type="checkbox" name="auto_event_import" {{ if .AutoEventImport }}checked{{end}}>
-                    </label>
-                    <button type="submit" class="button">Save</button>
+                <div class="club-settings-actions">
+                    <button type="submit" class="button">Save Settings</button>
                 </div>
             </form>
         </details>
     </div>
 
-    <div class="section">
+    <div id="club-events" class="section">
         <div class="section-header">
-            <h2>Events ({{ len .Events }})</h2>
+            <h2>Events</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    <select id="sort" name="sort" hx-get="{{ .URL }}" hx-target="#club-events" hx-swap="outerHTML" hx-select="#club-events" hx-push-url="true">
+                        <option value="time" {{ if eq .Sort "time" }}selected{{ end }}>Time (newest first)</option>
+                        <option value="time-asc" {{ if eq .Sort "time-asc" }}selected{{ end }}>Time (oldest first)</option>
+                        <option value="check-ins" {{ if eq .Sort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .Sort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
                     {{ template "event_cover" $event }}
-                    <a href="{{ $event.URL }}" hx-boost="true">
-                        {{ $event.Name }} ({{ $event.CheckIns }})
-                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                    <div class="list-item-content">
+                        <div class="list-item-title">
+                            <a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                        </div>
+                        <span class="small-text">{{ formatDateNice $event.Time }} · {{ $event.CheckIns }} check-ins · {{ $event.Accepted }} accepted</span>
+                    </div>
                 </li>
             {{ else }}
                 <span>No events tracked yet.</span>

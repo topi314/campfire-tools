@@ -3,8 +3,11 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -12,7 +15,7 @@ import (
 )
 
 func NewClub(club database.ClubWithCreator) Club {
-	return Club{
+	c := Club{
 		ID:                           club.Club.ID,
 		Name:                         club.Club.Name,
 		AvatarURL:                    ImageURL(club.Club.AvatarURL, 48),
@@ -23,6 +26,18 @@ func NewClub(club database.ClubWithCreator) Club {
 		ImportedAt:                   club.Club.ImportedAt,
 		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
 	}
+
+	if len(club.Club.RawJSON) > 0 {
+		var raw campfire.Club
+		if err := json.Unmarshal(club.Club.RawJSON, &raw); err == nil {
+			c.Address = raw.Address
+			c.Location = raw.Location
+			c.Members = raw.Members.TotalCount
+			c.MapURL = eventMapURL(raw.Location, raw.Address)
+		}
+	}
+
+	return c
 }
 
 type Club struct {
@@ -35,6 +50,10 @@ type Club struct {
 	LastAutoEventImportedAt      time.Time
 	ImportedAt                   time.Time
 	URL                          string
+	Address                      string
+	Location                     string
+	MapURL                       string
+	Members                      int
 }
 
 func NewClubWithEvents(club database.ClubWithEvents) ClubWithEvents {
@@ -69,11 +88,16 @@ func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 			ID: event.CreatorID,
 		},
 		Details:                      event.Details,
+		Address:                      event.Address,
+		Location:                     event.Location,
+		MapURL:                       eventMapURL(event.Location, event.Address),
 		Time:                         event.Time,
 		EndTime:                      event.EndTime,
 		Finished:                     event.Finished,
+		DiscordInterested:            event.DiscordInterested,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEventName,
+		Category:                     event.Category,
 		CreatedByCommunityAmbassador: event.CreatedByCommunityAmbassador,
 		ImportedAt:                   event.ImportedAt,
 	}
@@ -99,16 +123,43 @@ type Event struct {
 	CoverPhotoURL                string
 	ClubAvatarURL                string
 	Details                      string
+	Address                      string
+	Location                     string
+	MapURL                       string
 	Time                         time.Time
 	EndTime                      time.Time
 	Finished                     bool
+	DiscordInterested            int
 	CampfireLiveEventID          string
 	CampfireLiveEventName        string
+	Category                     string
 	Creator                      Member
 	CreatedByCommunityAmbassador bool
 	ImportedAt                   time.Time
 	Accepted                     int
 	CheckIns                     int
+}
+
+func (e Event) Status() string {
+	now := time.Now()
+	if e.Finished || (!e.EndTime.IsZero() && !e.EndTime.After(now)) {
+		return "Finished"
+	}
+	if !e.Time.IsZero() && e.Time.After(now) {
+		return "Upcoming"
+	}
+	return "Running"
+}
+
+func (e Event) StatusClass() string {
+	switch e.Status() {
+	case "Upcoming":
+		return "upcoming"
+	case "Running":
+		return "running"
+	default:
+		return "finished"
+	}
 }
 
 type EventCategories struct {
@@ -140,12 +191,29 @@ func NewMember(member database.Member, clubID string, iconSize int) Member {
 		return Member{}
 	}
 
-	var campfireMember campfire.Member
-	if err := json.Unmarshal(member.RawJSON, &campfireMember); err != nil {
-		panic(fmt.Errorf("failed to unmarshal member: %w", err))
+	if len(member.RawJSON) > 0 && string(member.RawJSON) != "{}" {
+		var campfireMember campfire.Member
+		if err := json.Unmarshal(member.RawJSON, &campfireMember); err != nil {
+			panic(fmt.Errorf("failed to unmarshal member: %w", err))
+		}
+		if campfireMember.ID != "" {
+			return NewMemberFromCampfire(campfireMember, clubID, iconSize)
+		}
 	}
 
-	return NewMemberFromCampfire(campfireMember, clubID, iconSize)
+	// Stub members (RSVP-only imports) have no RawJSON profile yet.
+	displayName := GetDisplayName(member.DisplayName, member.Username)
+	if displayName == "<unknown>" {
+		displayName = member.ID
+	}
+	return Member{
+		ID:          member.ID,
+		Username:    member.Username,
+		DisplayName: displayName,
+		AvatarURL:   ImageURL(member.AvatarURL, iconSize),
+		URL:         clubMemberURL(clubID, member.ID),
+		ProfileURL:  memberProfileURL(member.ID),
+	}
 }
 
 func memberProfileURL(memberID string) string {
@@ -178,10 +246,15 @@ func NewImportedMember(member database.Member, iconSize int) Member {
 		return Member{}
 	}
 
+	displayName := GetDisplayName(member.DisplayName, member.Username)
+	if displayName == "<unknown>" {
+		displayName = member.ID
+	}
+
 	m := Member{
 		ID:          member.ID,
 		Username:    member.Username,
-		DisplayName: GetDisplayName(member.DisplayName, member.Username),
+		DisplayName: displayName,
 		AvatarURL:   ImageURL(member.AvatarURL, iconSize),
 		URL:         memberProfileURL(member.ID),
 		ProfileURL:  memberProfileURL(member.ID),
@@ -373,6 +446,49 @@ type ClubImportJob struct {
 	Status      string
 	State       database.ClubImportJobState
 	Error       string
+}
+
+func EventMapURL(location string, address string) string {
+	return eventMapURL(location, address)
+}
+
+func eventMapURL(location string, address string) string {
+	if lat, lng, ok := parseLocationCoords(location); ok {
+		return fmt.Sprintf("https://www.google.com/maps?q=%s,%s",
+			strconv.FormatFloat(lat, 'f', -1, 64),
+			strconv.FormatFloat(lng, 'f', -1, 64),
+		)
+	}
+	if address != "" {
+		return "https://www.google.com/maps/search/?api=1&query=" + url.QueryEscape(address)
+	}
+	return ""
+}
+
+func parseLocationCoords(location string) (lat float64, lng float64, ok bool) {
+	location = strings.TrimSpace(location)
+	if location == "" {
+		return 0, 0, false
+	}
+
+	// Campfire stores location as [longitude, latitude].
+	var coords []float64
+	if err := json.Unmarshal([]byte(location), &coords); err == nil && len(coords) >= 2 {
+		return coords[1], coords[0], true
+	}
+
+	trimmed := strings.Trim(location, "[]() ")
+	parts := strings.Split(trimmed, ",")
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+
+	lng, errLng := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+	lat, errLat := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+	if errLat != nil || errLng != nil {
+		return 0, 0, false
+	}
+	return lat, lng, true
 }
 
 func ImageURL(imageURL string, size int) string {

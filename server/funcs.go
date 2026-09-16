@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 )
 
 var templateFuncs = template.FuncMap{
@@ -32,6 +34,7 @@ var templateFuncs = template.FuncMap{
 	"formatTimeToDayTime":    formatTimeToDayTime,
 	"formatDayTime":          formatDayTime,
 	"formatTimeToRelDayTime": formatTimeToRelDayTime,
+	"formatEventCategory":    eventcategory.Format,
 }
 
 func add(a, b any) (int, error) {

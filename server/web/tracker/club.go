@@ -14,14 +14,25 @@ import (
 
 type TrackerClubVars struct {
 	models.Club
-	Events []models.Event
-	Pinned bool
+	Events           []models.Event
+	Pinned           bool
+	Sort             string
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
 }
 
 func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	query := r.URL.Query()
 
 	clubID := r.PathValue("club_id")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "time", "time-asc", "check-ins", "check-ins-asc", "name", "name-desc":
+	default:
+		sortBy = "time"
+	}
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -33,10 +44,17 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false, "")
+	events, err := h.DB.GetTopEventsByClub(ctx, clubID, time.Time{}, time.Time{}, false, "", "", sortBy, -1)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, time.Time{}, time.Time{}, false, "", "")
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch club totals", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch club totals: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -58,9 +76,13 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	pinned := slices.Contains(pinnedClubs, clubID)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
-		Club:   clubModel,
-		Events: trackerEvents,
-		Pinned: pinned,
+		Club:             clubModel,
+		Events:           trackerEvents,
+		Pinned:           pinned,
+		Sort:             sortBy,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

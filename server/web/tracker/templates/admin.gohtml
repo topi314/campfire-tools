@@ -1,8 +1,26 @@
 {{ template "head" "Admin" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/" }}
         <h1>Admin</h1>
+    </div>
+
+    {{ if .Success }}
+        <p class="success-message">{{ .Success }}</p>
+    {{ end }}
+
+    <div class="section">
+        <div class="section-header">
+            <h2>Event Categories</h2>
+        </div>
+        <p>
+            {{ .EventsWithoutCategory }} events still have no category set.
+        </p>
+        <form method="POST" action="/admin/backfill-event-categories">
+            <button type="submit" {{ if eq .EventsWithoutCategory 0 }}disabled{{ end }}>
+                Backfill Empty Categories
+            </button>
+        </form>
     </div>
 
     <div class="section">
@@ -20,6 +38,8 @@
                 <span class="no-wrap">{{ formatTimeToRelDayTime $token.ExpiresAt }}</span>
                 <span class="no-wrap">{{ $token.Email }}</span>
                 <span class="wrap">{{ $token.Token }}</span>
+            {{ else }}
+                <span class="table-empty">No tokens yet.</span>
             {{ end }}
         </div>
         <br/>

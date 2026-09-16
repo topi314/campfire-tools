@@ -33,11 +33,11 @@
 
 {{ define "event_cover" }}
     {{ if .CoverPhotoURL }}
-        <img src="{{ .CoverPhotoURL }}">
+        <img src="{{ .CoverPhotoURL }}" alt="">
     {{ else if .ClubAvatarURL }}
-        <img src="{{ .ClubAvatarURL }}">
+        <img src="{{ .ClubAvatarURL }}" alt="">
     {{ else }}
-        <img src="/static/default.png">
+        <img src="/static/default.png" alt="">
     {{ end }}
 {{ end }}
 
@@ -59,9 +59,9 @@
 
 {{ define "campfire_member_inline" }}
     {{ if .AvatarURL }}
-        <img class="icon-32" src="{{ .AvatarURL }}">
+        <img class="icon-32" src="{{ .AvatarURL }}" alt="">
     {{ else }}
-        <img class="icon-32" src="/static/default_avatar.png">
+        <img class="icon-32" src="/static/default_avatar.png" alt="">
     {{ end }}
     {{ template "campfire_member_name" . }}
 {{ end }}
@@ -69,69 +69,84 @@
 {{ define "campfire_member_list_item" }}
     <li class="list-item">
         {{ if .AvatarURL }}
-            <img src="{{ .AvatarURL }}">
+            <img src="{{ .AvatarURL }}" alt="">
         {{ else }}
-            <img src="/static/default_avatar.png">
+            <img src="/static/default_avatar.png" alt="">
         {{ end }}
-        {{ template "campfire_member_name" . }}
+        <div class="list-item-content">
+            <div class="list-item-title">
+                {{ template "campfire_member_name" . }}
+            </div>
+            {{ if .Username }}
+                <span class="small-text">@{{ .Username }}</span>
+            {{ end }}
+        </div>
     </li>
 {{ end }}
 
 {{ define "campfire_member_header" }}
     {{ if .AvatarURL }}
-        <img src="{{ .AvatarURL }}">
+        <img src="{{ .AvatarURL }}" alt="">
     {{ else }}
-        <img src="/static/default_avatar.png">
+        <img src="/static/default_avatar.png" alt="">
     {{ end }}
     {{ template "campfire_member_name_plain" . }}
 {{ end }}
 
 {{ define "events_filter" }}
-    <form id="events-filter" hx-get="{{ .FilterURL }}" hx-params="not quarter" hx-push-url="true" hx-target="body">
-        <div class="inline-form-control">
-            <div class="inline-form-control">
-                <div id="events-filter-range" class="stacked-form-control">
-                    <label class="inline-form-control" for="from">
-                        From
-                        <input type="date" id="from" name="from" hx-on:change="fromChangeHandler()" {{ if not .From.IsZero }}value="{{ formatDate .From }}"{{ end }}>
-                    </label>
-                    <label class="inline-form-control" for="to">
-                        To
-                        <input type="date" id="to" name="to" hx-on:change="toChangeHandler()" {{ if not .To.IsZero }}value="{{ formatDate .To }}"{{ end }}>
-                    </label>
-                </div>
-                <div class="stacked-form-control">
-                    <label class="form-control" for="only-ca-events">
-                        Only CA Events
-                        <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
-                    </label>
-                    <label class="form-control" for="event-creator">
-                        <select id="event-creator" name="event-creator">
-                            <option value="">All Event Creators</option>
-                            {{ range $creator := .EventCreators }}
-                                <option value="{{ $creator.ID }}" {{ if eq $.SelectedEventCreator $creator.ID }}selected{{ end }}>
-                                    {{ $creator.Username }}
-                                </option>
-                            {{ end }}
-                        </select>
-                    </label>
-                </div>
+    <form id="events-filter" class="events-filter" hx-get="{{ .FilterURL }}" hx-params="not quarter" hx-push-url="true" hx-target="body">
+        <div class="events-filter-fields">
+            <div id="events-filter-range" class="events-filter-dates">
+                <label for="from">
+                    From
+                    <input type="date" id="from" name="from" hx-on:change="fromChangeHandler()" {{ if not .From.IsZero }}value="{{ formatDate .From }}"{{ end }}>
+                </label>
+                <label for="to">
+                    To
+                    <input type="date" id="to" name="to" hx-on:change="toChangeHandler()" {{ if not .To.IsZero }}value="{{ formatDate .To }}"{{ end }}>
+                </label>
             </div>
 
-            <div class="stacked-form-control">
-                <label for="date-preset">
-                    <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
-                            hx-push-url="false">
-                        <option value="">Select Quarter</option>
-                        {{ range $quarter := .Quarters }}
-                            <option value="{{ $quarter.Value }}">
-                                {{ $quarter.Name }}
-                            </option>
-                        {{ end }}
-                    </select>
-                </label>
-                <button type="submit">Filter</button>
-            </div>
+            <label class="events-filter-quarter" for="date-preset">
+                <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
+                        hx-push-url="false">
+                    <option value="">Select Quarter</option>
+                    {{ range $quarter := .Quarters }}
+                        <option value="{{ $quarter.Value }}">
+                            {{ $quarter.Name }}
+                        </option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <label class="events-filter-ca" for="only-ca-events">
+                <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
+                Only CA Events
+            </label>
+
+            <label class="events-filter-creator" for="event-creator">
+                <select id="event-creator" name="event-creator">
+                    <option value="">All Event Creators</option>
+                    {{ range $creator := .EventCreators }}
+                        <option value="{{ $creator.ID }}" {{ if eq $.SelectedEventCreator $creator.ID }}selected{{ end }}>
+                            {{ $creator.Username }}
+                        </option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <label class="events-filter-category" for="event-category">
+                <select id="event-category" name="event-category">
+                    <option value="">All Event Categories</option>
+                    {{ range $category := .CategoryOptions }}
+                        <option value="{{ $category }}" {{ if eq $.SelectedEventCategory $category }}selected{{ end }}>
+                            {{ formatEventCategory $category }}
+                        </option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <button type="submit" class="events-filter-submit">Filter</button>
         </div>
     </form>
     <script>
@@ -161,11 +176,46 @@
 {{ end }}
 
 {{ define "back_button" }}
-    <a href="{{ . }}" class="back" hx-boost="true">
+    <a href="{{ . }}" class="back" hx-boost="true" aria-label="Back">
         <img src="/static/back.svg" alt="Back">
     </a>
 {{ end }}
 
+{{ define "club_nav" }}
+    <div class="buttons" hx-boost="true">
+        {{ if eq .Active "club" }}
+            <span class="button button-current">Overview</span>
+        {{ else }}
+            <a href="{{ .URL }}" class="button">Overview</a>
+        {{ end }}
+        {{ if eq .Active "stats" }}
+            <span class="button button-current">Statistics</span>
+        {{ else }}
+            <a href="{{ .URL }}/stats" class="button">Statistics</a>
+        {{ end }}
+        {{ if eq .Active "events" }}
+            <span class="button button-current">Events</span>
+        {{ else }}
+            <a href="{{ .URL }}/events" class="button">Events</a>
+        {{ end }}
+        {{ if eq .Active "members" }}
+            <span class="button button-current">Members</span>
+        {{ else }}
+            <a href="{{ .URL }}/members" class="button">Members</a>
+        {{ end }}
+        {{ if eq .Active "raffle" }}
+            <span class="button button-current">Raffle</span>
+        {{ else }}
+            <a href="{{ .URL }}/raffle" class="button">Raffle</a>
+        {{ end }}
+        {{ if eq .Active "export" }}
+            <span class="button button-current">Export</span>
+        {{ else }}
+            <a href="{{ .URL }}/export" class="button">Export</a>
+        {{ end }}
+    </div>
+{{ end }}
+
 {{ define "discord_user" }}
-    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-18"> {{ .EffectiveName }}</span>
+    <span title="{{ .ID }}"><img src="{{ .AvatarURL }}" class="icon-18" alt=""> {{ .EffectiveName }}</span>
 {{ end }}

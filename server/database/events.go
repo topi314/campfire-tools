@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/lib/pq"
+
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 )
 
 func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
@@ -14,12 +17,12 @@ func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 		INSERT INTO events (
             event_id, event_name, event_details, event_address, event_location, event_creator_id, event_cover_photo_url, 
 			event_time, event_end_time, event_finished, event_discord_interested, event_created_by_community_ambassador, 
-			event_campfire_live_event_id, event_campfire_live_event_name, event_club_id, event_imported_at, event_raw_json, event_last_auto_imported_at
+			event_campfire_live_event_id, event_campfire_live_event_name, event_category, event_club_id, event_imported_at, event_raw_json, event_last_auto_imported_at
     	)
 		VALUES (
 	        :event_id, :event_name, :event_details, :event_address, :event_location, :event_creator_id, :event_cover_photo_url, 
 			:event_time, :event_end_time, :event_finished, :event_discord_interested, :event_created_by_community_ambassador, 
-			:event_campfire_live_event_id, :event_campfire_live_event_name, :event_club_id, now(), :event_raw_json, now()
+			:event_campfire_live_event_id, :event_campfire_live_event_name, :event_category, :event_club_id, now(), :event_raw_json, now()
         )
 		ON CONFLICT (event_id) DO UPDATE SET
 			event_name = EXCLUDED.event_name,
@@ -35,6 +38,7 @@ func (d *Database) InsertEvents(ctx context.Context, events []Event) error {
 			event_created_by_community_ambassador = EXCLUDED.event_created_by_community_ambassador,
 			event_campfire_live_event_id = EXCLUDED.event_campfire_live_event_id,
 			event_campfire_live_event_name = EXCLUDED.event_campfire_live_event_name,
+			event_category = COALESCE(NULLIF(events.event_category, ''), EXCLUDED.event_category),
 			event_club_id = EXCLUDED.event_club_id,
 			event_imported_at = now(),
 			event_raw_json = EXCLUDED.event_raw_json,
@@ -80,7 +84,7 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*EventWithCrea
 	return &event, nil
 }
 
-func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string) ([]EventWithCheckIns, error) {
+func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string) ([]EventWithCheckIns, error) {
 	query := `
 		SELECT events.*, 
 			COUNT(event_rsvp_member_id) FILTER (WHERE event_rsvp_status = 'ACCEPTED' OR event_rsvp_status = 'CHECKED_IN') AS accepted,
@@ -91,12 +95,13 @@ func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time,
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR event_time <= $3)
 		AND (NOT $4 OR event_created_by_community_ambassador = TRUE)
 		AND ($5 = '' OR event_creator_id = $5)
+		AND ($6 = '' OR event_category = $6)
 		GROUP BY event_id, event_time, event_name
 		ORDER BY event_time DESC, event_name DESC
 	`
 
 	var events []EventWithCheckIns
-	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator, eventCategory); err != nil {
 		return nil, fmt.Errorf("failed to get events in range: %w", err)
 	}
 
@@ -171,7 +176,23 @@ func (d *Database) GetBiggestCheckInEvent(ctx context.Context, clubID string, fr
 	return &event, nil
 }
 
-func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, limit int) ([]EventWithCheckIns, error) {
+func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string, sort string, limit int) ([]EventWithCheckIns, error) {
+	orderBy := `check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id`
+	switch sort {
+	case "check-ins-asc":
+		orderBy = `check_ins ASC, accepted ASC, e.event_time DESC, e.event_name DESC, e.event_id`
+	case "time":
+		orderBy = `e.event_time DESC, e.event_name DESC, e.event_id`
+	case "time-asc":
+		orderBy = `e.event_time ASC, e.event_name ASC, e.event_id`
+	case "name":
+		orderBy = `e.event_name ASC, e.event_time DESC, e.event_id`
+	case "name-desc":
+		orderBy = `e.event_name DESC, e.event_time DESC, e.event_id`
+	case "check-ins":
+		// default
+	}
+
 	query := `
         SELECT
             e.*, 
@@ -184,13 +205,14 @@ func (d *Database) GetTopEventsByClub(ctx context.Context, clubID string, from t
 		AND ($3 = '0001-01-01 00:00:00'::timestamp OR e.event_time <= $3)
         AND (NOT $4 OR e.event_created_by_community_ambassador = TRUE)
         AND ($5 = '' OR e.event_creator_id = $5)
+        AND ($6 = '' OR e.event_category = $6)
         GROUP BY e.event_id, e.event_time, e.event_name
-        ORDER BY check_ins DESC, accepted DESC, e.event_time DESC, e.event_name DESC, e.event_id
-        LIMIT CASE WHEN $6 < 0 THEN NULL ELSE $6 END
+        ORDER BY ` + orderBy + `
+        LIMIT CASE WHEN $7 < 0 THEN NULL ELSE $7 END
 	`
 
 	var events []EventWithCheckIns
-	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator, limit); err != nil {
+	if err := d.db.SelectContext(ctx, &events, query, clubID, from, to, caOnly, eventCreator, eventCategory, limit); err != nil {
 		return nil, fmt.Errorf("failed to get top club events in range: %w", err)
 	}
 
@@ -279,6 +301,97 @@ func (d *Database) UpdateEventLastAutoImported(ctx context.Context, eventID stri
 	}
 
 	return nil
+}
+
+func (d *Database) UpdateEventCategory(ctx context.Context, eventID string, category string) error {
+	query := `
+		UPDATE events
+		SET event_category = $2
+		WHERE event_id = $1
+	`
+
+	if _, err := d.db.ExecContext(ctx, query, eventID, category); err != nil {
+		return fmt.Errorf("failed to update event category: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) CountEventsWithoutCategory(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM events
+		WHERE event_category = ''
+	`
+
+	var count int
+	if err := d.db.GetContext(ctx, &count, query); err != nil {
+		return 0, fmt.Errorf("failed to count events without category: %w", err)
+	}
+	return count, nil
+}
+
+type eventCategoryBackfillRow struct {
+	ID                    string `db:"event_id"`
+	CampfireLiveEventName string `db:"event_campfire_live_event_name"`
+}
+
+// BackfillEmptyEventCategories sets event_category from the Campfire live event
+// name for every event that still has an empty category. Returns the number of
+// rows updated.
+func (d *Database) BackfillEmptyEventCategories(ctx context.Context) (int, error) {
+	query := `
+		SELECT event_id, event_campfire_live_event_name
+		FROM events
+		WHERE event_category = ''
+	`
+
+	var rows []eventCategoryBackfillRow
+	if err := d.db.SelectContext(ctx, &rows, query); err != nil {
+		return 0, fmt.Errorf("failed to list events without category: %w", err)
+	}
+	if len(rows) == 0 {
+		return 0, nil
+	}
+
+	byCategory := make(map[string][]string)
+	for _, row := range rows {
+		category := eventcategory.FromName(row.CampfireLiveEventName)
+		byCategory[category] = append(byCategory[category], row.ID)
+	}
+
+	updated := 0
+	for category, ids := range byCategory {
+		res, err := d.db.ExecContext(ctx, `
+			UPDATE events
+			SET event_category = $1
+			WHERE event_id = ANY($2)
+			AND event_category = ''
+		`, category, pq.Array(ids))
+		if err != nil {
+			return updated, fmt.Errorf("failed to backfill event category %q: %w", category, err)
+		}
+		n, _ := res.RowsAffected()
+		updated += int(n)
+	}
+
+	return updated, nil
+}
+
+func (d *Database) GetClubEventCategories(ctx context.Context, clubID string) ([]string, error) {
+	query := `
+		SELECT DISTINCT event_category
+		FROM events
+		WHERE event_club_id = $1
+		AND event_category <> ''
+	`
+
+	var categories []string
+	if err := d.db.SelectContext(ctx, &categories, query, clubID); err != nil {
+		return nil, fmt.Errorf("failed to get club event categories: %w", err)
+	}
+
+	return eventcategory.Sort(categories), nil
 }
 
 func (d *Database) GetNextUpdateEvent(ctx context.Context) (*Event, error) {

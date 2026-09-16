@@ -16,8 +16,8 @@
             <div class="inline-form-control">
                 <label for="sort">
                     <select id="sort" name="sort" hx-get="/tracker/clubs" hx-target="#clubs" hx-swap="outerHTML" hx-select="#clubs" hx-push-url="true">
-                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Sort by Name</option>
-                        <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Sort by Events</option>
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name</option>
+                        <option value="events" {{ if eq .Sort "events" }}selected{{ end }}>Events</option>
                     </select>
                 </label>
             </div>
@@ -26,11 +26,17 @@
             {{ range $club := .Clubs }}
                 <li class="list-item">
                     {{ if $club.AvatarURL }}
-                        <img src="{{ $club.AvatarURL }}">
+                        <img src="{{ $club.AvatarURL }}" alt="">
                     {{ else }}
-                        <img src="/static/default.png">
+                        <img src="/static/default.png" alt="">
                     {{ end }}
-                    {{ if $club.Pinned }}📌{{ end }}<a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }} ({{ $club.Events }})</a>{{ template "community_ambassador_flag" $club.CreatedByCommunityAmbassador }}
+                    <div class="list-item-content">
+                        <div class="list-item-title">
+                            {{ if $club.Pinned }}<span class="club-pin" title="Pinned" aria-label="Pinned">📌</span>{{ end }}
+                            <a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }}</a>{{ template "community_ambassador_flag" $club.CreatedByCommunityAmbassador }}
+                        </div>
+                        <span class="small-text">{{ $club.Events }} events</span>
+                    </div>
                 </li>
             {{ else }}
                 <span>No clubs tracked yet.</span>

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -24,6 +22,10 @@ type TrackerEventCheckIns struct {
 	Club             models.Club
 	CheckedInMembers []models.Member
 	AcceptedMembers  []models.Member
+	Sort             string
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
 }
 
 func (h *handler) Event(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +60,15 @@ func (h *handler) ShowEvent(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	query := r.URL.Query()
 
 	eventID := r.PathValue("event_id")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "name", "name-desc":
+	default:
+		sortBy = "name"
+	}
 
 	slog.InfoContext(ctx, "Fetching event check-ins", slog.String("event_id", eventID))
 
@@ -83,16 +92,26 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	eventClubAvatarURL := models.ImageURL(event.Club.AvatarURL, 48)
 	clubAvatarURL := models.ImageURL(event.Club.AvatarURL, 32)
 
+	checkedInMembers := getEventMembers(*event, "CHECKED_IN", sortBy)
+	acceptedMembers := getEventMembers(*event, "ACCEPTED", sortBy)
+	totalCheckIns := len(checkedInMembers)
+	totalAccepted := totalCheckIns + len(acceptedMembers)
+
 	if err = h.Templates().ExecuteTemplate(w, "event_details.gohtml", TrackerEventCheckIns{
 		Event: models.Event{
 			ID:                           event.ID,
 			Name:                         event.Name,
-			URL:                          fmt.Sprintf("/tracker/event/%s", event.ID),
+			URL:                          fmt.Sprintf("/event/%s", event.ID),
 			CoverPhotoURL:                models.ImageURL(event.CoverPhotoURL, 48),
 			ClubAvatarURL:                eventClubAvatarURL,
 			Details:                      event.Details,
+			Address:                      event.Address,
+			Location:                     event.Location,
+			MapURL:                       models.EventMapURL(event.Location, event.Address),
 			Time:                         event.EventTime,
 			EndTime:                      event.EventEndTime,
+			Finished:                     !event.EventEndTime.IsZero() && event.EventEndTime.Before(time.Now()),
+			DiscordInterested:            event.DiscordInterested,
 			CampfireLiveEventID:          event.CampfireLiveEventID,
 			CampfireLiveEventName:        event.CampfireLiveEvent.EventName,
 			Creator:                      models.NewMemberFromCampfire(event.Creator, event.ClubID, 32),
@@ -108,8 +127,12 @@ func (h *handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 			ImportedAt:                   clubImportedAt,
 			URL:                          fmt.Sprintf("/tracker/club/%s", event.Club.ID),
 		},
-		CheckedInMembers: getEventMembers(*event, "CHECKED_IN"),
-		AcceptedMembers:  getEventMembers(*event, "ACCEPTED"),
+		CheckedInMembers: checkedInMembers,
+		AcceptedMembers:  acceptedMembers,
+		Sort:             sortBy,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render event details template", slog.String("err", err.Error()))
 	}
@@ -126,7 +149,7 @@ func (h *handler) renderCheckIns(w http.ResponseWriter, r *http.Request, event s
 	}
 }
 
-func getEventMembers(event campfire.Event, status string) []models.Member {
+func getEventMembers(event campfire.Event, status string, sortBy string) []models.Member {
 	var members []models.Member
 	for _, rsvpStatus := range event.RSVPStatuses {
 		if rsvpStatus.RSVPStatus != status {
@@ -138,11 +161,6 @@ func getEventMembers(event campfire.Event, status string) []models.Member {
 		}
 		members = append(members, models.NewMemberFromCampfire(member, event.ClubID, 32))
 	}
-	slices.SortFunc(members, func(a, b models.Member) int {
-		if a.DisplayName != b.DisplayName {
-			return strings.Compare(a.DisplayName, b.DisplayName)
-		}
-		return strings.Compare(a.Username, b.Username)
-	})
+	sortEventMembers(members, sortBy)
 	return members
 }

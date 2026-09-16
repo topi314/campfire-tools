@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/topi314/campfire-tools/internal/eventcategory"
 	"github.com/topi314/campfire-tools/internal/xquery"
 	"github.com/topi314/campfire-tools/internal/xtime"
 	"github.com/topi314/campfire-tools/server/web/models"
@@ -43,6 +44,7 @@ type TrackerClubStatsVars struct {
 	EventCategories models.EventCategories
 	LeagueGoals     LeagueGoals
 	DigitalCodes    DigitalCodes
+	CategorySort    string
 }
 
 type LeagueGoals struct {
@@ -92,9 +94,16 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
+	eventCategory := query.Get("event-category")
+	categorySort := query.Get("category-sort")
+	switch categorySort {
+	case "check-ins", "check-ins-asc", "name", "name-desc", "events", "events-asc":
+	default:
+		categorySort = "check-ins"
+	}
 	categoriesClosed := xquery.ParseBool(query, "event-categories-closed", false)
 	digitalCodesClosed := xquery.ParseBool(query, "digital-codes-closed", false)
-	leagueGoalsClosed := xquery.ParseBool(query, "league-goals-closed", false)
+	leagueGoalsClosed := xquery.ParseBool(query, "league-goals-closed", true)
 	leagueGoalQuarter := query.Get("league-goal-quarter")
 
 	club, err := h.DB.GetClub(ctx, clubID)
@@ -116,7 +125,14 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventCategories, err := h.calculateEventCategories(ctx, clubID, from, to, onlyCAEvents, eventCreator, categoriesClosed)
+	eventCategoriesList, err := h.DB.GetClubEventCategories(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event categories for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	eventCategories, err := h.calculateEventCategories(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, categorySort, categoriesClosed)
 	if err != nil {
 		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -128,7 +144,7 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	goals, err := h.calculateLeagueGoals(ctx, clubID, quarterFrom, quarterTo, leagueGoalQuarter, eventCreator, leagueGoalsClosed)
+	goals, err := h.calculateLeagueGoals(ctx, clubID, quarterFrom, quarterTo, eventCreator, eventCategory, leagueGoalQuarter, leagueGoalsClosed)
 	if err != nil {
 		http.Error(w, "Failed to fetch league goals: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -137,39 +153,45 @@ func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_stats.gohtml", TrackerClubStatsVars{
 		Club: models.NewClub(*club),
 		EventsFilter: EventsFilter{
-			FilterURL:            r.URL.Path,
-			From:                 from,
-			To:                   to,
-			OnlyCAEvents:         onlyCAEvents,
-			Quarters:             xtime.GetQuarters(),
-			EventCreators:        eventCreators,
-			SelectedEventCreator: eventCreator,
+			FilterURL:             r.URL.Path,
+			From:                  from,
+			To:                    to,
+			OnlyCAEvents:          onlyCAEvents,
+			Quarters:              xtime.GetQuarters(),
+			EventCreators:         eventCreators,
+			SelectedEventCreator:  eventCreator,
+			CategoryOptions:       eventCategoriesList,
+			SelectedEventCategory: eventCategory,
 		},
 		EventCategories: *eventCategories,
 		DigitalCodes:    *digitalCodes,
 		LeagueGoals:     *goals,
+		CategorySort:    categorySort,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club stats template", slog.String("club_id", clubID), slog.Any("err", err))
 	}
 }
 
-func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, categoriesClosed bool) (*models.EventCategories, error) {
-	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
+func (h *handler) calculateEventCategories(ctx context.Context, clubID string, from time.Time, to time.Time, onlyCAEvents bool, eventCreator string, eventCategory string, sort string, categoriesClosed bool) (*models.EventCategories, error) {
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch total check-ins and accepted members: %w", err)
 	}
 
-	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents, eventCreator)
+	events, err := h.DB.GetEventCheckInAcceptedCounts(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch event check-in and accepted counts: %w", err)
 	}
 	eventCategories := make(map[string]models.EventCategory)
 	for _, event := range events {
-		category := h.getEventCategory(event.CampfireLiveEventName)
+		category := event.Category
+		if category == "" {
+			category = h.getEventCategory(event.CampfireLiveEventName)
+		}
 
-		eventCategory, ok := eventCategories[category]
+		cat, ok := eventCategories[category]
 		if !ok {
-			eventCategory = models.EventCategory{
+			cat = models.EventCategory{
 				Name:     category,
 				Events:   0,
 				CheckIns: 0,
@@ -177,20 +199,42 @@ func (h *handler) calculateEventCategories(ctx context.Context, clubID string, f
 			}
 		}
 
-		eventCategory.Events++
-		eventCategory.Accepted += event.Accepted
-		eventCategory.CheckIns += event.CheckIns
-		eventCategory.CheckInRate = models.CalcCheckInRate(eventCategory.Accepted, eventCategory.CheckIns)
-		eventCategory.TotalCheckInRate = models.CalcCheckInRate(totalCheckIns, eventCategory.CheckIns)
-		eventCategories[category] = eventCategory
+		cat.Events++
+		cat.Accepted += event.Accepted
+		cat.CheckIns += event.CheckIns
+		cat.CheckInRate = models.CalcCheckInRate(cat.Accepted, cat.CheckIns)
+		cat.TotalCheckInRate = models.CalcCheckInRate(totalCheckIns, cat.CheckIns)
+		eventCategories[category] = cat
 	}
 
 	categories := slices.Collect(maps.Values(eventCategories))
 	slices.SortFunc(categories, func(a, b models.EventCategory) int {
-		if a.CheckIns == b.CheckIns {
-			return a.Accepted - b.Accepted
+		switch sort {
+		case "check-ins-asc":
+			if a.CheckIns == b.CheckIns {
+				return a.Accepted - b.Accepted
+			}
+			return a.CheckIns - b.CheckIns
+		case "name":
+			return strings.Compare(a.Name, b.Name)
+		case "name-desc":
+			return strings.Compare(b.Name, a.Name)
+		case "events":
+			if a.Events == b.Events {
+				return b.CheckIns - a.CheckIns
+			}
+			return b.Events - a.Events
+		case "events-asc":
+			if a.Events == b.Events {
+				return a.CheckIns - b.CheckIns
+			}
+			return a.Events - b.Events
+		default: // check-ins
+			if a.CheckIns == b.CheckIns {
+				return b.Accepted - a.Accepted
+			}
+			return b.CheckIns - a.CheckIns
 		}
-		return b.CheckIns - a.CheckIns
 	})
 	categories = append(categories, models.EventCategory{
 		Name:             "Total",
@@ -220,7 +264,7 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 		}
 		from := date.AddDate(0, -months, 0)
 		to := date.Add(-time.Second)
-		_, checkIns, err := h.DB.GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx, clubID, from, to, true, "", digitalCodeExcludePatterns())
+		_, checkIns, err := h.DB.GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx, clubID, from, to, true, "", "", eventcategory.DigitalCodeExcludePatterns())
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch total check-ins and accepted members for digital codes: %w", err)
 		}
@@ -248,8 +292,8 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 	}, nil
 }
 
-func (h *handler) calculateLeagueGoals(ctx context.Context, clubID string, from time.Time, to time.Time, eventCreator string, leagueGoalQuarter string, leagueGoalsClosed bool) (*LeagueGoals, error) {
-	_, totalCACheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, true, eventCreator)
+func (h *handler) calculateLeagueGoals(ctx context.Context, clubID string, from time.Time, to time.Time, eventCreator string, eventCategory string, leagueGoalQuarter string, leagueGoalsClosed bool) (*LeagueGoals, error) {
+	_, totalCACheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, true, eventCreator, eventCategory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch total check-ins and accepted members: %w", err)
 	}
@@ -323,72 +367,17 @@ func (h *handler) calculateLeagueGoals(ctx context.Context, clubID string, from 
 }
 
 const (
-	EventCategoryOther   = "Other"
-	EventCategoryNoEvent = "No Event"
+	EventCategoryOther   = eventcategory.Other
+	EventCategoryNoEvent = eventcategory.NoEvent
 )
 
-var AllEventCategories = map[string][]string{
-	"Raid Day":          {"Raid Day", "Mega Raid"},
-	"Raid Hour":         {"Raid Hour"},
-	"Max Monday":        {"Max Monday"},
-	"Research Day":      {"Research Day"},
-	"Hatch Day":         {"Hatch Day"},
-	"Community Day":     {"Community Day", "Community Classic Day"},
-	"Spotlight Hour":    {"Spotlight Hour"},
-	"Max Battle":        {"Max Battle Weekend", "Max Battle Day", "Max Weekend", "Gigantamax", "GMAX"},
-	"GO Tour":           {"GO Tour"},
-	"GO Fest":           {"GO Fest"},
-	"GO Wild Area":      {"GOWA", "GO Wild Area"},
-	"Friendship Friday": {"Friendship Friday"},
-}
-
-var orderedEventCategories = []string{
-	"GO Wild Area",
-	"GO Fest",
-	"GO Tour",
-	"Community Day",
-	"Max Battle",
-	"Research Day",
-	"Hatch Day",
-	"Friendship Friday",
-	"Raid Day",
-	"Raid Hour",
-	"Max Monday",
-	"Spotlight Hour",
-}
-
-var DigitalCodeExcludedCategories = []string{
-	"Friendship Friday",
-}
-
-func digitalCodeExcludePatterns() []string {
-	var patterns []string
-	for _, category := range DigitalCodeExcludedCategories {
-		for _, name := range AllEventCategories[category] {
-			patterns = append(patterns, "%"+name+"%")
-		}
-	}
-	return patterns
-}
-
 func eventCategoryFromName(eventName string) string {
-	eventName = strings.ToLower(strings.TrimSpace(eventName))
-	if eventName == "" {
-		return EventCategoryNoEvent
-	}
-	for _, category := range orderedEventCategories {
-		for _, pattern := range AllEventCategories[category] {
-			if strings.Contains(eventName, strings.ToLower(pattern)) {
-				return category
-			}
-		}
-	}
-	return EventCategoryOther
+	return eventcategory.FromName(eventName)
 }
 
 func (h *handler) getEventCategory(eventName string) string {
-	category := eventCategoryFromName(eventName)
-	if category == EventCategoryOther && h.Cfg.WarnUnknownEventCategories {
+	category := eventcategory.FromName(eventName)
+	if category == eventcategory.Other && h.Cfg.WarnUnknownEventCategories {
 		slog.Warn("Unknown event category", slog.String("event_name", eventName))
 	}
 	return category

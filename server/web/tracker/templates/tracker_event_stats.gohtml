@@ -1,5 +1,5 @@
 {{ template "head" "Event Stats" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker" }}
         <h1>Event Stats</h1>
@@ -21,36 +21,45 @@
                 </select>
             </label>
             <div class="form-control">
-                <label>
+                <span class="form-control" id="clubs-label">
                     Clubs
                     <span class="small-text">Pick a club to add it; a new dropdown appears for the next one.</span>
-                </label>
-                <div id="club-selects" class="club-selects">
-                    {{ range $clubID := .SelectedClubIDs }}
+                </span>
+                <div id="club-selects" class="club-selects" role="group" aria-labelledby="clubs-label">
+                    {{ range $index, $clubID := .SelectedClubIDs }}
+                        <label class="form-control">
+                            Club {{ add $index 1 }}
+                            <select class="club-select" name="club_id">
+                                <option value="">- Select a club -</option>
+                                {{ range $club := $.Clubs }}
+                                    <option value="{{ $club.ID }}" {{ if eq $club.ID $clubID }}selected{{ end }}>{{ $club.Name }}</option>
+                                {{ end }}
+                            </select>
+                        </label>
+                    {{ end }}
+                    <label class="form-control">
+                        Club {{ add (len .SelectedClubIDs) 1 }}
                         <select class="club-select" name="club_id">
                             <option value="">- Select a club -</option>
-                            {{ range $club := $.Clubs }}
-                                <option value="{{ $club.ID }}" {{ if eq $club.ID $clubID }}selected{{ end }}>{{ $club.Name }}</option>
+                            {{ range $club := .Clubs }}
+                                <option value="{{ $club.ID }}">{{ $club.Name }}</option>
                             {{ end }}
                         </select>
-                    {{ end }}
-                    <select class="club-select" name="club_id">
-                        <option value="">- Select a club -</option>
-                        {{ range $club := .Clubs }}
-                            <option value="{{ $club.ID }}">{{ $club.Name }}</option>
-                        {{ end }}
-                    </select>
+                    </label>
                 </div>
             </div>
             <button class="form-control" type="submit">Show Stats</button>
         </form>
         <template id="club-select-template">
-            <select class="club-select" name="club_id">
-                <option value="">- Select a club -</option>
-                {{ range $club := .Clubs }}
-                    <option value="{{ $club.ID }}">{{ $club.Name }}</option>
-                {{ end }}
-            </select>
+            <label class="form-control">
+                Club
+                <select class="club-select" name="club_id">
+                    <option value="">- Select a club -</option>
+                    {{ range $club := .Clubs }}
+                        <option value="{{ $club.ID }}">{{ $club.Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
         </template>
         <script>
             (function () {
@@ -77,7 +86,12 @@
                     const isLast = select === selects[selects.length - 1];
 
                     if (select.value === "" && !isLast) {
-                        select.remove();
+                        const row = select.closest("label");
+                        if (row) {
+                            row.remove();
+                        } else {
+                            select.remove();
+                        }
                     } else if (select.value !== "" && isLast) {
                         container.appendChild(tmpl.content.cloneNode(true));
                     }
@@ -159,7 +173,7 @@
                             </tr>
                         {{ else }}
                             <tr>
-                                <td>No check-ins found.</td>
+                                <td colspan="{{ add (len .ClubNames) 2 }}">No check-ins found.</td>
                             </tr>
                         {{ end }}
                     </tbody>

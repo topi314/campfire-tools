@@ -29,9 +29,9 @@
                     {{ range $member := .Members }}
                         <span>
                             {{ if $member.AvatarURL }}
-                                <img src="{{ $member.AvatarURL }}" class="icon-32">
+                                <img src="{{ $member.AvatarURL }}" class="icon-32" alt="">
                             {{ else }}
-                                <img src="/static/default.png" class="icon-32">
+                                <img src="/static/default_avatar.png" class="icon-32" alt="">
                             {{ end }}
                         </span>
                         <span>

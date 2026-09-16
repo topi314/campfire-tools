@@ -21,14 +21,14 @@
                     </h2>
                     <br/>
                     <p>
-                        You can redeem this code in the <a href="https://store.pokemongo.com" target="_blank">web store</a> to claim your reward.
+                        You can redeem this code in the <a href="https://store.pokemongo.com" target="_blank" rel="noopener noreferrer">web store</a> to claim your reward.
                         <br/>
                         Just click the button below to open the redemption page with your code pre-filled, or copy the code and redeem it manually.
                     </p>
                 </div>
                 <br/>
                 <br/>
-                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank"><img src="/static/webstore.png">Redeem in Web Store</a>
+                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="Pokémon GO Web Store">Redeem in Web Store</a>
                 <br/>
                 <br/>
                 <span class="reward-code" title="Click to copy" id="redemption-code">{{ .Code.Code }}</span>

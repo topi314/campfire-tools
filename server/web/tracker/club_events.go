@@ -20,6 +20,7 @@ type TrackerClubEventsVars struct {
 	TotalAccepted    int
 	TotalCheckIns    int
 	TotalCheckInRate float64
+	Sort             string
 }
 
 func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +35,13 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	onlyCAEvents := xquery.ParseBool(query, "only-ca-events", false)
 	eventCreator := query.Get("event-creator")
+	eventCategory := query.Get("event-category")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "time", "time-asc", "check-ins", "check-ins-asc", "name", "name-desc":
+	default:
+		sortBy = "check-ins"
+	}
 
 	club, err := h.DB.GetClub(ctx, clubID)
 	if err != nil {
@@ -52,7 +60,14 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, -1)
+	eventCategories, err := h.DB.GetClubEventCategories(ctx, clubID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch event categories for club", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch event categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	events, err := h.DB.GetTopEventsByClub(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory, sortBy, -1)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for club", slog.String("club_id", clubID), slog.Any("err", err))
 		http.Error(w, "Failed to fetch events: "+err.Error(), http.StatusInternalServerError)
@@ -67,7 +82,7 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 		trackerEvents[i] = models.NewTopEvent(event, 32, eventClubAvatarURL)
 	}
 
-	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator)
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, from, to, onlyCAEvents, eventCreator, eventCategory)
 	if err != nil {
 		http.Error(w, "Failed to fetch total check-ins and accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -78,18 +93,21 @@ func (h *handler) TrackerClubEvents(w http.ResponseWriter, r *http.Request) {
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_events.gohtml", TrackerClubEventsVars{
 		Club: clubModel,
 		EventsFilter: EventsFilter{
-			FilterURL:            r.URL.Path,
-			From:                 from,
-			To:                   to,
-			OnlyCAEvents:         onlyCAEvents,
-			Quarters:             xtime.GetQuarters(),
-			EventCreators:        eventCreators,
-			SelectedEventCreator: eventCreator,
+			FilterURL:             r.URL.Path,
+			From:                  from,
+			To:                    to,
+			OnlyCAEvents:          onlyCAEvents,
+			Quarters:              xtime.GetQuarters(),
+			EventCreators:         eventCreators,
+			SelectedEventCreator:  eventCreator,
+			CategoryOptions:       eventCategories,
+			SelectedEventCategory: eventCategory,
 		},
 		Events:           trackerEvents,
 		TotalCheckIns:    totalCheckIns,
 		TotalAccepted:    totalAccepted,
 		TotalCheckInRate: totalCheckInRate,
+		Sort:             sortBy,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club events template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

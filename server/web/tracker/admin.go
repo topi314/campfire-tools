@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -16,8 +17,10 @@ import (
 )
 
 type AdminVars struct {
-	Tokens []models.Token
-	Errors []string
+	Tokens                []models.Token
+	EventsWithoutCategory int
+	Success               string
+	Errors                []string
 }
 
 func (h *handler) Admin(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +47,17 @@ func (h *handler) renderAdmin(w http.ResponseWriter, r *http.Request, errorMessa
 		tokenList = append(tokenList, models.NewToken(t))
 	}
 
+	uncategorized, err := h.DB.CountEventsWithoutCategory(ctx)
+	if err != nil {
+		http.Error(w, "Failed to count uncategorized events: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err = h.Templates().ExecuteTemplate(w, "admin.gohtml", AdminVars{
-		Tokens: tokenList,
-		Errors: errorMessages,
+		Tokens:                tokenList,
+		EventsWithoutCategory: uncategorized,
+		Success:               r.URL.Query().Get("success"),
+		Errors:                errorMessages,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker template", slog.Any("err", err))
 	}
@@ -79,6 +90,25 @@ func (h *handler) AdminTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (h *handler) AdminBackfillEventCategories(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	if !session.Admin {
+		h.NotFound(w, r)
+		return
+	}
+
+	updated, err := h.DB.BackfillEmptyEventCategories(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to backfill event categories", slog.Any("err", err))
+		h.renderAdmin(w, r, "Failed to backfill event categories: "+err.Error())
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/admin?success=%s", url.QueryEscape(fmt.Sprintf("Updated %d events without a category.", updated))), http.StatusSeeOther)
 }
 
 func parseToken(token string) (*database.CampfireToken, error) {

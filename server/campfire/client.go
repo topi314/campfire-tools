@@ -47,7 +47,7 @@ type Client struct {
 	token      TokenFunc
 }
 
-func (c *Client) Do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
+func (c *Client) Do(ctx context.Context, token string, query string, vars any, rsBody any) error {
 	for range c.cfg.MaxRetries {
 		if err := c.do(ctx, token, query, vars, rsBody); err != nil {
 			if errors.Is(err, ErrTooManyRequests) || errors.Is(err, ErrBadGateway) || errors.Is(err, ErrDeadlineExceeded) {
@@ -62,7 +62,7 @@ func (c *Client) Do(ctx context.Context, token string, query string, vars map[st
 	return ErrTooManyRetries
 }
 
-func (c *Client) do(ctx context.Context, token string, query string, vars map[string]any, rsBody any) error {
+func (c *Client) do(ctx context.Context, token string, query string, vars any, rsBody any) error {
 	buff := new(bytes.Buffer)
 	if err := json.NewEncoder(buff).Encode(Req{
 		Query:     query,
