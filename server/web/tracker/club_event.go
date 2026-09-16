@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/topi314/campfire-tools/internal/eventcategory"
@@ -14,20 +15,28 @@ import (
 type TrackerClubEventVars struct {
 	models.Event
 
-	Club               models.Club
-	ClubCategories     []string
-	IsCustomCategory   bool
-	CheckedInMembers   []models.Member
-	AcceptedMembers    []models.Member
-	TotalAccepted      int
-	TotalCheckIns      int
-	TotalCheckInRate   float64
+	Club             models.Club
+	ClubCategories   []string
+	IsCustomCategory bool
+	CheckedInMembers []models.Member
+	AcceptedMembers  []models.Member
+	Sort             string
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
 }
 
 func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	query := r.URL.Query()
 
 	eventID := r.PathValue("event_id")
+	sortBy := query.Get("sort")
+	switch sortBy {
+	case "name", "name-desc":
+	default:
+		sortBy = "name"
+	}
 
 	event, err := h.DB.GetEvent(ctx, eventID)
 	if err != nil {
@@ -80,6 +89,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	for i, member := range checkedInMembers {
 		checkedInTrackerMembers[i] = models.NewMember(member, event.ClubID, 32)
 	}
+	sortEventMembers(checkedInTrackerMembers, sortBy)
 
 	acceptedMembers, err := h.DB.GetAcceptedMembersByEvent(ctx, eventID)
 	if err != nil {
@@ -91,6 +101,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	for i, member := range acceptedMembers {
 		acceptedTrackerMembers[i] = models.NewMember(member, event.ClubID, 32)
 	}
+	sortEventMembers(acceptedTrackerMembers, sortBy)
 
 	clubModel := models.NewClub(*club)
 	eventModel := models.NewEventWithCreator(*event, clubModel.AvatarURL)
@@ -104,6 +115,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		IsCustomCategory: len(clubCategories) == 0,
 		CheckedInMembers: checkedInTrackerMembers,
 		AcceptedMembers:  acceptedTrackerMembers,
+		Sort:             sortBy,
 		TotalAccepted:    totalAccepted,
 		TotalCheckIns:    totalCheckIns,
 		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
@@ -143,4 +155,27 @@ func (h *handler) TrackerClubEventCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	http.Redirect(w, r, "/tracker/event/"+eventID, http.StatusSeeOther)
+}
+
+func sortEventMembers(members []models.Member, sortBy string) {
+	slices.SortFunc(members, func(a, b models.Member) int {
+		if a.IsCommunityAmbassador != b.IsCommunityAmbassador {
+			if a.IsCommunityAmbassador {
+				return -1
+			}
+			return 1
+		}
+
+		cmp := strings.Compare(strings.ToLower(a.DisplayName), strings.ToLower(b.DisplayName))
+		if cmp == 0 {
+			cmp = strings.Compare(strings.ToLower(a.Username), strings.ToLower(b.Username))
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(a.ID, b.ID)
+		}
+		if sortBy == "name-desc" {
+			return -cmp
+		}
+		return cmp
+	})
 }

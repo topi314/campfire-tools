@@ -725,6 +725,16 @@ form label {
     list-style: none;
 }
 
+#event-members {
+    width: 100%;
+    align-self: stretch;
+    text-align: left;
+}
+
+.event-members-subheader {
+    margin-top: 16px;
+}
+
 .list-item {
     display: flex;
     flex-direction: row;

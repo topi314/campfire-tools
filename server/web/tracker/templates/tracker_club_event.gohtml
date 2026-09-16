@@ -85,7 +85,7 @@
 
             <div class="event-overview-item">
                 <strong>Status</strong>
-                <div>{{ if .Finished }}Finished{{ else }}Upcoming / Active{{ end }}</div>
+                <div>{{ .Status }}</div>
             </div>
 
             {{ if .Address }}
@@ -139,9 +139,17 @@
         </div>
     {{ end }}
 
-    <div class="section">
+    <div id="event-members" class="section">
         <div class="section-header">
-            <h2>Check-Ins ({{ len .CheckedInMembers }})</h2>
+            <h2>Check-Ins</h2>
+            <div class="inline-form-control">
+                <label for="member-sort">
+                        <select id="member-sort" name="sort" hx-get="{{ .URL }}" hx-target="#event-members" hx-swap="outerHTML" hx-select="#event-members" hx-push-url="true">
+                            <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                            <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                        </select>
+                </label>
+            </div>
         </div>
         <ul class="list">
             {{ range $member := .CheckedInMembers }}
@@ -150,17 +158,15 @@
                 <span>No members have checked in.</span>
             {{ end }}
         </ul>
-    </div>
 
-    <div class="section">
-        <div class="section-header">
-            <h2>Accepted, Not Checked In ({{ len .AcceptedMembers }})</h2>
+        <div class="section-header event-members-subheader">
+            <h2>Not Checked In</h2>
         </div>
         <ul class="list">
             {{ range $member := .AcceptedMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
-                <span>No members have accepted and not checked in.</span>
+                <span>No members waiting to check in.</span>
             {{ end }}
         </ul>
     </div>

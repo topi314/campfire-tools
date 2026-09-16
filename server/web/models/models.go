@@ -140,6 +140,17 @@ type Event struct {
 	CheckIns                     int
 }
 
+func (e Event) Status() string {
+	now := time.Now()
+	if e.Finished || (!e.EndTime.IsZero() && !e.EndTime.After(now)) {
+		return "Finished"
+	}
+	if !e.Time.IsZero() && e.Time.After(now) {
+		return "Upcoming"
+	}
+	return "Running"
+}
+
 type EventCategories struct {
 	Open       bool
 	Categories []EventCategory
@@ -424,6 +435,10 @@ type ClubImportJob struct {
 	Status      string
 	State       database.ClubImportJobState
 	Error       string
+}
+
+func EventMapURL(location string, address string) string {
+	return eventMapURL(location, address)
 }
 
 func eventMapURL(location string, address string) string {

@@ -1,65 +1,116 @@
 {{ template "head" addStr "Event - " .Name }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/event" }}
         <h1>
             {{ template "event_cover" . }}
             {{ .Name }}
+            {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
+    </div>
+
+    <div class="buttons" hx-boost="true">
+        {{ if .ImportedAt.IsZero }}
+            <a href="/tracker/export?event={{ .ID }}" class="button">Export</a>
+            <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
+        {{ else }}
+            <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
+            <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
+        {{ end }}
+        <a href="/event/{{ .ID }}" class="button">Refresh</a>
+    </div>
+
+    <div class="section event-summary">
+        <div class="event-stats">
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckIns }}</span>
+                <span class="event-stat-label">Check-Ins</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalAccepted }}</span>
+                <span class="event-stat-label">Accepted</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckInRate }}%</span>
+                <span class="event-stat-label">Check-In Rate</span>
+            </div>
+            {{ if gt .DiscordInterested 0 }}
+                <div class="event-stat">
+                    <span class="event-stat-value">{{ .DiscordInterested }}</span>
+                    <span class="event-stat-label">Discord Interested</span>
+                </div>
+            {{ end }}
+        </div>
     </div>
 
     <div class="section">
         <div class="section-header">
-            <h2>Details </h2>
+            <h2>Overview</h2>
+        </div>
 
-            <div class="inline-form-control" hx-boost="true">
-                {{ if .Event.ImportedAt.IsZero }}
-                    <a href="/tracker/export?event={{ .ID }}" class="button">Export</a>
-                    <a href="/raffle?event={{ .ID }}" class="button">Raffle</a>
-                {{ else }}
-                    <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
-                    <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
-                {{ end }}
-                <a href="/tracker/event/import?events={{ .ID }}" class="button">Import</a>
+        <div class="event-overview">
+            <div class="event-overview-item">
+                <strong>Club</strong>
+                <div>
+                    {{ if .Club.AvatarURL }}
+                        <img class="icon-32" src="{{ .Club.AvatarURL }}" alt="">
+                    {{ else }}
+                        <img class="icon-32" src="/static/default_avatar.png" alt="">
+                    {{ end }}
+                    <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">{{ .Club.Name }}</a>
+                </div>
+            </div>
+
+            <div class="event-overview-item">
+                <strong>Creator</strong>
+                <div>{{ template "campfire_member_inline" .Creator }}</div>
+            </div>
+
+            <div class="event-overview-item">
+                <strong>Start</strong>
+                <div>{{ formatTimeToRelDayTime .Time }}</div>
+            </div>
+
+            <div class="event-overview-item">
+                <strong>End</strong>
+                <div>{{ formatTimeToRelDayTime .EndTime }}</div>
+            </div>
+
+            <div class="event-overview-item">
+                <strong>Status</strong>
+                <div>{{ .Status }}</div>
             </div>
         </div>
-        <p>
-            <strong>Creator:</strong>
-            <br/>
-            {{ template "campfire_member_inline" .Creator }}
-        </p>
-        <p>
-            <strong>Club:</strong>
-            <br/>
-            {{ if .Club.AvatarURL }}
-                <img class="icon-32" src="{{ .Club.AvatarURL }}" alt="">
-            {{ else }}
-                <img class="icon-32" src="/static/default_avatar.png" alt="">
-            {{ end }}
-            <a href="{{ .Club.URL }}" title="{{ .Club.ID }}" hx-boost="true">
-                {{ .Club.Name }}
-            </a>
-        </p>
     </div>
 
-    <div class="section">
-        <h2>Not Checked-In ({{ len .AcceptedMembers }})</h2>
-        <ul class="list">
-            {{ range $member := .AcceptedMembers }}
-                {{ template "campfire_member_list_item" $member }}
-            {{ else }}
-                <span>No members have accepted and not checked in.</span>
-            {{ end }}
-        </ul>
-    </div>
-
-    <div class="section">
-        <h2>Checked-In ({{ len .CheckedInMembers }})</h2>
+    <div id="event-members" class="section">
+        <div class="section-header">
+            <h2>Check-Ins</h2>
+            <div class="inline-form-control">
+                <label for="member-sort">
+                        <select id="member-sort" name="sort" hx-get="/event/{{ .ID }}" hx-target="#event-members" hx-swap="outerHTML" hx-select="#event-members" hx-push-url="true">
+                            <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                            <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                        </select>
+                </label>
+            </div>
+        </div>
         <ul class="list">
             {{ range $member := .CheckedInMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
                 <span>No members have checked in.</span>
+            {{ end }}
+        </ul>
+
+        <div class="section-header event-members-subheader">
+            <h2>Not Checked In</h2>
+        </div>
+        <ul class="list">
+            {{ range $member := .AcceptedMembers }}
+                {{ template "campfire_member_list_item" $member }}
+            {{ else }}
+                <span>No members waiting to check in.</span>
             {{ end }}
         </ul>
     </div>
