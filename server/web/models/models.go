@@ -15,7 +15,7 @@ import (
 )
 
 func NewClub(club database.ClubWithCreator) Club {
-	return Club{
+	c := Club{
 		ID:                           club.Club.ID,
 		Name:                         club.Club.Name,
 		AvatarURL:                    ImageURL(club.Club.AvatarURL, 48),
@@ -26,6 +26,18 @@ func NewClub(club database.ClubWithCreator) Club {
 		ImportedAt:                   club.Club.ImportedAt,
 		URL:                          fmt.Sprintf("/tracker/club/%s", club.Club.ID),
 	}
+
+	if len(club.Club.RawJSON) > 0 {
+		var raw campfire.Club
+		if err := json.Unmarshal(club.Club.RawJSON, &raw); err == nil {
+			c.Address = raw.Address
+			c.Location = raw.Location
+			c.Members = raw.Members.TotalCount
+			c.MapURL = eventMapURL(raw.Location, raw.Address)
+		}
+	}
+
+	return c
 }
 
 type Club struct {
@@ -38,6 +50,10 @@ type Club struct {
 	LastAutoEventImportedAt      time.Time
 	ImportedAt                   time.Time
 	URL                          string
+	Address                      string
+	Location                     string
+	MapURL                       string
+	Members                      int
 }
 
 func NewClubWithEvents(club database.ClubWithEvents) ClubWithEvents {

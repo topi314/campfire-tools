@@ -163,17 +163,24 @@ type clubResp struct {
 }
 
 type Club struct {
-	ID                           string   `json:"id"`
-	Name                         string   `json:"name"`
-	AvatarURL                    string   `json:"avatarUrl"`
-	Visibility                   string   `json:"visibility"`
-	MyPermissions                []string `json:"myPermissions"`
-	BadgeGrants                  []string `json:"badgeGrants"`
-	CreatedByCommunityAmbassador bool     `json:"createdByCommunityAmbassador"`
-	Game                         string   `json:"game"`
-	AmIMember                    bool     `json:"amIMember"`
-	Creator                      Member   `json:"creator"`
-	Raw                          []byte   `json:"-"`
+	ID                           string          `json:"id"`
+	Name                         string          `json:"name"`
+	AvatarURL                    string          `json:"avatarUrl"`
+	Visibility                   string          `json:"visibility"`
+	MyPermissions                []string        `json:"myPermissions"`
+	BadgeGrants                  []string        `json:"badgeGrants"`
+	CreatedByCommunityAmbassador bool            `json:"createdByCommunityAmbassador"`
+	Game                         string          `json:"game"`
+	AmIMember                    bool            `json:"amIMember"`
+	Address                      string          `json:"address"`
+	Location                     string          `json:"location"`
+	Members                      CountConnection `json:"members"`
+	Creator                      Member          `json:"creator"`
+	Raw                          []byte          `json:"-"`
+}
+
+type CountConnection struct {
+	TotalCount int `json:"totalCount"`
 }
 
 func (c *Club) UnmarshalJSON(data []byte) error {

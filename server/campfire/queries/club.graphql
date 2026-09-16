@@ -10,6 +10,11 @@ query Club_Query(
         avatarUrl
         badgeGrants
         createdByCommunityAmbassador
+        address
+        location
+        members {
+            totalCount
+        }
         creator {
             id
             username
@@ -19,13 +24,6 @@ query Club_Query(
                 badgeType
                 alias
             }
-            clubRoles(clubId: $clubId) {
-                id
-                name
-            }
-            clubRank(clubId: $clubId)
         }
     }
 }
-
-

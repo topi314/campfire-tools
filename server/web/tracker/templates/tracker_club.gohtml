@@ -45,6 +45,29 @@
             </div>
 
             <div class="event-overview-item">
+                <strong>Members</strong>
+                <div>{{ .Members }}</div>
+            </div>
+
+            {{ if .Address }}
+                <div class="event-overview-item">
+                    <strong>Address</strong>
+                    <div class="event-description">
+                        {{ if .MapURL }}
+                            <a href="{{ .MapURL }}" target="_blank" rel="noopener noreferrer">{{ .Address }}</a>
+                        {{ else }}
+                            {{ .Address }}
+                        {{ end }}
+                    </div>
+                </div>
+            {{ else if .MapURL }}
+                <div class="event-overview-item">
+                    <strong>Location</strong>
+                    <div><a href="{{ .MapURL }}" target="_blank" rel="noopener noreferrer">View on Maps</a></div>
+                </div>
+            {{ end }}
+
+            <div class="event-overview-item">
                 <strong>Imported</strong>
                 <div>
                     {{ if .ImportedAt }}
@@ -93,7 +116,7 @@
 
     <div id="club-events" class="section">
         <div class="section-header">
-            <h2>Events ({{ len .Events }})</h2>
+            <h2>Events</h2>
             <div class="inline-form-control">
                 <label for="sort">
                     <select id="sort" name="sort" hx-get="{{ .URL }}" hx-target="#club-events" hx-swap="outerHTML" hx-select="#club-events" hx-push-url="true">
