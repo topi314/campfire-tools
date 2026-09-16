@@ -14,9 +14,12 @@ import (
 
 type TrackerClubVars struct {
 	models.Club
-	Events []models.Event
-	Pinned bool
-	Sort   string
+	Events           []models.Event
+	Pinned           bool
+	Sort             string
+	TotalAccepted    int
+	TotalCheckIns    int
+	TotalCheckInRate float64
 }
 
 func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +51,13 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totalAccepted, totalCheckIns, err := h.DB.GetClubTotalCheckInsAccepted(ctx, clubID, time.Time{}, time.Time{}, false, "", "")
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to fetch club totals", slog.String("club_id", clubID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch club totals: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	clubModel := models.NewClub(*club)
 	eventClubAvatarURL := models.ImageURL(club.Club.AvatarURL, 32)
 
@@ -66,10 +76,13 @@ func (h *handler) TrackerClub(w http.ResponseWriter, r *http.Request) {
 	pinned := slices.Contains(pinnedClubs, clubID)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club.gohtml", TrackerClubVars{
-		Club:   clubModel,
-		Events: trackerEvents,
-		Pinned: pinned,
-		Sort:   sortBy,
+		Club:             clubModel,
+		Events:           trackerEvents,
+		Pinned:           pinned,
+		Sort:             sortBy,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club template", slog.String("club_id", clubID), slog.Any("err", err))
 	}

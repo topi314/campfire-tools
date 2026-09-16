@@ -1,5 +1,5 @@
 {{ template "head" addStr "Tracker - " .Name }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/clubs" }}
         <h1>
@@ -12,47 +12,80 @@
     {{ template "club_nav" dict "URL" .URL "Active" "club" }}
 
     <div class="section">
-        <div class="section-header">
-            <h2>Details</h2>
-            <a href="{{ .URL }}/refresh" class="button">Refresh</a>
+        <div class="event-stats">
+            <div class="event-stat">
+                <span class="event-stat-value">{{ len .Events }}</span>
+                <span class="event-stat-label">Events</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckIns }}</span>
+                <span class="event-stat-label">Check-Ins</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalAccepted }}</span>
+                <span class="event-stat-label">Accepted</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckInRate }}%</span>
+                <span class="event-stat-label">Check-In Rate</span>
+            </div>
         </div>
-        <p>
-            <strong>Creator:</strong>
-            {{ template "campfire_member_inline" .Creator }}
-        </p>
-        <p>
-            <strong>Imported At:</strong>
-            {{ if .ImportedAt }}
-                {{ formatTimeToRelDayTime .ImportedAt }}
-            {{ end }}
-        </p>
-        {{ if not .LastAutoEventImportedAt.IsZero }}
-            <p>
-                <strong>Last Auto Event Import At:</strong>
-                {{ formatTimeToRelDayTime .LastAutoEventImportedAt }}
-            </p>
-        {{ end }}
     </div>
 
     <div class="section">
         <div class="section-header">
-            <h2>Settings</h2>
+            <h2>Overview</h2>
+            <a href="{{ .URL }}/refresh" class="button">Refresh</a>
         </div>
 
-        <details>
-            <summary>Show Settings</summary>
-            <form action="/tracker/club/{{ .ID }}" method="post" class="form-control">
-                <div class="stacked-form-control">
-                    <label class="form-control">
-                        Pinned
-                        <input type="checkbox" name="pinned" {{ if .Pinned }}checked{{end}}>
-                    </label>
+        <div class="event-overview">
+            <div class="event-overview-item">
+                <strong>Creator</strong>
+                <div>{{ template "campfire_member_inline" .Creator }}</div>
+            </div>
 
-                    <label class="form-control">
-                        Auto Event Import
-                        <input type="checkbox" name="auto_event_import" {{ if .AutoEventImport }}checked{{end}}>
-                    </label>
-                    <button type="submit" class="button">Save</button>
+            <div class="event-overview-item">
+                <strong>Imported</strong>
+                <div>
+                    {{ if .ImportedAt }}
+                        {{ formatTimeToRelDayTime .ImportedAt }}
+                    {{ else }}
+                        —
+                    {{ end }}
+                </div>
+            </div>
+
+            {{ if not .LastAutoEventImportedAt.IsZero }}
+                <div class="event-overview-item">
+                    <strong>Last Auto Event Import</strong>
+                    <div>{{ formatTimeToRelDayTime .LastAutoEventImportedAt }}</div>
+                </div>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="section">
+        <details class="club-settings-details">
+            <summary><h2>Settings</h2></summary>
+            <form action="/tracker/club/{{ .ID }}" method="post" class="club-settings">
+                <label class="club-setting" for="pinned">
+                    <span class="club-setting-text">
+                        <span class="club-setting-title">Pinned</span>
+                        <span class="club-setting-desc">Keep this club at the top of your clubs list.</span>
+                    </span>
+                    <input type="checkbox" id="pinned" name="pinned" {{ if .Pinned }}checked{{ end }}>
+                </label>
+
+                <label class="club-setting" for="auto_event_import">
+                    <span class="club-setting-text">
+                        <span class="club-setting-title">Auto Event Import</span>
+                        <span class="club-setting-desc">Automatically import new and updated events for this club.</span>
+                    </span>
+                    <input type="checkbox" id="auto_event_import" name="auto_event_import" {{ if .AutoEventImport }}checked{{ end }}>
+                </label>
+
+                <div class="club-settings-actions">
+                    <button type="submit" class="button">Save Settings</button>
                 </div>
             </form>
         </details>
@@ -78,9 +111,12 @@
             {{ range $event := .Events }}
                 <li class="list-item">
                     {{ template "event_cover" $event }}
-                    <a href="{{ $event.URL }}" hx-boost="true">
-                        {{ $event.Name }} ({{ $event.CheckIns }})
-                    </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                    <div class="list-item-content">
+                        <div class="list-item-title">
+                            <a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                        </div>
+                        <span class="small-text">{{ formatDateNice $event.Time }} · {{ $event.CheckIns }} check-ins · {{ $event.Accepted }} accepted</span>
+                    </div>
                 </li>
             {{ else }}
                 <span>No events tracked yet.</span>

@@ -19,6 +19,9 @@ type TrackerClubEventVars struct {
 	IsCustomCategory   bool
 	CheckedInMembers   []models.Member
 	AcceptedMembers    []models.Member
+	TotalAccepted      int
+	TotalCheckIns      int
+	TotalCheckInRate   float64
 }
 
 func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +94,8 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 
 	clubModel := models.NewClub(*club)
 	eventModel := models.NewEventWithCreator(*event, clubModel.AvatarURL)
+	totalCheckIns := len(checkedInTrackerMembers)
+	totalAccepted := totalCheckIns + len(acceptedTrackerMembers)
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_event.gohtml", TrackerClubEventVars{
 		Event:            eventModel,
@@ -99,6 +104,9 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		IsCustomCategory: len(clubCategories) == 0,
 		CheckedInMembers: checkedInTrackerMembers,
 		AcceptedMembers:  acceptedTrackerMembers,
+		TotalAccepted:    totalAccepted,
+		TotalCheckIns:    totalCheckIns,
+		TotalCheckInRate: models.CalcCheckInRate(totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club event template", slog.String("event_id", eventID), slog.Any("err", err))
 	}

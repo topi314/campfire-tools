@@ -3,8 +3,11 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/topi314/campfire-tools/server/campfire"
@@ -69,9 +72,13 @@ func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 			ID: event.CreatorID,
 		},
 		Details:                      event.Details,
+		Address:                      event.Address,
+		Location:                     event.Location,
+		MapURL:                       eventMapURL(event.Location, event.Address),
 		Time:                         event.Time,
 		EndTime:                      event.EndTime,
 		Finished:                     event.Finished,
+		DiscordInterested:            event.DiscordInterested,
 		CampfireLiveEventID:          event.CampfireLiveEventID,
 		CampfireLiveEventName:        event.CampfireLiveEventName,
 		Category:                     event.Category,
@@ -100,9 +107,13 @@ type Event struct {
 	CoverPhotoURL                string
 	ClubAvatarURL                string
 	Details                      string
+	Address                      string
+	Location                     string
+	MapURL                       string
 	Time                         time.Time
 	EndTime                      time.Time
 	Finished                     bool
+	DiscordInterested            int
 	CampfireLiveEventID          string
 	CampfireLiveEventName        string
 	Category                     string
@@ -397,6 +408,45 @@ type ClubImportJob struct {
 	Status      string
 	State       database.ClubImportJobState
 	Error       string
+}
+
+func eventMapURL(location string, address string) string {
+	if lat, lng, ok := parseLocationCoords(location); ok {
+		return fmt.Sprintf("https://www.google.com/maps?q=%s,%s",
+			strconv.FormatFloat(lat, 'f', -1, 64),
+			strconv.FormatFloat(lng, 'f', -1, 64),
+		)
+	}
+	if address != "" {
+		return "https://www.google.com/maps/search/?api=1&query=" + url.QueryEscape(address)
+	}
+	return ""
+}
+
+func parseLocationCoords(location string) (lat float64, lng float64, ok bool) {
+	location = strings.TrimSpace(location)
+	if location == "" {
+		return 0, 0, false
+	}
+
+	// Campfire stores location as [longitude, latitude].
+	var coords []float64
+	if err := json.Unmarshal([]byte(location), &coords); err == nil && len(coords) >= 2 {
+		return coords[1], coords[0], true
+	}
+
+	trimmed := strings.Trim(location, "[]() ")
+	parts := strings.Split(trimmed, ",")
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+
+	lng, errLng := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+	lat, errLat := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+	if errLat != nil || errLng != nil {
+		return 0, 0, false
+	}
+	return lat, lng, true
 }
 
 func ImageURL(imageURL string, size int) string {
