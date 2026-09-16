@@ -18,7 +18,6 @@
             <h2>Codes ({{ .RedeemedCodes }}/{{ .TotalCodes }})</h2>
             <div class="inline-form-control">
                 <label for="filter">
-                    Filter
                     <select id="filter" name="filter" hx-get="{{ .URL }}" hx-target="#codes" hx-swap="outerHTML" hx-select="#codes" hx-push-url="true">
                         <option value="all" {{ if eq .Filter "all" }}selected{{ end }}>All Codes</option>
                         <option value="redeemed" {{ if eq .Filter "redeemed" }}selected{{ end }}>Redeemed Codes</option>

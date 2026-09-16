@@ -24,7 +24,6 @@
             <h2>Event Categories</h2>
             <div class="inline-form-control">
                 <label for="category-sort">
-                    Sort
                     <select id="category-sort" name="category-sort" form="events-filter"
                             onchange="document.getElementById('events-filter').requestSubmit()">
                         <option value="check-ins" {{ if eq .CategorySort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
@@ -137,7 +136,6 @@
 
             <div class="inline-form-control">
                 <label for="league-goal-quarter">
-                    Quarter
                     <select id="league-goal-quarter">
                         {{ range $quarter := .Quarters }}
                             <option value="{{ $quarter.Value }}" {{ if eq $quarter.Value $.LeagueGoals.Quarter }}selected{{ end }}>

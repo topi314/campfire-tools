@@ -374,6 +374,87 @@ form label {
     gap: 10px;
 }
 
+.events-filter {
+    width: 100%;
+    align-items: stretch;
+    gap: 0;
+}
+
+.events-filter-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+    align-items: end;
+}
+
+.events-filter-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.events-filter-dates label,
+.events-filter-fields > label:not(.events-filter-ca) {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.events-filter-fields select,
+.events-filter-dates input {
+    width: 100%;
+    min-width: 0;
+}
+
+.events-filter-ca {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.events-filter-ca input[type="checkbox"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.events-filter-submit {
+    width: 100%;
+}
+
+@media (min-width: 700px) {
+    .events-filter-fields {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .events-filter-dates {
+        grid-column: 1 / 3;
+    }
+
+    .events-filter-ca {
+        grid-column: 3 / 5;
+        width: auto;
+        padding: 0 0 10px;
+        align-self: end;
+        white-space: nowrap;
+    }
+
+    .events-filter-submit {
+        grid-column: 4 / 5;
+        width: 100%;
+    }
+}
+
 #urls {
     resize: vertical;
     max-height: 600px;

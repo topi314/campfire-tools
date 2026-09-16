@@ -5,8 +5,6 @@
         <h1>Event Stats</h1>
     </div>
 
-    {{ template "tracker_nav" "event-stats" }}
-
     {{ range $error := .Errors }}
         <p class="error">{{ $error }}</p>
     {{ end }}

@@ -9,11 +9,12 @@
         </h1>
     </div>
 
-    {{ template "club_nav" dict "URL" .URL "Active" "" }}
+    {{ template "club_nav" dict "URL" .URL "Active" "club" }}
 
     <div class="section">
         <div class="section-header">
             <h2>Details</h2>
+            <a href="{{ .URL }}/refresh" class="button">Refresh</a>
         </div>
         <p>
             <strong>Creator:</strong>
@@ -57,9 +58,21 @@
         </details>
     </div>
 
-    <div class="section">
+    <div id="club-events" class="section">
         <div class="section-header">
             <h2>Events ({{ len .Events }})</h2>
+            <div class="inline-form-control">
+                <label for="sort">
+                    <select id="sort" name="sort" hx-get="{{ .URL }}" hx-target="#club-events" hx-swap="outerHTML" hx-select="#club-events" hx-push-url="true">
+                        <option value="time" {{ if eq .Sort "time" }}selected{{ end }}>Time (newest first)</option>
+                        <option value="time-asc" {{ if eq .Sort "time-asc" }}selected{{ end }}>Time (oldest first)</option>
+                        <option value="check-ins" {{ if eq .Sort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
+                        <option value="check-ins-asc" {{ if eq .Sort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                        <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
+                        <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <ul class="list">
             {{ range $event := .Events }}

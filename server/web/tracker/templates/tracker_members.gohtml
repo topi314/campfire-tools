@@ -5,14 +5,11 @@
         <h1>Members</h1>
     </div>
 
-    {{ template "tracker_nav" "members" }}
-
     <div id="members" class="section">
         <div class="section-header">
             <h2>Search Members</h2>
             <form class="inline-form-control" hx-get="/tracker/members" hx-target="#members-results" hx-swap="outerHTML" hx-select="#members-results" hx-push-url="true" hx-trigger="submit, input changed delay:300ms from:input">
                 <label for="q">
-                    Search
                     <input type="search" id="q" name="q" value="{{ .Query }}" placeholder="Username, display name, or member ID" autofocus>
                 </label>
             </form>
