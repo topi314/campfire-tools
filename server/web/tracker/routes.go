@@ -28,6 +28,7 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("GET /admin", h.Admin)
 	mux.HandleFunc("POST /admin/tokens", h.AdminTokens)
+	mux.HandleFunc("POST /admin/backfill-event-categories", h.AdminBackfillEventCategories)
 
 	mux.HandleFunc("GET  /event", h.Event)
 	mux.HandleFunc("POST /event", h.ShowEvent)
