@@ -432,6 +432,16 @@ form label {
     width: 100%;
 }
 
+.event-category-form {
+    align-items: flex-start;
+}
+
+.event-category-form select {
+    width: auto;
+    min-width: 160px;
+    max-width: 260px;
+}
+
 @media (min-width: 700px) {
     .events-filter-fields {
         grid-template-columns: repeat(4, minmax(0, 1fr));

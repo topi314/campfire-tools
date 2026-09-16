@@ -9,8 +9,6 @@
         </h1>
     </div>
 
-    {{ template "club_nav" dict "URL" .Club.URL "Active" "" }}
-
     <div class="buttons" hx-boost="true">
         <a href="{{ .Club.URL }}/export?event={{ .ID }}" class="button">Export</a>
         <a href="{{ .Club.URL }}/raffle?event={{ .ID }}" class="button">Raffle</a>
@@ -64,7 +62,7 @@
                 <span title="{{ .CampfireLiveEventID}}">{{ .CampfireLiveEventName }}</span>
             </p>
         {{ end }}
-        <form class="stacked-form-control" method="post" action="/tracker/event/{{ .ID }}/category" hx-boost="false"
+        <form class="stacked-form-control event-category-form" method="post" action="/tracker/event/{{ .ID }}/category" hx-boost="false"
               onsubmit="return ensureCategorySelected(event)">
             <label class="form-control" for="event-category">
                 <strong>Category</strong>
