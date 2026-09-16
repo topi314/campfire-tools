@@ -85,7 +85,7 @@
 
             <div class="event-overview-item">
                 <strong>Status</strong>
-                <div>{{ .Status }}</div>
+                <div><span class="event-status event-status-{{ .StatusClass }}">{{ .Status }}</span></div>
             </div>
 
             {{ if .Address }}
@@ -112,36 +112,35 @@
                 <strong>Imported</strong>
                 <div>{{ formatTimeToRelDayTime .ImportedAt }}</div>
             </div>
-        </div>
 
-        <form class="stacked-form-control event-category-form" method="post" action="/tracker/event/{{ .ID }}/category" hx-boost="false"
-              onsubmit="return ensureCategorySelected(event)">
-            <label class="form-control" for="event-category">
+            <div class="event-overview-item">
                 <strong>Category</strong>
-                <select id="event-category" name="event-category" required
-                        onchange="onCategoryChange(this)">
-                    {{ range $category := .ClubCategories }}
-                        <option value="{{ $category }}" {{ if eq $.Category $category }}selected{{ end }}>{{ formatEventCategory $category }}</option>
-                    {{ end }}
-                    <option value="__custom__">Custom…</option>
-                </select>
-            </label>
-            <button type="submit">Save Category</button>
-        </form>
-    </div>
-
-    {{ if .Details }}
-        <div class="section">
-            <div class="section-header">
-                <h2>Description</h2>
+                <div>
+                    <form class="event-category-form" method="post" action="/tracker/event/{{ .ID }}/category" hx-boost="false"
+                          onsubmit="return ensureCategorySelected(event)">
+                        <select id="event-category" name="event-category" required
+                                onchange="onCategoryChange(this)">
+                            {{ range $category := .ClubCategories }}
+                                <option value="{{ $category }}" {{ if eq $.Category $category }}selected{{ end }}>{{ formatEventCategory $category }}</option>
+                            {{ end }}
+                            <option value="__custom__">Custom…</option>
+                        </select>
+                        <button type="submit" class="button small">Save</button>
+                    </form>
+                </div>
             </div>
-            <p class="event-description">{{ .Details }}</p>
+            {{ if .Details }}
+                <div class="event-overview-item event-overview-item-wide">
+                    <strong>Description</strong>
+                    <div class="event-description">{{ .Details }}</div>
+                </div>
+            {{ end }}
         </div>
-    {{ end }}
+    </div>
 
     <div id="event-members" class="section">
         <div class="section-header">
-            <h2>Check-Ins</h2>
+            <h2>Checked-In</h2>
             <div class="inline-form-control">
                 <label for="member-sort">
                         <select id="member-sort" name="sort" hx-get="{{ .URL }}" hx-target="#event-members" hx-swap="outerHTML" hx-select="#event-members" hx-push-url="true">
@@ -160,7 +159,7 @@
         </ul>
 
         <div class="section-header event-members-subheader">
-            <h2>Not Checked In</h2>
+            <h2>Not Checked-In</h2>
         </div>
         <ul class="list">
             {{ range $member := .AcceptedMembers }}

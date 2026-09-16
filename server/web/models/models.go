@@ -151,6 +151,17 @@ func (e Event) Status() string {
 	return "Running"
 }
 
+func (e Event) StatusClass() string {
+	switch e.Status() {
+	case "Upcoming":
+		return "upcoming"
+	case "Running":
+		return "running"
+	default:
+		return "finished"
+	}
+}
+
 type EventCategories struct {
 	Open       bool
 	Categories []EventCategory
