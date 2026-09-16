@@ -435,22 +435,37 @@ form label {
 @media (min-width: 700px) {
     .events-filter-fields {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-areas:
+            "dates dates quarter submit"
+            "creator category ca .";
     }
 
     .events-filter-dates {
-        grid-column: 1 / 3;
+        grid-area: dates;
+    }
+
+    .events-filter-quarter {
+        grid-area: quarter;
     }
 
     .events-filter-ca {
-        grid-column: 3 / 5;
+        grid-area: ca;
         width: auto;
         padding: 0 0 10px;
         align-self: end;
         white-space: nowrap;
     }
 
+    .events-filter-creator {
+        grid-area: creator;
+    }
+
+    .events-filter-category {
+        grid-area: category;
+    }
+
     .events-filter-submit {
-        grid-column: 4 / 5;
+        grid-area: submit;
         width: 100%;
     }
 }

@@ -100,12 +100,24 @@
                 </label>
             </div>
 
+            <label class="events-filter-quarter" for="date-preset">
+                <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
+                        hx-push-url="false">
+                    <option value="">Select Quarter</option>
+                    {{ range $quarter := .Quarters }}
+                        <option value="{{ $quarter.Value }}">
+                            {{ $quarter.Name }}
+                        </option>
+                    {{ end }}
+                </select>
+            </label>
+
             <label class="events-filter-ca" for="only-ca-events">
                 <input type="checkbox" id="only-ca-events" name="only-ca-events" {{ if .OnlyCAEvents }}checked{{ end }}>
                 Only CA Events
             </label>
 
-            <label for="event-creator">
+            <label class="events-filter-creator" for="event-creator">
                 <select id="event-creator" name="event-creator">
                     <option value="">All Event Creators</option>
                     {{ range $creator := .EventCreators }}
@@ -116,24 +128,12 @@
                 </select>
             </label>
 
-            <label for="event-category">
+            <label class="events-filter-category" for="event-category">
                 <select id="event-category" name="event-category">
                     <option value="">All Event Categories</option>
                     {{ range $category := .CategoryOptions }}
                         <option value="{{ $category }}" {{ if eq $.SelectedEventCategory $category }}selected{{ end }}>
                             {{ formatEventCategory $category }}
-                        </option>
-                    {{ end }}
-                </select>
-            </label>
-
-            <label for="date-preset">
-                <select id="date-preset" name="quarter" hx-get="/tracker/quarter-filters" hx-target="#events-filter-range" hx-swap="outerHTML" hx-select="#events-filter-range" hx-params="*"
-                        hx-push-url="false">
-                    <option value="">Select Quarter</option>
-                    {{ range $quarter := .Quarters }}
-                        <option value="{{ $quarter.Value }}">
-                            {{ $quarter.Name }}
                         </option>
                     {{ end }}
                 </select>
