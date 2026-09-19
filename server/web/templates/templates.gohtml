@@ -41,6 +41,42 @@
     {{ end }}
 {{ end }}
 
+{{ define "event_list_item" }}
+    <li class="list-item">
+        {{ template "event_cover" . }}
+        <div class="list-item-content">
+            <div class="list-item-title">
+                <a href="{{ .URL }}" title="{{ .ID }}" hx-boost="true">{{ .Name }}</a>{{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
+            </div>
+            <span class="small-text">
+                {{ formatDateNice .Time }}{{ if .Category }} · {{ formatEventCategory .Category }}{{ end }}
+            </span>
+        </div>
+    </li>
+{{ end }}
+
+{{ define "event_club_group" }}
+    <details class="event-club-group" open>
+        <summary class="event-club-group-header">
+            <h3>
+                {{ if .Club.AvatarURL }}
+                    <img src="{{ .Club.AvatarURL }}" class="icon-32" alt="">
+                {{ else }}
+                    <img src="/static/default.png" class="icon-32" alt="">
+                {{ end }}
+                <a href="{{ .Club.URL }}" hx-boost="true" onclick="event.stopPropagation()">{{ .Club.Name }}</a>
+                {{ template "community_ambassador_flag" .Club.CreatedByCommunityAmbassador }}
+                <span class="event-club-group-count">({{ len .Events }})</span>
+            </h3>
+        </summary>
+        <ul class="list">
+            {{ range $event := .Events }}
+                {{ template "event_list_item" $event }}
+            {{ end }}
+        </ul>
+    </details>
+{{ end }}
+
 {{ define "community_ambassador_icon" }}
     <img src="/static/community-ambassador.png" class="icon-32 ca-icon" alt="Community Ambassador" title="Community Ambassador">
 {{ end }}

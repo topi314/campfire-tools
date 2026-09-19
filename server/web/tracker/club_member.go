@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/topi314/campfire-tools/server/web/models"
 )
@@ -12,9 +13,13 @@ import (
 type TrackerClubMemberVars struct {
 	models.Member
 
-	Club           models.Club
-	Events         []models.Event
-	AcceptedEvents []models.Event
+	Club             models.Club
+	Events           []models.Event
+	AcceptedEvents   []models.Event
+	ImportedAt       time.Time
+	TotalCheckIns    int
+	TotalAccepted    int
+	TotalCheckInRate float64
 }
 
 func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
@@ -67,11 +72,18 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 		acceptedTrackerEvents[i] = models.NewEvent(event, 32, eventClubAvatarURL)
 	}
 
+	totalCheckIns := len(trackerEvents)
+	totalAccepted := len(acceptedTrackerEvents)
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_member.gohtml", TrackerClubMemberVars{
-		Member:         models.NewMember(*member, clubID, 48),
-		Club:           clubModel,
-		Events:         trackerEvents,
-		AcceptedEvents: acceptedTrackerEvents,
+		Member:           models.NewMember(*member, clubID, 48),
+		Club:             clubModel,
+		Events:           trackerEvents,
+		AcceptedEvents:   acceptedTrackerEvents,
+		ImportedAt:       member.ImportedAt,
+		TotalCheckIns:    totalCheckIns,
+		TotalAccepted:    totalAccepted,
+		TotalCheckInRate: models.CalcCheckInRate(totalCheckIns+totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker club member template", slog.Any("err", err))
 	}
