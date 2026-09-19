@@ -8,6 +8,27 @@
     </div>
 
     <div class="section">
+        <div class="event-stats">
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckIns }}</span>
+                <span class="event-stat-label">Check-Ins</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalAccepted }}</span>
+                <span class="event-stat-label">Not Checked-In</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalClubs }}</span>
+                <span class="event-stat-label">Clubs</span>
+            </div>
+            <div class="event-stat">
+                <span class="event-stat-value">{{ .TotalCheckInRate }}%</span>
+                <span class="event-stat-label">Check-In Rate</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
         <div class="section-header">
             <h2>Details</h2>
         </div>
@@ -34,32 +55,34 @@
             <h2>Check-Ins</h2>
         </div>
         {{ range $group := .CheckInEventsByClub }}
-            <div class="section-header">
-                <h3>
-                    {{ if $group.Club.AvatarURL }}
-                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
-                    {{ else }}
-                        <img src="/static/default.png" class="icon-32" alt="">
-                    {{ end }}
-                    <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
-                    {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
-                    ({{ len $group.Events }})
-                </h3>
-            </div>
-            <ul class="list">
-                {{ range $event := $group.Events }}
-                    <li class="list-item">
-                        {{ if $event.CoverPhotoURL }}
-                            <img src="{{ $event.CoverPhotoURL }}">
+            <details class="event-club-group" open>
+                <summary class="event-club-group-header">
+                    <h3>
+                        {{ if $group.Club.AvatarURL }}
+                            <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
                         {{ else }}
-                            <img src="/static/default.png">
+                            <img src="/static/default.png" class="icon-32" alt="">
                         {{ end }}
-                        <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
-                            {{ $event.Name }}
-                        </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
-                    </li>
-                {{ end }}
-            </ul>
+                        <a href="{{ $group.Club.URL }}" hx-boost="true" onclick="event.stopPropagation()">{{ $group.Club.Name }}</a>
+                        {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
+                        <span class="event-club-group-count">({{ len $group.Events }})</span>
+                    </h3>
+                </summary>
+                <ul class="list">
+                    {{ range $event := $group.Events }}
+                        <li class="list-item">
+                            {{ if $event.CoverPhotoURL }}
+                                <img src="{{ $event.CoverPhotoURL }}">
+                            {{ else }}
+                                <img src="/static/default.png">
+                            {{ end }}
+                            <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
+                                {{ $event.Name }}
+                            </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                        </li>
+                    {{ end }}
+                </ul>
+            </details>
         {{ else }}
             <span>No events found.</span>
         {{ end }}
@@ -67,35 +90,37 @@
 
     <div class="section">
         <div class="section-header">
-            <h2>Accepted</h2>
+            <h2>Not Checked-In</h2>
         </div>
         {{ range $group := .AcceptedEventsByClub }}
-            <div class="section-header">
-                <h3>
-                    {{ if $group.Club.AvatarURL }}
-                        <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
-                    {{ else }}
-                        <img src="/static/default.png" class="icon-32" alt="">
-                    {{ end }}
-                    <a href="{{ $group.Club.URL }}" hx-boost="true">{{ $group.Club.Name }}</a>
-                    {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
-                    ({{ len $group.Events }})
-                </h3>
-            </div>
-            <ul class="list">
-                {{ range $event := $group.Events }}
-                    <li class="list-item">
-                        {{ if $event.CoverPhotoURL }}
-                            <img src="{{ $event.CoverPhotoURL }}">
+            <details class="event-club-group" open>
+                <summary class="event-club-group-header">
+                    <h3>
+                        {{ if $group.Club.AvatarURL }}
+                            <img src="{{ $group.Club.AvatarURL }}" class="icon-32" alt="">
                         {{ else }}
-                            <img src="/static/default.png">
+                            <img src="/static/default.png" class="icon-32" alt="">
                         {{ end }}
-                        <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
-                            {{ $event.Name }}
-                        </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
-                    </li>
-                {{ end }}
-            </ul>
+                        <a href="{{ $group.Club.URL }}" hx-boost="true" onclick="event.stopPropagation()">{{ $group.Club.Name }}</a>
+                        {{ template "community_ambassador_flag" $group.Club.CreatedByCommunityAmbassador }}
+                        <span class="event-club-group-count">({{ len $group.Events }})</span>
+                    </h3>
+                </summary>
+                <ul class="list">
+                    {{ range $event := $group.Events }}
+                        <li class="list-item">
+                            {{ if $event.CoverPhotoURL }}
+                                <img src="{{ $event.CoverPhotoURL }}">
+                            {{ else }}
+                                <img src="/static/default.png">
+                            {{ end }}
+                            <a href="{{ $event.URL }}" title="{{ $event.ID }}" hx-boost="true">
+                                {{ $event.Name }}
+                            </a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                        </li>
+                    {{ end }}
+                </ul>
+            </details>
         {{ else }}
             <span>No events found.</span>
         {{ end }}

@@ -58,8 +58,8 @@ func (h *handler) TrackerClubMember(w http.ResponseWriter, r *http.Request) {
 
 	acceptedEvents, err := h.DB.GetAcceptedClubEventsByMember(ctx, clubID, memberID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch RSVP club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
-		http.Error(w, "Failed to fetch RSVP club events by member: "+err.Error(), http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to fetch accepted club events by member", slog.String("club_id", clubID), slog.String("member_id", memberID), slog.Any("err", err))
+		http.Error(w, "Failed to fetch accepted club events by member: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	acceptedTrackerEvents := make([]models.Event, len(acceptedEvents))

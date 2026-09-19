@@ -21,6 +21,10 @@ type TrackerMemberVars struct {
 	models.ImportedMember
 	CheckInEventsByClub  []models.ClubMemberEvents
 	AcceptedEventsByClub []models.ClubMemberEvents
+	TotalCheckIns        int
+	TotalAccepted        int
+	TotalClubs           int
+	TotalCheckInRate     float64
 }
 
 func (h *handler) TrackerMembers(w http.ResponseWriter, r *http.Request) {
@@ -81,14 +85,34 @@ func (h *handler) TrackerMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	checkInEventsByClub := models.GroupEventsByClub(checkInEvents, 32)
+	acceptedEventsByClub := models.GroupEventsByClub(acceptedEvents, 32)
+	totalCheckIns := len(checkInEvents)
+	totalAccepted := len(acceptedEvents)
+	totalClubs := countUniqueClubs(checkInEventsByClub, acceptedEventsByClub)
+
 	if err = h.Templates().ExecuteTemplate(w, "tracker_member.gohtml", TrackerMemberVars{
 		ImportedMember: models.ImportedMember{
 			Member:     models.NewImportedMember(*member, 48),
 			ImportedAt: member.ImportedAt,
 		},
-		CheckInEventsByClub:  models.GroupEventsByClub(checkInEvents, 32),
-		AcceptedEventsByClub: models.GroupEventsByClub(acceptedEvents, 32),
+		CheckInEventsByClub:  checkInEventsByClub,
+		AcceptedEventsByClub: acceptedEventsByClub,
+		TotalCheckIns:        totalCheckIns,
+		TotalAccepted:        totalAccepted,
+		TotalClubs:           totalClubs,
+		TotalCheckInRate:     models.CalcCheckInRate(totalCheckIns+totalAccepted, totalCheckIns),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker member template", slog.String("member_id", memberID), slog.Any("err", err))
 	}
+}
+
+func countUniqueClubs(groups ...[]models.ClubMemberEvents) int {
+	seen := make(map[string]struct{})
+	for _, groupList := range groups {
+		for _, group := range groupList {
+			seen[group.Club.ID] = struct{}{}
+		}
+	}
+	return len(seen)
 }

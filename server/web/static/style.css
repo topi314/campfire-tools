@@ -808,6 +808,74 @@ form label {
     margin-top: 10px;
 }
 
+.event-club-group {
+    background-color: var(--background2-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.section > .event-club-group:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+.event-club-group > *:not(:last-child) {
+    margin-bottom: 0;
+}
+
+.event-club-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background-color: var(--background-color);
+    list-style: none;
+    text-align: left;
+}
+
+.event-club-group-header::-webkit-details-marker {
+    display: none;
+}
+
+.event-club-group-header::before {
+    content: "▸";
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-color);
+}
+
+.event-club-group[open] > .event-club-group-header::before {
+    content: "▾";
+}
+
+.event-club-group[open] > .event-club-group-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.event-club-group-header h3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    min-width: 0;
+}
+
+.event-club-group-count {
+    color: var(--text2-color);
+    font-weight: normal;
+}
+
+.event-club-group .list {
+    padding: 4px 12px;
+}
+
+.event-club-group .list-item:last-child {
+    border-bottom: none;
+}
+
 .list-item {
     display: flex;
     flex-direction: row;
