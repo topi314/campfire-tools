@@ -36,6 +36,9 @@ func Routes(srv *server.Server) http.Handler {
 
 	mux.HandleFunc("GET  /raffle", h.Raffle)
 	mux.HandleFunc("POST /raffle", h.RunRaffle)
+	mux.HandleFunc("GET  /raffle/blocked", h.RaffleBlocked)
+	mux.HandleFunc("POST /raffle/blocked", h.PostRaffleBlocked)
+	mux.HandleFunc("POST /raffle/blocked/remove", h.PostRaffleBlockedRemove)
 	mux.HandleFunc("POST /raffle/{raffle_id}", h.RerunRaffle)
 	mux.HandleFunc("GET  /raffle/{raffle_id}", h.GetRaffle)
 	mux.HandleFunc("GET  /raffle/{raffle_id}/events", h.AddRaffleEvents)

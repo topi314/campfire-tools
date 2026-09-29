@@ -21,6 +21,7 @@
                             {{ if not $winner.Confirmed }}
                                 <form action="{{ $winner.ConfirmURL }}" method="POST">
                                     <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
+                                    <input type="hidden" name="blocked_members" value="{{ if $.BlockedMembersOpen }}true{{ else }}false{{ end }}">
                                     <button type="submit" class="button success">
                                         Confirm
                                     </button>
@@ -40,6 +41,7 @@
             {{ if .ID }}
                 <form action="{{ .RerunRaffleURL }}" method="POST">
                     <input type="hidden" name="past_winners" value="{{ if $.PastWinnersOpen }}true{{ else }}false{{ end }}">
+                    <input type="hidden" name="blocked_members" value="{{ if $.BlockedMembersOpen }}true{{ else }}false{{ end }}">
                     <button type="submit" class="button">
                         Rerun
                     </button>
@@ -59,6 +61,21 @@
                     {{ range $index, $pastWinner := .PastWinners }}
                         <li title="{{ $pastWinner.Username }}">
                             {{ $pastWinner.DisplayName }}{{ if $pastWinner.CheckIns }} ({{ $pastWinner.CheckIns }}){{ end }}
+                        </li>
+                    {{ end }}
+                </ul>
+            </details>
+        </div>
+    {{ end }}
+
+    {{ if .BlockedMembers }}
+        <div class="section">
+            <details id="blocked-members" {{ if .BlockedMembersOpen }}open{{ end }}>
+                <summary>Blocked Members</summary>
+                <ul class="past-winners">
+                    {{ range $member := .BlockedMembers }}
+                        <li title="{{ $member.Username }}">
+                            {{ $member.DisplayName }}
                         </li>
                     {{ end }}
                 </ul>
@@ -101,6 +118,9 @@
 <script>
     document.getElementById("past-winners")?.addEventListener("toggle", (event) => {
         toggleParam(event.target, "past-winners");
+    });
+    document.getElementById("blocked-members")?.addEventListener("toggle", (event) => {
+        toggleParam(event.target, "blocked-members");
     });
 
     function toggleParam(element, name) {

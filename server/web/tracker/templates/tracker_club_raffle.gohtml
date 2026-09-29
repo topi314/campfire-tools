@@ -13,6 +13,10 @@
 
     {{ template "club_nav" dict "URL" .URL "Active" "raffle" }}
 
+    <div class="buttons" hx-boost="true">
+        <a href="/raffle/blocked" class="button">Blocked Members</a>
+    </div>
+
     <div class="section">
         {{ template "events_filter" . }}
 

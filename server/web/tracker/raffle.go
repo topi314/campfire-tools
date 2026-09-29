@@ -31,15 +31,17 @@ type RaffleVars struct {
 
 type RaffleResultVars struct {
 	models.Raffle
-	Events          []models.Event
-	ClubID          string
-	RerunRaffleURL  string
-	AddEventsURL    string
-	Error           string
-	Winners         []models.Winner
-	PastWinners     []models.Winner
-	PastWinnersOpen bool
-	BackURL         string
+	Events              []models.Event
+	ClubID              string
+	RerunRaffleURL      string
+	AddEventsURL        string
+	Error               string
+	Winners             []models.Winner
+	PastWinners         []models.Winner
+	PastWinnersOpen     bool
+	BlockedMembers      []models.Member
+	BlockedMembersOpen  bool
+	BackURL             string
 }
 
 func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
@@ -171,11 +173,13 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 
 	raffleIDStr := r.PathValue("raffle_id")
 	pastWinnersOpenStr := r.FormValue("past_winners")
+	blockedMembersOpenStr := r.FormValue("blocked_members")
 
 	slog.InfoContext(ctx, "Received rerun raffle request",
 		slog.String("url", r.URL.String()),
 		slog.String("raffle_id", raffleIDStr),
 		slog.String("past_winners_open", pastWinnersOpenStr),
+		slog.String("blocked_members_open", blockedMembersOpenStr),
 	)
 
 	raffleID, err := strconv.Atoi(raffleIDStr)
@@ -185,6 +189,7 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pastWinnersOpen, _ := strconv.ParseBool(pastWinnersOpenStr)
+	blockedMembersOpen, _ := strconv.ParseBool(blockedMembersOpenStr)
 
 	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
 	if err != nil {
@@ -227,6 +232,12 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 	if pastWinnersOpen {
 		rawQuery = "past-winners=true"
 	}
+	if blockedMembersOpen {
+		if rawQuery != "" {
+			rawQuery += "&"
+		}
+		rawQuery += "blocked-members=true"
+	}
 
 	redirectRaffle(w, r, raffleID, clubID, rawQuery)
 }
@@ -239,6 +250,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 
 	raffleIDStr := r.PathValue("raffle_id")
 	pastWinnersOpen := xquery.ParseBool(query, "past-winners", false)
+	blockedMembersOpen := xquery.ParseBool(query, "blocked-members", false)
 
 	slog.InfoContext(ctx, "Received raffle request", slog.String("url", r.URL.String()), slog.String("raffle_id", raffleIDStr))
 
@@ -290,6 +302,20 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var blockedMembers []models.Member
+	if raffle.UserID != "" {
+		blocked, blockedErr := h.DB.GetDiscordUserRaffleBlockedMembers(ctx, raffle.UserID)
+		if blockedErr != nil {
+			slog.ErrorContext(ctx, "Failed to get raffle blocked members", slog.Any("err", blockedErr))
+			h.renderRaffleResult(w, r, *raffle, clubID, "Failed to get blocked members: "+blockedErr.Error())
+			return
+		}
+		blockedMembers = make([]models.Member, len(blocked))
+		for i, member := range blocked {
+			blockedMembers[i] = models.NewImportedMember(member, 32)
+		}
+	}
+
 	var backURL string
 	var addEventsURL string
 	if clubID != "" {
@@ -301,21 +327,32 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
-		Raffle:          models.NewRaffle(*raffle),
-		Events:          renderEvents,
-		ClubID:          clubID,
-		RerunRaffleURL:  r.URL.Path,
-		AddEventsURL:    addEventsURL,
-		Winners:         winners,
-		PastWinners:     pastWinners,
-		PastWinnersOpen: pastWinnersOpen,
-		BackURL:         backURL,
+		Raffle:             models.NewRaffle(*raffle),
+		Events:             renderEvents,
+		ClubID:             clubID,
+		RerunRaffleURL:     r.URL.Path,
+		AddEventsURL:       addEventsURL,
+		Winners:            winners,
+		PastWinners:        pastWinners,
+		PastWinnersOpen:    pastWinnersOpen,
+		BlockedMembers:     blockedMembers,
+		BlockedMembersOpen: blockedMembersOpen,
+		BackURL:            backURL,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
 	}
 }
 
 func (h *handler) raffleWinners(ctx context.Context, raffle database.Raffle, pastWinners []database.RaffleWinnerWithMember) ([]campfire.Member, error) {
+	var blockedMemberIDs []string
+	if raffle.UserID != "" {
+		var err error
+		blockedMemberIDs, err = h.DB.GetDiscordUserRaffleBlockedMemberIDs(ctx, raffle.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get raffle blocked members: %w", err)
+		}
+	}
+
 	eg, egCtx := errgroup.WithContext(ctx)
 	var eventIDs []string
 	var members []campfire.Member
@@ -346,6 +383,11 @@ func (h *handler) raffleWinners(ctx context.Context, raffle database.Raffle, pas
 				if raffle.SingleEntry && slices.ContainsFunc(members, func(member campfire.Member) bool {
 					return member.ID == rsvpStatus.UserID
 				}) {
+					continue
+				}
+
+				// Skip if the user is blocked from the raffle owner's draws
+				if slices.Contains(blockedMemberIDs, rsvpStatus.UserID) {
 					continue
 				}
 
