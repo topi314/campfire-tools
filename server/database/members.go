@@ -13,57 +13,79 @@ import (
 	"github.com/lib/pq"
 )
 
+func escapeILIKE(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
+}
+
 func (d *Database) SearchMembers(ctx context.Context, query string, limit int) ([]Member, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return nil, nil
 	}
 
+	// Short queries match too many rows and are rarely useful.
+	if len([]rune(query)) < 2 {
+		return nil, nil
+	}
+
+	likePattern := "%" + escapeILIKE(query) + "%"
+
+	// ILIKE '%…%' uses the pg_trgm GIN indexes. Keep each predicate in its own
+	// UNION branch so Postgres can bitmap-scan instead of seq-scanning members.
+	// Skip member_raw_json — search results only need display fields.
 	sqlQuery := `
-		SELECT m.*
-		FROM members m
-		WHERE (
-				NULLIF(m.member_username, '') IS NOT NULL
-				AND (
-					m.member_username % $1
-					OR $1 <% m.member_username
-					OR strpos(lower(m.member_username), lower($1)) > 0
-				)
-			)
-			OR (
-				NULLIF(m.member_display_name, '') IS NOT NULL
-				AND (
-					m.member_display_name % $1
-					OR $1 <% m.member_display_name
-					OR strpos(lower(m.member_display_name), lower($1)) > 0
-				)
-			)
-			OR strpos(lower(m.member_id), lower($1)) > 0
+		WITH hits AS (
+			SELECT member_id, member_username, member_display_name, member_avatar_url, member_imported_at
+			FROM members
+			WHERE member_username <> ''
+			  AND member_username ILIKE $1 ESCAPE '\'
+
+			UNION
+
+			SELECT member_id, member_username, member_display_name, member_avatar_url, member_imported_at
+			FROM members
+			WHERE member_display_name <> ''
+			  AND member_display_name ILIKE $1 ESCAPE '\'
+
+			UNION
+
+			SELECT member_id, member_username, member_display_name, member_avatar_url, member_imported_at
+			FROM members
+			WHERE member_id = $2
+		)
+		SELECT
+			member_id,
+			member_username,
+			member_display_name,
+			member_avatar_url,
+			member_imported_at,
+			'{}'::jsonb AS member_raw_json
+		FROM hits
 		ORDER BY
-			(NULLIF(m.member_username, '') IS NULL AND NULLIF(m.member_display_name, '') IS NULL)::int,
 			CASE
-				WHEN lower(m.member_username) = lower($1)
-					OR lower(m.member_display_name) = lower($1) THEN 0
-				WHEN lower(m.member_id) = lower($1) THEN 1
-				WHEN starts_with(lower(m.member_username), lower($1))
-					OR starts_with(lower(m.member_display_name), lower($1)) THEN 2
-				WHEN starts_with(lower(m.member_id), lower($1)) THEN 3
+				WHEN lower(member_username) = lower($2)
+					OR lower(member_display_name) = lower($2) THEN 0
+				WHEN member_id = $2 THEN 1
+				WHEN starts_with(lower(member_username), lower($2))
+					OR starts_with(lower(member_display_name), lower($2)) THEN 2
+				WHEN starts_with(member_id, $2) THEN 3
 				ELSE 4
 			END,
 			GREATEST(
-				COALESCE(similarity(NULLIF(m.member_username, ''), $1), 0),
-				COALESCE(similarity(NULLIF(m.member_display_name, ''), $1), 0),
-				COALESCE(word_similarity($1, NULLIF(m.member_username, '')), 0),
-				COALESCE(word_similarity($1, NULLIF(m.member_display_name, '')), 0)
+				COALESCE(similarity(NULLIF(member_username, ''), $2), 0),
+				COALESCE(similarity(NULLIF(member_display_name, ''), $2), 0)
 			) DESC,
-			length(COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id)),
-			COALESCE(NULLIF(m.member_display_name, ''), NULLIF(m.member_username, ''), m.member_id),
-			m.member_id
-		LIMIT $2
+			length(COALESCE(NULLIF(member_display_name, ''), NULLIF(member_username, ''), member_id)),
+			COALESCE(NULLIF(member_display_name, ''), NULLIF(member_username, ''), member_id),
+			member_id
+		LIMIT $3
 	`
 
 	var members []Member
-	if err := d.db.SelectContext(ctx, &members, sqlQuery, query, limit); err != nil {
+	if err := d.db.SelectContext(ctx, &members, sqlQuery, likePattern, query, limit); err != nil {
 		return nil, fmt.Errorf("failed to search members: %w", err)
 	}
 

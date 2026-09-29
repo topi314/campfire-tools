@@ -53,9 +53,9 @@
     <div id="search" class="section">
         <div class="section-header">
             <h2>Add Member</h2>
-            <form class="inline-form-control" hx-get="/raffle/blocked" hx-target="#search-results" hx-swap="outerHTML" hx-select="#search-results" hx-push-url="true" hx-trigger="submit, input changed delay:300ms from:input">
+            <form class="inline-form-control" hx-get="/raffle/blocked" hx-target="#search-results" hx-swap="outerHTML" hx-select="#search-results" hx-push-url="true" hx-trigger="submit, input changed delay:400ms from:input">
                 <label for="q">
-                    <input type="search" id="q" name="q" value="{{ .Query }}" placeholder="Username, display name, or member ID" autofocus>
+                    <input type="search" id="q" name="q" value="{{ .Query }}" placeholder="Username, display name, or member ID" autofocus minlength="2">
                 </label>
             </form>
         </div>
@@ -63,6 +63,8 @@
         <div id="search-results">
             {{ if eq .Query "" }}
                 <p>Search for a member to block them from your raffles.</p>
+            {{ else if lt (len .Query) 2 }}
+                <p>Enter at least 2 characters to search.</p>
             {{ else if not .SearchMembers }}
                 <p>No members found for "{{ .Query }}".</p>
             {{ else }}
