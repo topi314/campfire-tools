@@ -33,7 +33,7 @@ func NewClub(club database.ClubWithCreator) Club {
 			c.Address = raw.Address
 			c.Location = raw.Location
 			c.Members = raw.Members.TotalCount
-			c.MapURL = eventMapURL(raw.Location, raw.Address)
+			c.MapURL = EventMapURL(raw.Location, raw.Address)
 		}
 	}
 
@@ -90,7 +90,7 @@ func NewEvent(event database.Event, iconSize int, clubAvatarURL string) Event {
 		Details:                      event.Details,
 		Address:                      event.Address,
 		Location:                     event.Location,
-		MapURL:                       eventMapURL(event.Location, event.Address),
+		MapURL:                       EventMapURL(event.Location, event.Address),
 		Time:                         event.Time,
 		EndTime:                      event.EndTime,
 		Finished:                     event.Finished,
@@ -449,11 +449,7 @@ type ClubImportJob struct {
 }
 
 func EventMapURL(location string, address string) string {
-	return eventMapURL(location, address)
-}
-
-func eventMapURL(location string, address string) string {
-	if lat, lng, ok := parseLocationCoords(location); ok {
+	if lat, lng, ok := ParseLocationCoords(location); ok {
 		return fmt.Sprintf("https://www.google.com/maps?q=%s,%s",
 			strconv.FormatFloat(lat, 'f', -1, 64),
 			strconv.FormatFloat(lng, 'f', -1, 64),
@@ -465,7 +461,8 @@ func eventMapURL(location string, address string) string {
 	return ""
 }
 
-func parseLocationCoords(location string) (lat float64, lng float64, ok bool) {
+// ParseLocationCoords parses Campfire's location string as [longitude, latitude].
+func ParseLocationCoords(location string) (lat float64, lng float64, ok bool) {
 	location = strings.TrimSpace(location)
 	if location == "" {
 		return 0, 0, false

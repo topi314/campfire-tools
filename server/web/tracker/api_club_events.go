@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,8 @@ type UpcomingClubEvent struct {
 	ID                           string                  `json:"id"`
 	Name                         string                  `json:"name"`
 	Address                      string                  `json:"address"`
+	Lat                          *float64                `json:"lat"`
+	Long                         *float64                `json:"long"`
 	CoverPhotoURL                string                  `json:"cover_photo_url"`
 	Details                      string                  `json:"details"`
 	URL                          string                  `json:"url"`
@@ -36,11 +39,30 @@ func (h *handler) APIClubEvents(w http.ResponseWriter, r *http.Request) {
 
 	clubID := r.PathValue("club_id")
 	upcoming := xquery.ParseBool(query, "upcoming", false)
+	from, err := xquery.ParseTimestamp(query, "from")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	to, err := xquery.ParseTimestamp(query, "to")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	tz := xquery.ParseString(query, "timezone", "UTC")
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		http.Error(w, "Invalid timezone: "+tz, http.StatusBadRequest)
+		return
+	}
 
 	slog.InfoContext(ctx, "Received API club events request",
 		slog.String("url", r.URL.String()),
 		slog.Any("club_id", clubID),
 		slog.Bool("upcoming", upcoming),
+		slog.Time("from", from),
+		slog.Time("to", to),
+		slog.String("timezone", tz),
 	)
 
 	if clubID == "" {
@@ -49,11 +71,11 @@ func (h *handler) APIClubEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if upcoming {
-		h.apiClubUpcomingEvents(w, r, clubID)
+		h.apiClubUpcomingEvents(ctx, w, clubID, loc)
 		return
 	}
 
-	events, err := h.DB.GetEvents(ctx, clubID, time.Time{}, time.Time{}, false, "", "")
+	events, err := h.DB.GetEvents(ctx, clubID, from, to, false, "", "")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get events for club", slog.Any("error", err), slog.String("club_id", clubID))
 		http.Error(w, "Failed to get events: "+err.Error(), http.StatusInternalServerError)
@@ -76,20 +98,10 @@ func (h *handler) APIClubEvents(w http.ResponseWriter, r *http.Request) {
 		campfireEvents = append(campfireEvents, campfireEvent)
 	}
 
-	exportAllEvents(ctx, w, campfireEvents)
+	exportAllEvents(ctx, w, campfireEvents, loc)
 }
 
-func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, clubID string) {
-	ctx := r.Context()
-	query := r.URL.Query()
-
-	tz := xquery.ParseString(query, "timezone", "UTC")
-	loc, err := time.LoadLocation(tz)
-	if err != nil {
-		http.Error(w, "Invalid timezone: "+tz, http.StatusBadRequest)
-		return
-	}
-
+func (h *handler) apiClubUpcomingEvents(ctx context.Context, w http.ResponseWriter, clubID string, loc *time.Location) {
 	events, err := h.DB.GetUpcomingClubEvents(ctx, clubID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get upcoming events for club", slog.Any("error", err), slog.String("club_id", clubID))
@@ -115,6 +127,8 @@ func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, 
 			ID:                           exportEvent.ID,
 			Name:                         exportEvent.Name,
 			Address:                      exportEvent.Address,
+			Lat:                          exportEvent.Lat,
+			Long:                         exportEvent.Long,
 			CoverPhotoURL:                exportEvent.CoverPhotoURL,
 			Details:                      exportEvent.Details,
 			URL:                          exportEvent.URL,
@@ -132,7 +146,7 @@ func (h *handler) apiClubUpcomingEvents(w http.ResponseWriter, r *http.Request, 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(upcomingEvents); err != nil {
+	if err = json.NewEncoder(w).Encode(upcomingEvents); err != nil {
 		slog.ErrorContext(ctx, "Failed to encode upcoming club events to JSON", slog.Any("error", err))
 		return
 	}

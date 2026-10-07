@@ -1,6 +1,7 @@
 package xquery
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -20,6 +21,21 @@ func ParseTime(query url.Values, name string, defaultValue time.Time) time.Time 
 		return defaultValue
 	}
 	return parsed
+}
+
+// ParseTimestamp parses an optional RFC3339 timestamp query parameter.
+// An empty value returns a zero time. Invalid values return an error.
+func ParseTimestamp(query url.Values, name string) (time.Time, error) {
+	value := query.Get(name)
+	if value == "" {
+		return time.Time{}, nil
+	}
+
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid %s: must be an RFC3339 timestamp", name)
+	}
+	return parsed, nil
 }
 
 func ParseBool(query url.Values, name string, defaultValue bool) bool {

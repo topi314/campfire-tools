@@ -9,12 +9,15 @@ import (
 
 	"github.com/topi314/campfire-tools/internal/xquery"
 	"github.com/topi314/campfire-tools/server/campfire"
+	"github.com/topi314/campfire-tools/server/web/models"
 )
 
 type ExportEvent struct {
 	ID                           string                  `json:"id"`
 	Name                         string                  `json:"name"`
 	Address                      string                  `json:"address"`
+	Lat                          *float64                `json:"lat"`
+	Long                         *float64                `json:"long"`
 	CoverPhotoURL                string                  `json:"cover_photo_url"`
 	Details                      string                  `json:"details"`
 	URL                          string                  `json:"url"`
@@ -76,7 +79,7 @@ func (h *handler) APIExportEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exportAllEvents(ctx, w, campfireEvents)
+	exportAllEvents(ctx, w, campfireEvents, nil)
 }
 
 func badgeTypes(badges []campfire.Badge) []string {
@@ -92,7 +95,7 @@ func toExportEvent(event campfire.Event, loc *time.Location) ExportEvent {
 		loc = time.UTC
 	}
 
-	return ExportEvent{
+	exportEvent := ExportEvent{
 		ID:            event.ID,
 		Name:          event.Name,
 		Address:       event.Address,
@@ -128,12 +131,19 @@ func toExportEvent(event campfire.Event, loc *time.Location) ExportEvent {
 			Name: event.CampfireLiveEvent.EventName,
 		},
 	}
+
+	if lat, lng, ok := models.ParseLocationCoords(event.Location); ok {
+		exportEvent.Lat = &lat
+		exportEvent.Long = &lng
+	}
+
+	return exportEvent
 }
 
-func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfire.Event) {
+func exportAllEvents(ctx context.Context, w http.ResponseWriter, events []campfire.Event, loc *time.Location) {
 	var exportEvents []ExportEvent
 	for _, event := range events {
-		exportEvent := toExportEvent(event, nil)
+		exportEvent := toExportEvent(event, loc)
 
 		for _, rsvpStatus := range event.RSVPStatuses {
 			member, _ := campfire.FindMember(rsvpStatus.UserID, event)
