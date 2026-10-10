@@ -37,6 +37,9 @@ var oneMonthAverage = time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 // In July 2026 we get 35% of check-ins as digital codes
 var digitalCodeRateExceptionMonth = time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 
+// Starting November 2026, Friendship Friday check-ins count toward digital codes.
+var friendshipFridayCountsFrom = time.Date(2026, time.November, 1, 0, 0, 0, 0, time.UTC)
+
 type TrackerClubStatsVars struct {
 	models.Club
 	EventsFilter
@@ -70,6 +73,7 @@ type LeagueGoal struct {
 type DigitalCodes struct {
 	Open   bool
 	Months []DigitalCodeMonth
+	Notes  []DigitalCodeNote
 }
 
 type DigitalCodeMonth struct {
@@ -78,6 +82,13 @@ type DigitalCodeMonth struct {
 	PredictedCheckIns int
 	Codes             int
 	PredictedCodes    int
+	ShowPredicted     bool
+	NoteMark          int
+}
+
+type DigitalCodeNote struct {
+	Mark int
+	Text string
 }
 
 func (h *handler) TrackerClubStats(w http.ResponseWriter, r *http.Request) {
@@ -257,6 +268,7 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 	endDate := time.Date(2025, 10, 1, 0, 0, 0, 0, now.Location())
 
 	var digitalCodeMonths []DigitalCodeMonth
+	var digitalCodeNotes []DigitalCodeNote
 	for date := startDate; !date.Before(endDate); date = date.AddDate(0, -1, 0) {
 		months := 3
 		if date.After(oneMonthAverage) {
@@ -264,18 +276,35 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 		}
 		from := date.AddDate(0, -months, 0)
 		to := date.Add(-time.Second)
-		_, checkIns, err := h.DB.GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx, clubID, from, to, true, "", "", eventcategory.DigitalCodeExcludePatterns())
+		excludePatterns := eventcategory.DigitalCodeExcludePatterns()
+		if !date.Before(friendshipFridayCountsFrom) {
+			excludePatterns = nil
+		}
+		_, checkIns, err := h.DB.GetClubTotalCheckInsAcceptedExcludingLiveEventPatterns(ctx, clubID, from, to, true, "", "", excludePatterns)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch total check-ins and accepted members for digital codes: %w", err)
 		}
 
-		predictedCheckIns, _, _ := models.CalcCAProjectedCheckIns(from, to, checkIns)
+		predictedCheckIns, _, daysRemaining := models.CalcCAProjectedCheckIns(from, to, checkIns)
 		rate := digitalCodeRate
 		if date.Month() == digitalCodeRateExceptionMonth.Month() && date.Year() == digitalCodeRateExceptionMonth.Year() {
 			rate = digitalCodeSpecialRate
 		}
 		codes := int(float64(checkIns/months) * rate)
-		predictedCodes := int(float64(predictedCheckIns/months) * rate)
+		showPredicted := daysRemaining > 0
+		var predictedCodes int
+		if showPredicted {
+			predictedCodes = int(float64(predictedCheckIns/months) * rate)
+		}
+
+		var noteMark int
+		if change := digitalCodeChange(date); change != "" {
+			noteMark = len(digitalCodeNotes) + 1
+			digitalCodeNotes = append(digitalCodeNotes, DigitalCodeNote{
+				Mark: noteMark,
+				Text: change,
+			})
+		}
 
 		digitalCodeMonths = append(digitalCodeMonths, DigitalCodeMonth{
 			Date:              date,
@@ -283,13 +312,33 @@ func (h *handler) calculateDigitalCodes(ctx context.Context, clubID string, digi
 			PredictedCheckIns: predictedCheckIns,
 			Codes:             codes,
 			PredictedCodes:    predictedCodes,
+			ShowPredicted:     showPredicted,
+			NoteMark:          noteMark,
 		})
 	}
 
 	return &DigitalCodes{
 		Open:   !digitalCodesClosed,
 		Months: digitalCodeMonths,
+		Notes:  digitalCodeNotes,
 	}, nil
+}
+
+func digitalCodeChange(date time.Time) string {
+	switch {
+	case sameYearMonth(date, friendshipFridayCountsFrom):
+		return "Friendship Friday check-ins start counting"
+	case sameYearMonth(date, digitalCodeRateExceptionMonth):
+		return "Rate temporarily ~35% instead of ~25%"
+	case sameYearMonth(date, oneMonthAverage.AddDate(0, 1, 0)):
+		return "Lookback changed from 3-month average to 1 month"
+	default:
+		return ""
+	}
+}
+
+func sameYearMonth(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.Month() == b.Month()
 }
 
 func (h *handler) calculateLeagueGoals(ctx context.Context, clubID string, from time.Time, to time.Time, eventCreator string, eventCategory string, leagueGoalQuarter string, leagueGoalsClosed bool) (*LeagueGoals, error) {

@@ -61,10 +61,14 @@ func (c *Client) resolveEventID(ctx context.Context, meetupURL string) (string, 
 			return "", fmt.Errorf("event ID mismatch: expected %s, got %s", campfireEventID, firstEvent.Event.ID)
 		}
 		campfireEventID = firstEvent.Event.ID
-	} else if strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") {
+	} else if strings.HasPrefix(meetupURL, "https://campfire.nianticlabs.com/discover/meetup/") ||
+		strings.HasPrefix(meetupURL, "https://campfire.scopely.com/discover/meetup/") {
 		campfireEventID = path.Base(meetupURL)
+		if i := strings.IndexAny(campfireEventID, "?#"); i >= 0 {
+			campfireEventID = campfireEventID[:i]
+		}
 	} else {
-		return "", errors.New("invalid event URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/' or 'https://campfire.nianticlabs.com/discover/meetup/'")
+		return "", errors.New("invalid event URL. Must start with 'https://niantic-social.nianticlabs.com/public/meetup/', 'https://cmpf.re/', 'https://campfire.nianticlabs.com/discover/meetup/' or 'https://campfire.scopely.com/discover/meetup/'")
 	}
 
 	if campfireEventID == "" {

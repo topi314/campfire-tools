@@ -255,7 +255,7 @@ func getRecords(event campfire.Event, includeMissingMembers bool, fields []strin
 }
 
 func eventURL(id string) string {
-	return fmt.Sprintf("https://campfire.nianticlabs.com/discover/meetup/%s", id)
+	return fmt.Sprintf("https://campfire.scopely.com/discover/meetup/%s", id)
 }
 
 type Records struct {

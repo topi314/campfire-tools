@@ -85,10 +85,9 @@
         <details id="digital-codes-closed" {{ if .DigitalCodes.Open }}open{{ end }}>
             <summary>
                 View digital code count & predictions.
-                The amount of digital codes received are roughly 25% of the previous months check-ins.
-                (Before February 2026 it was roughly 25% of the previous 3 months).
-                Friendship Friday events are excluded by Niantic.
             </summary>
+
+            <p>Date is the month codes are received, based on the previous month's check-ins.</p>
 
             <div class="table-5">
                 <span>Date</span>
@@ -98,15 +97,25 @@
                 <span>Predicted Codes</span>
 
                 {{ range $month := .DigitalCodes.Months }}
-                    <span>{{ formatMonthNice $month.Date }}</span>
+                    <span>{{ formatMonthNice $month.Date }}{{ if $month.NoteMark }}<a href="#digital-code-note-{{ $month.NoteMark }}"><sup>{{ $month.NoteMark }}</sup></a>{{ end }}</span>
                     <span>{{ $month.CheckIns }}</span>
-                    <span>{{ $month.PredictedCheckIns }}</span>
+                    <span>{{ if $month.ShowPredicted }}{{ $month.PredictedCheckIns }}{{ end }}</span>
                     <span>{{ $month.Codes }}</span>
-                    <span>{{ $month.PredictedCodes }}</span>
+                    <span>{{ if $month.ShowPredicted }}{{ $month.PredictedCodes }}{{ end }}</span>
                 {{ else }}
                     <span class="table-empty">No data found.</span>
                 {{ end }}
             </div>
+
+            {{ if .DigitalCodes.Notes }}
+                <ul style="list-style: none; padding-left: 2em; text-align: left;">
+                    {{ range $note := .DigitalCodes.Notes }}
+                        <li id="digital-code-note-{{ $note.Mark }}"><a href="#digital-code-note-{{ $note.Mark }}">{{ $note.Mark }}.</a> {{ $note.Text }}</li>
+                    {{ end }}
+                </ul>
+            {{ end }}
+
+            <p>Digital codes received are roughly 25% of the previous month's CA check-ins.</p>
         </details>
 
     </div>
