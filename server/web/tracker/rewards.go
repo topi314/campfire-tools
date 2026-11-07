@@ -10,14 +10,15 @@ import (
 
 type TrackerRewardsVars struct {
 	Rewards []models.Reward
+	All     bool
 }
 
 func (h *handler) TrackerRewards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
+	all := r.URL.Query().Get("all") == "true"
 
-	// rewards, err := h.DB.GetRewards(ctx, session.UserID)
-	rewards, err := h.DB.GetRewards(ctx, session.UserID)
+	rewards, err := h.DB.GetRewards(ctx, session.UserID, all)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get rewards", slog.String("err", err.Error()))
 		http.Error(w, "Failed to get rewards", http.StatusInternalServerError)
@@ -31,6 +32,7 @@ func (h *handler) TrackerRewards(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_rewards.gohtml", TrackerRewardsVars{
 		Rewards: trackerRewards,
+		All:     all,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render tracker rewards template", slog.String("err", err.Error()))
 	}

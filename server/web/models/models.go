@@ -509,6 +509,7 @@ func NewReward(reward database.Reward) Reward {
 		EditURL:       fmt.Sprintf("/tracker/rewards/%d/edit", reward.ID),
 		Name:          reward.Name,
 		Description:   reward.Description,
+		Archived:      reward.ArchivedAt != nil,
 		RedeemedCodes: reward.RedeemedCodes,
 		TotalCodes:    reward.TotalCodes,
 	}
@@ -521,6 +522,7 @@ type Reward struct {
 	EditURL       string
 	Name          string
 	Description   string
+	Archived      bool
 	RedeemedCodes int
 	TotalCodes    int
 }

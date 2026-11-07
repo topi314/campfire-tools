@@ -27,7 +27,14 @@
             {{ end }}
 
             <div class="form-control buttons spread">
-                <button hx-delete="{{ .URL }}" class="button danger" hx-confirm="Are you sure you want to delete this reward? This action cannot be undone.">Delete</button>
+                <div class="buttons">
+                    {{ if .Archived }}
+                        <button type="button" hx-post="{{ .URL }}/unarchive" class="button" hx-confirm="Restore this reward to the active list?">Unarchive</button>
+                    {{ else }}
+                        <button type="button" hx-post="{{ .URL }}/archive" class="button" hx-confirm="Archive this reward? It will be hidden from the active list. Existing codes stay redeemable.">Archive</button>
+                    {{ end }}
+                    <button hx-delete="{{ .URL }}" class="button danger" hx-confirm="Are you sure you want to delete this reward? This action cannot be undone.">Delete</button>
+                </div>
                 <button type="submit" class="success">Edit</button>
             </div>
         </form>

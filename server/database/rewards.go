@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -9,13 +10,14 @@ import (
 )
 
 type Reward struct {
-	ID            int    `db:"reward_id"`
-	Name          string `db:"reward_name"`
-	Description   string `db:"reward_description"`
-	CreatedBy     string `db:"reward_created_by"`
-	CreatedAt     string `db:"reward_created_at"`
-	TotalCodes    int    `db:"reward_total_codes"`
-	RedeemedCodes int    `db:"reward_redeemed_codes"`
+	ID            int        `db:"reward_id"`
+	Name          string     `db:"reward_name"`
+	Description   string     `db:"reward_description"`
+	CreatedBy     string     `db:"reward_created_by"`
+	CreatedAt     string     `db:"reward_created_at"`
+	ArchivedAt    *time.Time `db:"reward_archived_at"`
+	TotalCodes    int        `db:"reward_total_codes"`
+	RedeemedCodes int        `db:"reward_redeemed_codes"`
 }
 
 type RewardCode struct {
@@ -60,18 +62,23 @@ func (d *Database) GetReward(ctx context.Context, id int, userID string) (*Rewar
 	return &reward, nil
 }
 
-func (d *Database) GetRewards(ctx context.Context, userID string) ([]Reward, error) {
-	query := `
+func (d *Database) GetRewards(ctx context.Context, userID string, all bool) ([]Reward, error) {
+	archivedFilter := `AND reward_archived_at IS NULL`
+	if all {
+		archivedFilter = ``
+	}
+	query := fmt.Sprintf(`
 		SELECT rewards.*,
 		       COUNT(reward_codes.reward_code_id) AS reward_total_codes,
 		       COUNT(reward_codes.reward_code_redeemed_at) AS reward_redeemed_codes
 		FROM rewards
 		LEFT JOIN reward_codes ON reward_code_reward_id = reward_id
 		LEFT JOIN reward_members ON reward_member_reward_id = reward_id
-		WHERE reward_created_by = $1 OR reward_member_discord_user_id = $1
+		WHERE (reward_created_by = $1 OR reward_member_discord_user_id = $1)
+		  %s
 		GROUP BY reward_id
-		ORDER BY reward_created_at DESC
-	`
+		ORDER BY (reward_archived_at IS NOT NULL), reward_created_at DESC
+	`, archivedFilter)
 	var rewards []Reward
 	if err := d.db.SelectContext(ctx, &rewards, query, userID); err != nil {
 		return nil, fmt.Errorf("failed to get rewards with counts: %w", err)
@@ -111,6 +118,37 @@ func (d *Database) UpdateReward(ctx context.Context, reward Reward) error {
 	_, err := d.db.NamedExecContext(ctx, query, reward)
 	if err != nil {
 		return fmt.Errorf("failed to update reward: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) SetRewardArchived(ctx context.Context, id int, userID string, archived bool) error {
+	query := `
+		UPDATE rewards
+		SET reward_archived_at = CASE WHEN $3 THEN now() ELSE NULL END
+		WHERE reward_id = $1
+		  AND (
+		    reward_created_by = $2
+		    OR EXISTS (
+		      SELECT 1
+		      FROM reward_members
+		      WHERE reward_member_reward_id = reward_id
+		        AND reward_member_discord_user_id = $2
+		    )
+		  )
+	`
+
+	res, err := d.db.ExecContext(ctx, query, id, userID, archived)
+	if err != nil {
+		return fmt.Errorf("failed to set reward archived: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to set reward archived: %w", err)
+	}
+	if n == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil

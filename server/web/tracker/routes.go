@@ -56,6 +56,8 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("PATCH /tracker/rewards/{id}", h.PostTrackerRewardEdit)
 	mux.HandleFunc("GET /tracker/rewards/{id}/codes", h.TrackerRewardCodes)
 	mux.HandleFunc("GET /tracker/rewards/{id}/edit", h.TrackerRewardEdit)
+	mux.HandleFunc("POST /tracker/rewards/{id}/archive", h.TrackerRewardArchive)
+	mux.HandleFunc("POST /tracker/rewards/{id}/unarchive", h.TrackerRewardUnarchive)
 	mux.HandleFunc("DELETE /tracker/rewards/{id}", h.TrackerRewardDelete)
 	mux.HandleFunc("GET /tracker/rewards/{id}/codes/{code_id}", h.TrackerRewardCode)
 	mux.HandleFunc("DELETE /tracker/rewards/{id}/codes/{code_id}", h.TrackerRewardCodeDelete)

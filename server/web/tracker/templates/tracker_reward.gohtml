@@ -2,7 +2,7 @@
 <div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
-        <h1>Reward: {{ .Name }}</h1>
+        <h1>Reward: {{ .Name }}{{ if .Archived }} (Archived){{ end }}</h1>
         <a href="{{ .EditURL }}" class="button">Edit</a>
     </div>
 

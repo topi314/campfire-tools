@@ -1,6 +1,8 @@
 package tracker
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -82,6 +84,37 @@ func (h *handler) PostTrackerRewardEdit(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d", id), http.StatusSeeOther)
+}
+
+func (h *handler) TrackerRewardArchive(w http.ResponseWriter, r *http.Request) {
+	h.setTrackerRewardArchived(w, r, true)
+}
+
+func (h *handler) TrackerRewardUnarchive(w http.ResponseWriter, r *http.Request) {
+	h.setTrackerRewardArchived(w, r, false)
+}
+
+func (h *handler) setTrackerRewardArchived(w http.ResponseWriter, r *http.Request, archived bool) {
+	ctx := r.Context()
+	session := auth.GetSession(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	if err = h.DB.SetRewardArchived(ctx, id, session.UserID, archived); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.NotFound(w, r)
+			return
+		}
+		slog.ErrorContext(ctx, "Failed to update reward archive state", slog.String("err", err.Error()))
+		http.Error(w, "Failed to update reward", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d/edit", id), http.StatusSeeOther)
 }
 
 func (h *handler) TrackerRewardDelete(w http.ResponseWriter, r *http.Request) {

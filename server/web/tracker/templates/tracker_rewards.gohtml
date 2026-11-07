@@ -9,14 +9,21 @@
         <div class="section-header">
             <h2>Your Rewards</h2>
             <div class="buttons">
+                <label class="archive-switch" for="show-archived">
+                    <input type="checkbox" id="show-archived" role="switch" {{ if .All }}checked{{ end }}
+                           onchange="window.location.href = this.checked ? '/tracker/rewards?all=true' : '/tracker/rewards'">
+                    <span class="archive-switch-track" aria-hidden="true"></span>
+                    Archived
+                </label>
                 <a href="/tracker/rewards/new" class="button">New</a>
             </div>
         </div>
         <ul class="list">
             {{ range .Rewards }}
-                <li class="list-item list-item-group">
+                <li class="list-item list-item-group{{ if .Archived }} list-item-archived{{ end }}">
                     <div class="expand">
                         <a href="{{ .URL }}" hx-boost="true">{{ .Name }} ({{ .RedeemedCodes }}/{{ .TotalCodes }})</a>
+                        {{ if .Archived }}<span class="reward-archived-mark">Archived</span>{{ end }}
                     </div>
                     <div class="buttons">
                         <a href="{{ .CodesURL }}" class="button" hx-boost="true">Show Codes</a>
