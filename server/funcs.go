@@ -34,6 +34,7 @@ var templateFuncs = template.FuncMap{
 	"formatTimeToDayTime":    formatTimeToDayTime,
 	"formatDayTime":          formatDayTime,
 	"formatTimeToRelDayTime": formatTimeToRelDayTime,
+	"localTime":              localTime,
 	"formatEventCategory":    eventcategory.Format,
 }
 
@@ -163,6 +164,45 @@ func formatDayTime(t time.Time) string {
 
 func formatTimeToDayTime(t time.Time) string {
 	return t.Format("Mon _2 Jan 2006 15:04")
+}
+
+func localTime(value any, style string) template.HTML {
+	t, ok := timeValue(value)
+	if !ok || t.IsZero() {
+		return ""
+	}
+
+	var fallback string
+	switch style {
+	case "date":
+		fallback = formatDateNice(t)
+	case "daytime":
+		fallback = formatDayTime(t)
+	default:
+		style = "relative"
+		fallback = formatTimeToRelDayTime(t)
+	}
+
+	return template.HTML(fmt.Sprintf(
+		`<time class="local-time" datetime="%s" data-style="%s">%s</time>`,
+		template.HTMLEscapeString(t.Format(time.RFC3339)),
+		template.HTMLEscapeString(style),
+		template.HTMLEscapeString(fallback),
+	))
+}
+
+func timeValue(value any) (time.Time, bool) {
+	switch v := value.(type) {
+	case time.Time:
+		return v, true
+	case *time.Time:
+		if v == nil {
+			return time.Time{}, false
+		}
+		return *v, true
+	default:
+		return time.Time{}, false
+	}
 }
 
 func formatTimeToRelDayTime(t time.Time) string {

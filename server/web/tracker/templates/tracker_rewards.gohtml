@@ -1,5 +1,5 @@
 {{ template "head" "Rewards" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker" }}
         <h1>Rewards</h1>
@@ -15,7 +15,7 @@
                     <span class="archive-switch-track" aria-hidden="true"></span>
                     Archived
                 </label>
-                <a href="/tracker/rewards/new" class="button">New</a>
+                <a href="/tracker/rewards/new" class="button button-primary">New</a>
             </div>
         </div>
         <ul class="list">
@@ -30,7 +30,7 @@
                     </div>
                 </li>
             {{ else }}
-                <li>No rewards found. Create one by clicking the "New" button above.</li>
+                <li class="empty">No rewards found. Create one by clicking the "New" button above.</li>
             {{ end }}
         </ul>
     </div>

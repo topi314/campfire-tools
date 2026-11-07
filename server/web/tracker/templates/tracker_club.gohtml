@@ -71,7 +71,7 @@
                 <strong>Imported</strong>
                 <div>
                     {{ if .ImportedAt }}
-                        {{ formatTimeToRelDayTime .ImportedAt }}
+                        {{ localTime .ImportedAt "relative" }}
                     {{ else }}
                         —
                     {{ end }}
@@ -81,7 +81,7 @@
             {{ if not .LastAutoEventImportedAt.IsZero }}
                 <div class="event-overview-item">
                     <strong>Last Auto Event Import</strong>
-                    <div>{{ formatTimeToRelDayTime .LastAutoEventImportedAt }}</div>
+                    <div>{{ localTime .LastAutoEventImportedAt "relative" }}</div>
                 </div>
             {{ end }}
         </div>
@@ -90,27 +90,29 @@
     <div class="section">
         <details class="club-settings-details">
             <summary><h2>Settings</h2></summary>
-            <form action="/tracker/club/{{ .ID }}" method="post" class="club-settings">
-                <label class="club-setting" for="pinned">
-                    <span class="club-setting-text">
-                        <span class="club-setting-title">Pinned</span>
-                        <span class="club-setting-desc">Keep this club at the top of your clubs list.</span>
-                    </span>
-                    <input type="checkbox" id="pinned" name="pinned" {{ if .Pinned }}checked{{ end }}>
-                </label>
+        <form action="/tracker/club/{{ .ID }}" method="post" class="club-settings">
+            <label class="club-setting" for="pinned">
+                <span class="club-setting-text">
+                    <span class="club-setting-title">Pinned</span>
+                    <span class="club-setting-desc">Keep this club at the top of your clubs list.</span>
+                </span>
+                <input type="checkbox" id="pinned" name="pinned" role="switch" {{ if .Pinned }}checked{{ end }}>
+                <span class="archive-switch-track" aria-hidden="true"></span>
+            </label>
 
-                <label class="club-setting" for="auto_event_import">
-                    <span class="club-setting-text">
-                        <span class="club-setting-title">Auto Event Import</span>
-                        <span class="club-setting-desc">Automatically import new and updated events for this club.</span>
-                    </span>
-                    <input type="checkbox" id="auto_event_import" name="auto_event_import" {{ if .AutoEventImport }}checked{{ end }}>
-                </label>
+            <label class="club-setting" for="auto_event_import">
+                <span class="club-setting-text">
+                    <span class="club-setting-title">Auto event import</span>
+                    <span class="club-setting-desc">Import new and updated events for this club.</span>
+                </span>
+                <input type="checkbox" id="auto_event_import" name="auto_event_import" role="switch" {{ if .AutoEventImport }}checked{{ end }}>
+                <span class="archive-switch-track" aria-hidden="true"></span>
+            </label>
 
-                <div class="club-settings-actions">
-                    <button type="submit" class="button">Save Settings</button>
-                </div>
-            </form>
+            <div class="club-settings-actions">
+                <button type="submit">Save</button>
+            </div>
+        </form>
         </details>
     </div>
 
@@ -133,16 +135,18 @@
         <ul class="list">
             {{ range $event := .Events }}
                 <li class="list-item">
-                    {{ template "event_cover" $event }}
-                    <div class="list-item-content">
-                        <div class="list-item-title">
-                            <a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                    <a class="list-item-link" href="{{ $event.URL }}" hx-boost="true">
+                        {{ template "event_cover" $event }}
+                        <div class="list-item-content">
+                            <div class="list-item-title">
+                                <span class="list-item-name">{{ $event.Name }}</span>{{ template "community_ambassador_flag" $event.CreatedByCommunityAmbassador }}
+                            </div>
+                            <span class="small-text">{{ localTime $event.Time "date" }} · {{ $event.CheckIns }} check-ins · {{ $event.Accepted }} accepted</span>
                         </div>
-                        <span class="small-text">{{ formatDateNice $event.Time }} · {{ $event.CheckIns }} check-ins · {{ $event.Accepted }} accepted</span>
-                    </div>
+                    </a>
                 </li>
             {{ else }}
-                <span>No events tracked yet.</span>
+                <li class="empty">No events tracked yet.</li>
             {{ end }}
         </ul>
     </div>

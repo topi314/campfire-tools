@@ -62,9 +62,29 @@ func (h *handler) auth(next http.Handler) http.Handler {
 			}
 		}
 
+		settings := database.UserSettings{}
+		if session.UserID != "" {
+			var err error
+			settings, err = h.DB.GetUserSettings(ctx, session.UserID)
+			if err != nil {
+				slog.ErrorContext(ctx, "failed to load user settings", slog.Any("error", err))
+				settings = database.UserSettings{}
+			}
+		}
+		if !skipViewerCookies(r.URL.Path) {
+			syncViewerCookies(w, session.DiscordUser, settings)
+		}
+
 		r = r.WithContext(auth.SetSession(ctx, *session))
 		next.ServeHTTP(w, r)
 	})
+}
+
+func skipViewerCookies(path string) bool {
+	return strings.HasPrefix(path, "/static/") ||
+		strings.HasPrefix(path, "/images/") ||
+		strings.HasPrefix(path, "/api/") ||
+		strings.HasPrefix(path, "/dev/")
 }
 
 func (h *handler) forceLogin(w http.ResponseWriter, r *http.Request) {

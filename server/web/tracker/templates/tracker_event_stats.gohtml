@@ -247,7 +247,7 @@
                 {{ range $member := .Members }}
                     {{ template "campfire_member_list_item" $member }}
                 {{ else }}
-                    <li class="list-item">No members.</li>
+                    <li class="empty">No members.</li>
                 {{ end }}
             </ul>
         </details>

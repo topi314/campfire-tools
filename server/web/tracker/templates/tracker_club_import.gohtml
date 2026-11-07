@@ -42,9 +42,9 @@
             {{ range $job := .ImportJobs }}
                 <div>{{ $job.ID }}</div>
                 <div><a href="{{ $job.Club.URL }}" hx-boost="true">{{ $job.Club.Name }}</a></div>
-                <div>{{ formatTimeToRelDayTime $job.CreatedAt }}</div>
-                <div>{{ if not $job.CompletedAt.IsZero }}{{ formatTimeToRelDayTime $job.CompletedAt }}{{ end }}</div>
-                <div>{{ if not $job.LastTriedAt.IsZero }}{{ formatTimeToRelDayTime $job.LastTriedAt }}{{ end }}</div>
+                <div>{{ localTime $job.CreatedAt "relative" }}</div>
+                <div>{{ if not $job.CompletedAt.IsZero }}{{ localTime $job.CompletedAt "relative" }}{{ end }}</div>
+                <div>{{ if not $job.LastTriedAt.IsZero }}{{ localTime $job.LastTriedAt "relative" }}{{ end }}</div>
                 <div class="{{ if eq $job.Status "completed" }}color-success{{ else if eq $job.Status "failed" }}color-danger{{ else if eq $job.Status "pending" }}color-warning{{ end }}">{{ $job.Status }}</div>
                 {{ if $.IsAdmin }}
                     <div>{{ $job.Error }}</div>

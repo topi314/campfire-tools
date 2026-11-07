@@ -35,7 +35,7 @@
 
             {{ range $token := .Tokens }}
                 <span>{{ $token.ID }}</span>
-                <span class="no-wrap">{{ formatTimeToRelDayTime $token.ExpiresAt }}</span>
+                <span class="no-wrap">{{ localTime $token.ExpiresAt "relative" }}</span>
                 <span class="no-wrap">{{ $token.Email }}</span>
                 <span class="wrap">{{ $token.Token }}</span>
             {{ else }}

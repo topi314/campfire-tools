@@ -12,11 +12,23 @@
 
     </p>
 
-    <div class="buttons" hx-boost="true">
-        <a href="/tracker/clubs" class="button">Clubs</a>
-        <a href="/tracker/event-stats" class="button">Event Stats</a>
-        <a href="/tracker/members" class="button">Members</a>
-        <a href="/tracker/rewards" class="button">Rewards</a>
+    <div class="tool-grid" hx-boost="true">
+        <a class="tool-card" href="/tracker/clubs">
+            <span class="tool-card-title">Clubs</span>
+            <span class="tool-card-desc">Import a club and open its events, members, and raffles.</span>
+        </a>
+        <a class="tool-card" href="/tracker/event-stats">
+            <span class="tool-card-title">Event Stats</span>
+            <span class="tool-card-desc">Compare check-ins across clubs.</span>
+        </a>
+        <a class="tool-card" href="/tracker/members">
+            <span class="tool-card-title">Members</span>
+            <span class="tool-card-desc">Search people and open their profiles.</span>
+        </a>
+        <a class="tool-card" href="/tracker/rewards">
+            <span class="tool-card-title">Rewards</span>
+            <span class="tool-card-desc">Create codes and see what has been redeemed.</span>
+        </a>
     </div>
 </div>
 {{ template "tracker_footer" }}

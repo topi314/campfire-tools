@@ -71,14 +71,14 @@ func (h *handler) PostTrackerRewardEdit(w http.ResponseWriter, r *http.Request) 
 		CreatedBy:   session.UserID,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to update reward", slog.String("err", err.Error()))
-		h.renderTrackerRewardsNew(w, r, "Failed to update reward")
+		h.renderTrackerRewardEdit(w, r, "Failed to update reward")
 		return
 	}
 
 	if len(codes) > 0 {
 		if err = h.DB.InsertRewardCodes(ctx, id, codes, session.UserID); err != nil {
 			slog.ErrorContext(ctx, "Failed to insert reward codes", slog.String("err", err.Error()))
-			h.renderTrackerRewardsNew(w, r, "Failed to add reward codes")
+			h.renderTrackerRewardEdit(w, r, "Failed to add reward codes")
 			return
 		}
 	}
@@ -114,6 +114,16 @@ func (h *handler) setTrackerRewardArchived(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if archived {
+		back := fmt.Sprintf("/tracker/rewards/%d", id)
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Redirect", back)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, fmt.Sprintf("/tracker/rewards/%d/edit", id), http.StatusSeeOther)
 }
 

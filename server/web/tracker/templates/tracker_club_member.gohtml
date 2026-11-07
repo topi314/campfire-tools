@@ -1,5 +1,5 @@
 {{ template "head" addStr "Tracker - " .DisplayName }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" addStr .Club.URL "/members" }}
         <h1>
@@ -62,7 +62,7 @@
                 <strong>Imported</strong>
                 <div>
                     {{ if not .ImportedAt.IsZero }}
-                        {{ formatTimeToRelDayTime .ImportedAt }}
+                        {{ localTime .ImportedAt "relative" }}
                     {{ else }}
                         —
                     {{ end }}
@@ -79,7 +79,7 @@
             {{ range $event := .Events }}
                 {{ template "event_list_item" $event }}
             {{ else }}
-                <span>No events found.</span>
+                <li class="empty">No events found.</li>
             {{ end }}
         </ul>
 
@@ -90,7 +90,7 @@
             {{ range $event := .AcceptedEvents }}
                 {{ template "event_list_item" $event }}
             {{ else }}
-                <span>No events found.</span>
+                <li class="empty">No events found.</li>
             {{ end }}
         </ul>
     </div>

@@ -1,5 +1,5 @@
 {{ template "head" "Reward Codes" }}
-<div id="code" class="container">
+<div id="code" class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker/rewards" }}
         <h1>{{ .Name }} ({{ .RedeemedCodes }}/{{ .TotalCodes }})</h1>
@@ -7,29 +7,22 @@
 
     <div class="section">
         {{ if eq .Code nil }}
-            <p>No reward unredeemed codes available.</p>
+            <p class="empty">No unredeemed codes left.</p>
         {{ else }}
-            <div class="reward-link">
-                <img src="{{ .Code.QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
-                <div>
-                    <a href="{{ .RewardCodeURL }}" target="_blank">Reward Link</a>
-                    <span>-</span>
-                    <span>Visited: {{ .Code.VisitedCount }}</span>
+            <div class="code-panel">
+                <img src="{{ .Code.QRURL }}" alt="QR code for this reward" class="qr-code">
+                <p class="code-panel-meta">
+                    <a href="{{ .RewardCodeURL }}" target="_blank" rel="noopener noreferrer">Reward link</a>
+                    <span>{{ .Code.VisitedCount }} {{ if eq .Code.VisitedCount 1 }}visit{{ else }}visits{{ end }}</span>
+                </p>
+                <div class="code-value-row">
+                    <p class="code-value">{{ .Code.Code }}</p>
+                    <button type="button" class="button small" data-copy="{{ .Code.Code }}">Copy</button>
                 </div>
-            </div>
-
-            <hr/>
-
-            <div class="reward-redeem">
-                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="Pokémon GO Web Store">Web Store Link</a>
-                <h2 class="reward-code">{{ .Code.Code }}</h2>
-            </div>
-
-            <hr/>
-
-            <div class="buttons spread">
-                <span></span>
-                <button hx-post="{{ .NextCodeURL }}" class="success" hx-target="body">Mark as Used and next</button>
+                <div class="buttons">
+                    <a href="{{ .Code.RedeemCodeURL }}" class="button button-primary" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="">Web Store</a>
+                    <button hx-post="{{ .NextCodeURL }}" class="success" hx-target="body">Mark as used</button>
+                </div>
             </div>
         {{ end }}
     </div>

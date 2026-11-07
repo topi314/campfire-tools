@@ -43,15 +43,17 @@
 
 {{ define "event_list_item" }}
     <li class="list-item">
-        {{ template "event_cover" . }}
-        <div class="list-item-content">
-            <div class="list-item-title">
-                <a href="{{ .URL }}" title="{{ .ID }}" hx-boost="true">{{ .Name }}</a>{{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
+        <a class="list-item-link" href="{{ .URL }}" title="{{ .ID }}" hx-boost="true">
+            {{ template "event_cover" . }}
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="list-item-name">{{ .Name }}</span>{{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
+                </div>
+                <span class="small-text">
+                    {{ localTime .Time "date" }}{{ if .Category }} · {{ formatEventCategory .Category }}{{ end }}
+                </span>
             </div>
-            <span class="small-text">
-                {{ formatDateNice .Time }}{{ if .Category }} · {{ formatEventCategory .Category }}{{ end }}
-            </span>
-        </div>
+        </a>
     </li>
 {{ end }}
 
@@ -104,19 +106,21 @@
 
 {{ define "campfire_member_list_item" }}
     <li class="list-item">
-        {{ if .AvatarURL }}
-            <img src="{{ .AvatarURL }}" alt="">
-        {{ else }}
-            <img src="/static/default_avatar.png" alt="">
-        {{ end }}
-        <div class="list-item-content">
-            <div class="list-item-title">
-                {{ template "campfire_member_name" . }}
-            </div>
-            {{ if .Username }}
-                <span class="small-text">@{{ .Username }}</span>
+        <a class="list-item-link" href="{{ .URL }}" title="{{ .Username }}" hx-boost="true">
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}" alt="">
+            {{ else }}
+                <img src="/static/default_avatar.png" alt="">
             {{ end }}
-        </div>
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="list-item-name">{{ .DisplayName }}</span>{{ template "community_ambassador_flag" .IsCommunityAmbassador }}
+                </div>
+                {{ if .Username }}
+                    <span class="small-text">@{{ .Username }}</span>
+                {{ end }}
+            </div>
+        </a>
     </li>
 {{ end }}
 
@@ -192,21 +196,27 @@
         function fromChangeHandler() {
             const fromDate = document.getElementById("from");
             const toDate = document.getElementById("to");
-
-            if (toDate.value && fromDate.value > toDate.value) {
-                toDate.value = fromDate.value; // Adjust "to" date if it's earlier than "from" date
+            if (!fromDate || !toDate) {
+                return;
             }
-            toDate.min = fromDate.value; // Set the minimum value for "to" date
+
+            if (fromDate.value && toDate.value && fromDate.value > toDate.value) {
+                toDate.value = fromDate.value;
+            }
+            toDate.min = fromDate.value;
         }
 
         function toChangeHandler() {
             const fromDate = document.getElementById("from");
             const toDate = document.getElementById("to");
-
-            if (fromDate.value && toDate.value < fromDate.value) {
-                fromDate.value = toDate.value; // Adjust "from" date if it's later than "to" date
+            if (!fromDate || !toDate) {
+                return;
             }
-            fromDate.max = toDate.value; // Set the maximum value for "from" date
+
+            if (fromDate.value && toDate.value && toDate.value < fromDate.value) {
+                fromDate.value = toDate.value;
+            }
+            fromDate.max = toDate.value;
         }
     </script>
 {{ end }}
@@ -218,38 +228,14 @@
 {{ end }}
 
 {{ define "club_nav" }}
-    <div class="buttons" hx-boost="true">
-        {{ if eq .Active "club" }}
-            <span class="button button-current">Overview</span>
-        {{ else }}
-            <a href="{{ .URL }}" class="button">Overview</a>
-        {{ end }}
-        {{ if eq .Active "stats" }}
-            <span class="button button-current">Statistics</span>
-        {{ else }}
-            <a href="{{ .URL }}/stats" class="button">Statistics</a>
-        {{ end }}
-        {{ if eq .Active "events" }}
-            <span class="button button-current">Events</span>
-        {{ else }}
-            <a href="{{ .URL }}/events" class="button">Events</a>
-        {{ end }}
-        {{ if eq .Active "members" }}
-            <span class="button button-current">Members</span>
-        {{ else }}
-            <a href="{{ .URL }}/members" class="button">Members</a>
-        {{ end }}
-        {{ if eq .Active "raffle" }}
-            <span class="button button-current">Raffle</span>
-        {{ else }}
-            <a href="{{ .URL }}/raffle" class="button">Raffle</a>
-        {{ end }}
-        {{ if eq .Active "export" }}
-            <span class="button button-current">Export</span>
-        {{ else }}
-            <a href="{{ .URL }}/export" class="button">Export</a>
-        {{ end }}
-    </div>
+    <nav class="club-nav" aria-label="Club" hx-boost="true">
+        <a href="{{ .URL }}" {{ if eq .Active "club" }}aria-current="page"{{ end }}>Overview</a>
+        <a href="{{ .URL }}/stats" {{ if eq .Active "stats" }}aria-current="page"{{ end }}>Statistics</a>
+        <a href="{{ .URL }}/events" {{ if eq .Active "events" }}aria-current="page"{{ end }}>Events</a>
+        <a href="{{ .URL }}/members" {{ if eq .Active "members" }}aria-current="page"{{ end }}>Members</a>
+        <a href="{{ .URL }}/raffle" {{ if eq .Active "raffle" }}aria-current="page"{{ end }}>Raffle</a>
+        <a href="{{ .URL }}/export" {{ if eq .Active "export" }}aria-current="page"{{ end }}>Export</a>
+    </nav>
 {{ end }}
 
 {{ define "discord_user" }}

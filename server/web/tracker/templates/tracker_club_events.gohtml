@@ -4,7 +4,7 @@
         {{ template "back_button" addStr "/tracker/club/" .Club.ID }}
         <h1>
             <img src="{{ .AvatarURL }}" alt="">
-            {{ .Name }} Events
+            {{ .Name }}
             {{ template "community_ambassador_flag" .CreatedByCommunityAmbassador }}
         </h1>
     </div>
@@ -50,7 +50,7 @@
                 <span>{{ $event.Accepted }}</span>
                 <span>{{ $event.CheckIns }}</span>
                 <span>{{ $event.CheckInRate }}%</span>
-                <span>{{ formatDateNice $event.Time }}</span>
+                <span>{{ localTime $event.Time "date" }}</span>
             {{ else }}
                 <span class="table-empty">No events found.</span>
             {{ end }}

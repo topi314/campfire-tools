@@ -75,12 +75,12 @@
 
             <div class="event-overview-item">
                 <strong>Start</strong>
-                <div>{{ formatTimeToRelDayTime .Time }}</div>
+                <div>{{ localTime .Time "relative" }}</div>
             </div>
 
             <div class="event-overview-item">
                 <strong>End</strong>
-                <div>{{ formatTimeToRelDayTime .EndTime }}</div>
+                <div>{{ localTime .EndTime "relative" }}</div>
             </div>
 
             <div class="event-overview-item">
@@ -110,7 +110,7 @@
 
             <div class="event-overview-item">
                 <strong>Imported</strong>
-                <div>{{ formatTimeToRelDayTime .ImportedAt }}</div>
+                <div>{{ localTime .ImportedAt "relative" }}</div>
             </div>
 
             <div class="event-overview-item">
@@ -154,7 +154,7 @@
             {{ range $member := .CheckedInMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
-                <span>No members have checked in.</span>
+                <li class="empty">No members have checked in.</li>
             {{ end }}
         </ul>
 
@@ -165,7 +165,7 @@
             {{ range $member := .AcceptedMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
-                <span>No members waiting to check in.</span>
+                <li class="empty">No members waiting to check in.</li>
             {{ end }}
         </ul>
     </div>

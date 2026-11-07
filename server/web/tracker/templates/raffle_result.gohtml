@@ -89,7 +89,7 @@
         </div>
         <p>
             <strong>Created At:</strong>
-            {{ formatTimeToRelDayTime .CreatedAt }}
+            {{ localTime .CreatedAt "relative" }}
         </p>
         <div>
             <strong>Events:</strong>
