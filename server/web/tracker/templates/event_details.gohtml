@@ -68,18 +68,25 @@
 
             <div class="event-overview-item">
                 <strong>Start</strong>
-                <div>{{ formatTimeToRelDayTime .Time }}</div>
+                <div>{{ localTime .Time "relative" }}</div>
             </div>
 
             <div class="event-overview-item">
                 <strong>End</strong>
-                <div>{{ formatTimeToRelDayTime .EndTime }}</div>
+                <div>{{ localTime .EndTime "relative" }}</div>
             </div>
 
             <div class="event-overview-item">
                 <strong>Status</strong>
                 <div><span class="event-status event-status-{{ .StatusClass }}">{{ .Status }}</span></div>
             </div>
+
+            {{ if .Details }}
+                <div class="event-overview-item event-overview-item-wide">
+                    <strong>Description</strong>
+                    <div class="event-description">{{ .Details }}</div>
+                </div>
+            {{ end }}
         </div>
     </div>
 
@@ -99,7 +106,7 @@
             {{ range $member := .AcceptedMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
-                <span>No members waiting to check in.</span>
+                <li class="empty">No members waiting to check in.</li>
             {{ end }}
         </ul>
 
@@ -110,7 +117,7 @@
             {{ range $member := .CheckedInMembers }}
                 {{ template "campfire_member_list_item" $member }}
             {{ else }}
-                <span>No members have checked in.</span>
+                <li class="empty">No members have checked in.</li>
             {{ end }}
         </ul>
     </div>

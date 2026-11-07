@@ -1,0 +1,69 @@
+{{ template "head" "Settings" }}
+<div class="container">
+    <div class="container-header">
+        {{ template "back_button" "/" }}
+        <h1>Settings</h1>
+    </div>
+
+    <div class="settings-user">
+        <img src="{{ .AvatarURL }}" alt="">
+        <div>
+            <p><strong>{{ .DisplayName }}</strong></p>
+            {{ if .Username }}<p class="small-text">@{{ .Username }}</p>{{ end }}
+        </div>
+    </div>
+
+    {{ if .Saved }}
+        <p class="success-message">Saved.</p>
+    {{ end }}
+    {{ if .Error }}
+        <p class="error">{{ .Error }}</p>
+    {{ end }}
+
+    <form method="post" action="/settings">
+        <label for="theme">Theme
+            <select id="theme" name="theme" data-saved="{{ .Theme }}">
+                <option value="system" {{ if or (eq .Theme "") (eq .Theme "system") }}selected{{ end }}>Match this device</option>
+                <option value="dark" {{ if eq .Theme "dark" }}selected{{ end }}>Dark</option>
+                <option value="light" {{ if eq .Theme "light" }}selected{{ end }}>Light</option>
+            </select>
+        </label>
+        <label for="timezone">Time zone
+            <select id="timezone" name="timezone">
+                <option value="" {{ if eq .Timezone "" }}selected{{ end }}>Match this browser</option>
+                {{ range $group := .Zones }}
+                    <optgroup label="{{ $group.Name }}">
+                        {{ range $zone := $group.Zones }}
+                            <option value="{{ $zone.ID }}" {{ if eq $zone.ID $.Timezone }}selected{{ end }}>{{ $zone.Label }}</option>
+                        {{ end }}
+                    </optgroup>
+                {{ end }}
+            </select>
+        </label>
+        <label for="hour-cycle">Clock
+            <select id="hour-cycle" name="hour_cycle">
+                <option value="" {{ if eq .HourCycle "" }}selected{{ end }}>Match this browser</option>
+                <option value="h12" {{ if eq .HourCycle "h12" }}selected{{ end }}>12-hour</option>
+                <option value="h23" {{ if eq .HourCycle "h23" }}selected{{ end }}>24-hour</option>
+            </select>
+        </label>
+        <p class="small-text">Event times on this site use this time zone and clock. Leave both on “Match this browser” to follow the device.</p>
+        <button type="submit">Save</button>
+    </form>
+    <script>
+        (function () {
+            var select = document.getElementById("theme");
+            if (!select || select.dataset.saved) {
+                return;
+            }
+            var stored = "";
+            try {
+                stored = localStorage.getItem("theme") || "";
+            } catch (e) {}
+            if (stored === "light" || stored === "dark") {
+                select.value = stored;
+            }
+        })();
+    </script>
+</div>
+{{ template "footer" }}

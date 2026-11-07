@@ -4,7 +4,38 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{ . }}</title>
+        {{ $title := . }}
+        {{ $bare := false }}
+        {{ if eq (printf "%T" .) "map[string]interface {}" }}
+            {{ $title = index . "Title" }}
+            {{ if index . "Bare" }}{{ $bare = true }}{{ end }}
+        {{ end }}
+        <title>{{ $title }}</title>
+        <script>
+            (function () {
+                var theme = "";
+                var match = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+                if (match) {
+                    theme = decodeURIComponent(match[1]);
+                }
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                    try { localStorage.setItem("theme", theme); } catch (e) {}
+                    return;
+                }
+                if (theme === "system") {
+                    document.documentElement.removeAttribute("data-theme");
+                    try { localStorage.removeItem("theme"); } catch (e) {}
+                    return;
+                }
+                try {
+                    theme = localStorage.getItem("theme") || "";
+                } catch (e) {}
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            })();
+        </script>
         <link rel="stylesheet" href="/static/style.css">
         <link rel="icon" href="/static/favicon.png" type="image/png">
         <meta name="darkreader-lock">
@@ -17,9 +48,11 @@
             }
 
             :root {
-                --font-family: Arial;
-                --primary-color: #007bff;
-                --primary-color-hover: #0056b3;
+                --font-family: system-ui, "Segoe UI", sans-serif;
+                --primary-color: #4f46e5;
+                --primary-color-hover: #4338ca;
+                --on-primary: #ffffff;
+                --checkbox-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 L6.5 11.5 L12.5 4.5'/%3E%3C/svg%3E");
                 --error-color: #ef5656;
 
                 --color-success: #4caf50;
@@ -35,31 +68,69 @@
             }
 
             @media (prefers-color-scheme: dark) {
-                :root {
-                    --background-color: #1e1e1e;
-                    --background2-color: #2c2c2c;
-                    --text-color: #ffffff;
-                    --text2-color: #b0b0b0;
-                    --border-color: #444444;
+                :root:not([data-theme="light"]) {
+                    --background-color: #1a1a1a;
+                    --background2-color: #262626;
+                    --surface-color: #303030;
+                    --text-color: #f2f2f2;
+                    --text2-color: #a3a3a3;
+                    --border-color: #3f3f3f;
+                    --primary-color: #4f46e5;
+                    --primary-color-hover: #4338ca;
+                    --on-primary: #ffffff;
+                    --checkbox-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 L6.5 11.5 L12.5 4.5'/%3E%3C/svg%3E");
                 }
 
-                html {
+                html:not([data-theme="light"]) {
                     color-scheme: dark;
                 }
             }
 
             @media (prefers-color-scheme: light) {
-                :root {
-                    --background-color: #ffffff;
-                    --background2-color: #f0f0f0;
-                    --text-color: #000000;
-                    --text2-color: #333333;
-                    --border-color: #cccccc;
+                :root:not([data-theme="dark"]) {
+                    --background-color: #f5f5f5;
+                    --background2-color: #ffffff;
+                    --surface-color: #f0f0f0;
+                    --text-color: #1a1a1a;
+                    --text2-color: #5c5c5c;
+                    --border-color: #e0e0e0;
+                    --primary-color: #4f46e5;
+                    --primary-color-hover: #4338ca;
+                    --on-primary: #ffffff;
+                    --checkbox-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 L6.5 11.5 L12.5 4.5'/%3E%3C/svg%3E");
                 }
 
-                html {
+                html:not([data-theme="dark"]) {
                     color-scheme: light;
                 }
+            }
+
+            html[data-theme="dark"] {
+                color-scheme: dark;
+                --background-color: #1a1a1a;
+                --background2-color: #262626;
+                --surface-color: #303030;
+                --text-color: #f2f2f2;
+                --text2-color: #a3a3a3;
+                --border-color: #3f3f3f;
+                --primary-color: #4f46e5;
+                --primary-color-hover: #4338ca;
+                --on-primary: #ffffff;
+                --checkbox-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 L6.5 11.5 L12.5 4.5'/%3E%3C/svg%3E");
+            }
+
+            html[data-theme="light"] {
+                color-scheme: light;
+                --background-color: #f5f5f5;
+                --background2-color: #ffffff;
+                --surface-color: #f0f0f0;
+                --text-color: #1a1a1a;
+                --text2-color: #5c5c5c;
+                --border-color: #e0e0e0;
+                --primary-color: #4f46e5;
+                --primary-color-hover: #4338ca;
+                --on-primary: #ffffff;
+                --checkbox-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 L6.5 11.5 L12.5 4.5'/%3E%3C/svg%3E");
             }
 
             html {
@@ -69,9 +140,222 @@
             }
         </style>
         <script src="/static/htmx.min.js"></script>
+        <script>
+            function readCookie(name) {
+                const prefix = name + "=";
+                const parts = document.cookie ? document.cookie.split("; ") : [];
+                for (const part of parts) {
+                    if (part.startsWith(prefix)) {
+                        return decodeURIComponent(part.slice(prefix.length));
+                    }
+                }
+                return "";
+            }
+
+            function timePrefs() {
+                const prefs = {};
+                const timeZone = readCookie("timezone");
+                if (timeZone) {
+                    try {
+                        new Intl.DateTimeFormat(undefined, {timeZone}).format();
+                        prefs.timeZone = timeZone;
+                    } catch (e) {}
+                }
+                const hourCycle = readCookie("hour_cycle");
+                if (hourCycle === "h12" || hourCycle === "h23") {
+                    prefs.hourCycle = hourCycle;
+                }
+                return prefs;
+            }
+
+            function calendarDayKey(value, timeZone) {
+                const options = {year: "numeric", month: "2-digit", day: "2-digit"};
+                if (timeZone) {
+                    options.timeZone = timeZone;
+                }
+                const parts = {};
+                new Intl.DateTimeFormat("en-US", options).formatToParts(value).forEach((part) => {
+                    parts[part.type] = part.value;
+                });
+                return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+            }
+
+            function formatLocalTime(date, style, now) {
+                const prefs = timePrefs();
+                if (style === "date") {
+                    return new Intl.DateTimeFormat(undefined, Object.assign({
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric"
+                    }, prefs.timeZone ? {timeZone: prefs.timeZone} : {})).format(date);
+                }
+                const clock = Object.assign({
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }, prefs);
+                if (style === "daytime") {
+                    return new Intl.DateTimeFormat(undefined, Object.assign({
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    }, clock)).format(date);
+                }
+                const day = Math.round((calendarDayKey(date, prefs.timeZone) - calendarDayKey(now, prefs.timeZone)) / 86400000);
+                const time = new Intl.DateTimeFormat(undefined, clock).format(date);
+                if (day === 0) {
+                    return "Today at " + time;
+                }
+                if (day === -1) {
+                    return "Yesterday at " + time;
+                }
+                if (day === 1) {
+                    return "Tomorrow at " + time;
+                }
+                return new Intl.DateTimeFormat(undefined, Object.assign({
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric"
+                }, clock)).format(date);
+            }
+
+            function formatLocalTimes(root) {
+                if (!root || !root.querySelectorAll) {
+                    root = document;
+                }
+                const nodes = [];
+                if (root.matches && root.matches("time.local-time")) {
+                    nodes.push(root);
+                }
+                root.querySelectorAll("time.local-time").forEach((node) => nodes.push(node));
+                const now = new Date();
+                const prefs = timePrefs();
+                const full = new Intl.DateTimeFormat(undefined, Object.assign({
+                    dateStyle: "full",
+                    timeStyle: "long"
+                }, prefs));
+                nodes.forEach((node) => {
+                    const date = new Date(node.dateTime);
+                    if (Number.isNaN(date.getTime())) {
+                        return;
+                    }
+                    node.textContent = formatLocalTime(date, node.dataset.style || "relative", now);
+                    node.title = full.format(date);
+                });
+            }
+
+            function paintUserMenu() {
+                const link = document.querySelector(".user-menu");
+                if (!link) {
+                    return;
+                }
+                const name = readCookie("user_name");
+                const avatar = readCookie("user_avatar");
+                const image = link.querySelector("img");
+                const onSettings = window.location.pathname === "/settings";
+                const showAvatar = Boolean(name && avatar);
+                link.classList.toggle("has-avatar", showAvatar);
+                if (name) {
+                    link.href = "/settings";
+                    link.setAttribute("aria-label", "Settings for " + name);
+                    if (onSettings) {
+                        link.setAttribute("aria-current", "page");
+                    } else {
+                        link.removeAttribute("aria-current");
+                    }
+                } else {
+                    link.href = "/tracker/login?rd=%2Fsettings";
+                    link.setAttribute("aria-label", "Log in");
+                    link.removeAttribute("aria-current");
+                }
+                if (showAvatar) {
+                    image.src = avatar;
+                    image.alt = "";
+                    return;
+                }
+                image.removeAttribute("src");
+            }
+
+            function markSiteNav() {
+                const path = window.location.pathname;
+                document.querySelectorAll(".site-nav a").forEach((link) => {
+                    const href = link.getAttribute("href") || "";
+                    const active = href === "/tracker"
+                        ? path === "/tracker" || path.startsWith("/tracker/")
+                        : path === href || path.startsWith(href + "/");
+                    link.classList.toggle("is-current", active);
+                    if (active) {
+                        link.setAttribute("aria-current", "page");
+                    } else {
+                        link.removeAttribute("aria-current");
+                    }
+                });
+            }
+
+            function applyThemeChoice(theme) {
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                    return;
+                }
+                document.documentElement.removeAttribute("data-theme");
+            }
+
+            function refreshPageChrome(root) {
+                formatLocalTimes(root || document);
+                markSiteNav();
+                paintUserMenu();
+            }
+
+            document.addEventListener("change", (event) => {
+                if (event.target && event.target.id === "theme") {
+                    applyThemeChoice(event.target.value);
+                }
+            });
+
+            document.addEventListener("click", (event) => {
+                const button = event.target.closest("[data-copy]");
+                if (!button || !navigator.clipboard) {
+                    return;
+                }
+                const value = button.getAttribute("data-copy") || "";
+                const previous = button.textContent;
+                navigator.clipboard.writeText(value).then(() => {
+                    button.textContent = "Copied";
+                    window.setTimeout(() => {
+                        button.textContent = previous;
+                    }, 1200);
+                });
+            });
+
+            document.addEventListener("DOMContentLoaded", () => refreshPageChrome(document));
+            document.addEventListener("htmx:afterSwap", (event) => {
+                refreshPageChrome(event.detail && event.detail.target);
+            });
+        </script>
         {{ template "live_reload_script" }}
     </head>
     <body>
+    <header class="site-header">
+        <a class="site-brand" href="/" hx-boost="true">Campfire Tools</a>
+        {{ if not $bare }}
+        <div class="site-header-end">
+            <nav class="site-nav" aria-label="Primary">
+                <a href="/raffle" hx-boost="true">Raffle</a>
+                <a href="/export" hx-boost="true">Export</a>
+                <a href="/event" hx-boost="true">Event</a>
+                <a href="/tracker" hx-boost="true">Tracker</a>
+            </nav>
+            <a class="user-menu" href="/tracker/login?rd=%2Fsettings" aria-label="Log in" hx-boost="true">
+                <img alt="">
+                <svg class="user-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="8" r="4"></circle>
+                </svg>
+            </a>
+            <script>paintUserMenu();</script>
+        </div>
+        {{ end }}
+    </header>
     <div class="main">
     {{ if false }}
         </div>

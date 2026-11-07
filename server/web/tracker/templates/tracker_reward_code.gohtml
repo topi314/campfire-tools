@@ -1,37 +1,30 @@
 {{ template "head" "Reward Code" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" .BackURL }}
         <h1>Reward Code</h1>
     </div>
 
     <div class="section">
-        <div class="reward-link">
-            <img src="{{ .QRURL }}" alt="QR Code for Reward Code" class="qr-code"/>
-            <div>
-                <a href="{{ .RewardCodeURL }}" target="_blank">Reward Link</a>
-                <span>-</span>
-                <span>Visited: {{ .VisitedCount }}</span>
+        <div class="code-panel">
+            <img src="{{ .QRURL }}" alt="QR code for this reward" class="qr-code">
+            <p class="code-panel-meta">
+                <a href="{{ .RewardCodeURL }}" target="_blank" rel="noopener noreferrer">Reward link</a>
+                <span>{{ .VisitedCount }} {{ if eq .VisitedCount 1 }}visit{{ else }}visits{{ end }}</span>
+            </p>
+            <div class="code-value-row">
+                <p class="code-value">{{ .Code }}</p>
+                <button type="button" class="button small" data-copy="{{ .Code }}">Copy</button>
             </div>
-        </div>
-
-        <hr/>
-
-        <div class="reward-redeem">
-            <a href="{{ .RedeemCodeURL }}" class="button" target="_blank"><img src="/static/webstore.png">Open in Web Store</a>
-            <span class="reward-code">{{ .Code }}</span>
-        </div>
-
-        <hr/>
-
-        <div class="buttons spread">
-            <button hx-delete="{{ .URL }}" class="button danger" hx-confirm="Are you sure you want to delete this reward code? This action cannot be undone.">Delete Code</button>
-
-            {{ if .IsRedeemed }}
-                <button hx-post="{{ .MarkAsUnusedURL }}" hx-target="body" class="warning">Mark as Unused</button>
-            {{ else }}
-                <button hx-post="{{ .MarkAsUsedURL }}" hx-target="body" class="success">Mark as Used</button>
-            {{ end }}
+            <div class="buttons">
+                <a href="{{ .RedeemCodeURL }}" class="button button-primary" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="">Web Store</a>
+                {{ if .IsRedeemed }}
+                    <button hx-post="{{ .MarkAsUnusedURL }}" hx-target="body" class="warning">Mark as unused</button>
+                {{ else }}
+                    <button hx-post="{{ .MarkAsUsedURL }}" hx-target="body" class="success">Mark as used</button>
+                {{ end }}
+                <button hx-delete="{{ .URL }}" class="danger" hx-confirm="Are you sure you want to delete this reward code? This action cannot be undone.">Delete</button>
+            </div>
         </div>
     </div>
 </div>

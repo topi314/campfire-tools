@@ -1,4 +1,4 @@
-{{ template "head" "Redeem Reward" }}
+{{ template "head" (dict "Title" "Redeem Reward" "Bare" true) }}
 <div class="container">
     <div class="container-header">
         <h1>Redeem Reward</h1>
@@ -26,20 +26,15 @@
                         Just click the button below to open the redemption page with your code pre-filled, or copy the code and redeem it manually.
                     </p>
                 </div>
-                <br/>
-                <br/>
-                <a href="{{ .Code.RedeemCodeURL }}" class="button" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="Pokémon GO Web Store">Redeem in Web Store</a>
-                <br/>
-                <br/>
-                <span class="reward-code" title="Click to copy" id="redemption-code">{{ .Code.Code }}</span>
+                <div class="reward-actions">
+                    <a href="{{ .Code.RedeemCodeURL }}" class="button button-primary" target="_blank" rel="noopener noreferrer"><img src="/static/webstore.png" alt="Pokémon GO Web Store">Redeem in Web Store</a>
+                    <div class="reward-code-field">
+                        <span class="reward-code">{{ .Code.Code }}</span>
+                        <button type="button" data-copy="{{ .Code.Code }}">Copy</button>
+                    </div>
+                </div>
             {{ end }}
         </div>
     </div>
 </div>
-<script>
-    document.getElementById("redemption-code")?.addEventListener("click", function () {
-        navigator.clipboard.writeText(this.textContent);
-        alert("Code copied to clipboard!");
-    });
-</script>
 {{ template "footer" }}

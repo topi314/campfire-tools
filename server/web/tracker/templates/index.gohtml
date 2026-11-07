@@ -6,14 +6,27 @@
 
     <p>Welcome to the Campfire Tools! Here you can run raffles, export campfire data, view events and track your campfire check-ins.</p>
 
-    <div class="buttons" hx-boost="true">
-        <a href="/raffle" class="button">Raffle</a>
-        <a href="/export" class="button">Export</a>
-        <a href="/event" class="button">Event</a>
-    </div>
-    <div class="buttons" hx-boost="true">
-        <a href="/tracker" class="button">Tracker</a>
-        <a href="/api/docs" class="button">API Docs</a>
+    <div class="tool-grid" hx-boost="true">
+        <a class="tool-card" href="/raffle">
+            <span class="tool-card-title">Raffle</span>
+            <span class="tool-card-desc">Pick winners from event check-ins.</span>
+        </a>
+        <a class="tool-card" href="/export">
+            <span class="tool-card-title">Export</span>
+            <span class="tool-card-desc">Download event check-in data.</span>
+        </a>
+        <a class="tool-card" href="/event">
+            <span class="tool-card-title">Event</span>
+            <span class="tool-card-desc">Open one event and its check-ins.</span>
+        </a>
+        <a class="tool-card" href="/tracker">
+            <span class="tool-card-title">Tracker</span>
+            <span class="tool-card-desc">Clubs, members, rewards, and statistics.</span>
+        </a>
+        <a class="tool-card" href="/api/docs">
+            <span class="tool-card-title">API Docs</span>
+            <span class="tool-card-desc">Club and event API reference.</span>
+        </a>
     </div>
 </div>
 {{ template "footer" }}

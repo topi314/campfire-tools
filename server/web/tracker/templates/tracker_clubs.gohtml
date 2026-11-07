@@ -1,5 +1,5 @@
 {{ template "head" "Campfire Event Tracker" }}
-<div class="container">
+<div class="container container-wide">
     <div class="container-header">
         {{ template "back_button" "/tracker" }}
         <h1>Tracker</h1>
@@ -25,21 +25,23 @@
         <ul class="list">
             {{ range $club := .Clubs }}
                 <li class="list-item">
-                    {{ if $club.AvatarURL }}
-                        <img src="{{ $club.AvatarURL }}" alt="">
-                    {{ else }}
-                        <img src="/static/default.png" alt="">
-                    {{ end }}
-                    <div class="list-item-content">
-                        <div class="list-item-title">
-                            {{ if $club.Pinned }}<span class="club-pin" title="Pinned" aria-label="Pinned">📌</span>{{ end }}
-                            <a href="{{ $club.URL }}" hx-boost="true">{{ $club.Name }}</a>{{ template "community_ambassador_flag" $club.CreatedByCommunityAmbassador }}
+                    <a class="list-item-link" href="{{ $club.URL }}" hx-boost="true">
+                        {{ if $club.AvatarURL }}
+                            <img src="{{ $club.AvatarURL }}" alt="">
+                        {{ else }}
+                            <img src="/static/default.png" alt="">
+                        {{ end }}
+                        <div class="list-item-content">
+                            <div class="list-item-title">
+                                {{ if $club.Pinned }}<span class="club-pin" title="Pinned" aria-label="Pinned">📌</span>{{ end }}
+                                <span class="list-item-name">{{ $club.Name }}</span>{{ template "community_ambassador_flag" $club.CreatedByCommunityAmbassador }}
+                            </div>
+                            <span class="small-text">{{ $club.Events }} events</span>
                         </div>
-                        <span class="small-text">{{ $club.Events }} events</span>
-                    </div>
+                    </a>
                 </li>
             {{ else }}
-                <span>No clubs tracked yet.</span>
+                <li class="empty">No clubs tracked yet.</li>
             {{ end }}
         </ul>
     </div>
