@@ -146,13 +146,15 @@
                         <select id="member-sort" name="sort" hx-get="{{ .URL }}" hx-target="#event-members" hx-swap="outerHTML" hx-select="#event-members" hx-push-url="true">
                             <option value="name" {{ if eq .Sort "name" }}selected{{ end }}>Name (A → Z)</option>
                             <option value="name-desc" {{ if eq .Sort "name-desc" }}selected{{ end }}>Name (Z → A)</option>
+                            <option value="check-ins-asc" {{ if eq .Sort "check-ins-asc" }}selected{{ end }}>Check-Ins (low → high)</option>
+                            <option value="check-ins" {{ if eq .Sort "check-ins" }}selected{{ end }}>Check-Ins (high → low)</option>
                         </select>
                 </label>
             </div>
         </div>
         <ul class="list">
             {{ range $member := .CheckedInMembers }}
-                {{ template "campfire_member_list_item" $member }}
+                {{ template "event_member_list_item" $member }}
             {{ else }}
                 <li class="empty">No members have checked in.</li>
             {{ end }}
@@ -163,7 +165,7 @@
         </div>
         <ul class="list">
             {{ range $member := .AcceptedMembers }}
-                {{ template "campfire_member_list_item" $member }}
+                {{ template "event_member_list_item" $member }}
             {{ else }}
                 <li class="empty">No members waiting to check in.</li>
             {{ end }}
@@ -257,3 +259,27 @@
     {{ end }}
 </script>
 {{ template "tracker_footer" }}
+
+{{ define "event_member_list_item" }}
+    <li class="list-item">
+        <a class="list-item-link" href="{{ .URL }}" title="{{ .Username }}" hx-boost="true">
+            {{ if .AvatarURL }}
+                <img src="{{ .AvatarURL }}" alt="">
+            {{ else }}
+                <img src="/static/default_avatar.png" alt="">
+            {{ end }}
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="list-item-name">{{ .DisplayName }}</span>{{ template "community_ambassador_flag" .IsCommunityAmbassador }}
+                </div>
+                {{ if .Username }}
+                    <span class="small-text">@{{ .Username }}</span>
+                {{ end }}
+            </div>
+        </a>
+        <span class="list-item-check-ins" title="Meet-ups checked into at this club">
+            {{ .CheckIns }}
+            {{ if eq .CheckIns 1 }}check-in{{ else }}check-ins{{ end }}
+        </span>
+    </li>
+{{ end }}

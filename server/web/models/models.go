@@ -186,6 +186,18 @@ func GetDisplayName(displayName string, username string) string {
 	return displayName
 }
 
+func NewMemberWithCheckIns(member database.MemberWithCheckIns, clubID string, iconSize int) MemberWithCheckIns {
+	return MemberWithCheckIns{
+		Member:   NewMember(member.Member, clubID, iconSize),
+		CheckIns: member.CheckIns,
+	}
+}
+
+type MemberWithCheckIns struct {
+	Member
+	CheckIns int
+}
+
 func NewMember(member database.Member, clubID string, iconSize int) Member {
 	if member.ID == "" {
 		return Member{}

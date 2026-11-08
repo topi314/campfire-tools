@@ -167,35 +167,36 @@ func (d *Database) GetEventMembers(ctx context.Context, eventID string) ([]Event
 	return members, nil
 }
 
-func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
-	query := `
-		SELECT m.*
-		FROM members m
-		JOIN event_rsvps er ON m.member_id = er.event_rsvp_member_id
-		WHERE er.event_rsvp_event_id = $1 AND er.event_rsvp_status = 'CHECKED_IN'
-		ORDER BY m.member_display_name, m.member_username, m.member_id
-	`
-
-	var members []Member
-	if err := d.db.SelectContext(ctx, &members, query, eventID); err != nil {
-		return nil, fmt.Errorf("failed to get checked-in members by event: %w", err)
-	}
-
-	return members, nil
+func (d *Database) GetCheckedInMembersByEvent(ctx context.Context, eventID string) ([]MemberWithCheckIns, error) {
+	return d.getEventMembersWithClubCheckIns(ctx, eventID, "CHECKED_IN")
 }
 
-func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string) ([]Member, error) {
+func (d *Database) GetAcceptedMembersByEvent(ctx context.Context, eventID string) ([]MemberWithCheckIns, error) {
+	return d.getEventMembersWithClubCheckIns(ctx, eventID, "ACCEPTED")
+}
+
+func (d *Database) getEventMembersWithClubCheckIns(ctx context.Context, eventID string, status string) ([]MemberWithCheckIns, error) {
 	query := `
-		SELECT m.*
+		SELECT m.*,
+			COUNT(club_e.event_id) AS check_ins
 		FROM members m
 		JOIN event_rsvps er ON m.member_id = er.event_rsvp_member_id
-		WHERE er.event_rsvp_event_id = $1 AND er.event_rsvp_status = 'ACCEPTED'
+		JOIN events e ON e.event_id = er.event_rsvp_event_id
+		LEFT JOIN event_rsvps club_er
+			ON club_er.event_rsvp_member_id = m.member_id
+			AND club_er.event_rsvp_status = 'CHECKED_IN'
+		LEFT JOIN events club_e
+			ON club_e.event_id = club_er.event_rsvp_event_id
+			AND club_e.event_club_id = e.event_club_id
+		WHERE er.event_rsvp_event_id = $1
+			AND er.event_rsvp_status = $2
+		GROUP BY m.member_id
 		ORDER BY m.member_display_name, m.member_username, m.member_id
 	`
 
-	var members []Member
-	if err := d.db.SelectContext(ctx, &members, query, eventID); err != nil {
-		return nil, fmt.Errorf("failed to get accepted members by event: %w", err)
+	var members []MemberWithCheckIns
+	if err := d.db.SelectContext(ctx, &members, query, eventID, status); err != nil {
+		return nil, fmt.Errorf("failed to get %s members by event: %w", status, err)
 	}
 
 	return members, nil

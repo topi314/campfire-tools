@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"cmp"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -18,8 +19,8 @@ type TrackerClubEventVars struct {
 	Club             models.Club
 	ClubCategories   []string
 	IsCustomCategory bool
-	CheckedInMembers []models.Member
-	AcceptedMembers  []models.Member
+	CheckedInMembers []models.MemberWithCheckIns
+	AcceptedMembers  []models.MemberWithCheckIns
 	Sort             string
 	TotalAccepted    int
 	TotalCheckIns    int
@@ -33,7 +34,7 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("event_id")
 	sortBy := query.Get("sort")
 	switch sortBy {
-	case "name", "name-desc":
+	case "name", "name-desc", "check-ins", "check-ins-asc":
 	default:
 		sortBy = "name"
 	}
@@ -85,11 +86,11 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch top members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	checkedInTrackerMembers := make([]models.Member, len(checkedInMembers))
+	checkedInTrackerMembers := make([]models.MemberWithCheckIns, len(checkedInMembers))
 	for i, member := range checkedInMembers {
-		checkedInTrackerMembers[i] = models.NewMember(member, event.ClubID, 32)
+		checkedInTrackerMembers[i] = models.NewMemberWithCheckIns(member, event.ClubID, 32)
 	}
-	sortEventMembers(checkedInTrackerMembers, sortBy)
+	sortEventMembersWithCheckIns(checkedInTrackerMembers, sortBy)
 
 	acceptedMembers, err := h.DB.GetAcceptedMembersByEvent(ctx, eventID)
 	if err != nil {
@@ -97,11 +98,11 @@ func (h *handler) TrackerClubEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch accepted members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	acceptedTrackerMembers := make([]models.Member, len(acceptedMembers))
+	acceptedTrackerMembers := make([]models.MemberWithCheckIns, len(acceptedMembers))
 	for i, member := range acceptedMembers {
-		acceptedTrackerMembers[i] = models.NewMember(member, event.ClubID, 32)
+		acceptedTrackerMembers[i] = models.NewMemberWithCheckIns(member, event.ClubID, 32)
 	}
-	sortEventMembers(acceptedTrackerMembers, sortBy)
+	sortEventMembersWithCheckIns(acceptedTrackerMembers, sortBy)
 
 	clubModel := models.NewClub(*club)
 	eventModel := models.NewEventWithCreator(*event, clubModel.AvatarURL)
@@ -159,23 +160,43 @@ func (h *handler) TrackerClubEventCategory(w http.ResponseWriter, r *http.Reques
 
 func sortEventMembers(members []models.Member, sortBy string) {
 	slices.SortFunc(members, func(a, b models.Member) int {
-		if a.IsCommunityAmbassador != b.IsCommunityAmbassador {
-			if a.IsCommunityAmbassador {
-				return -1
-			}
-			return 1
-		}
-
-		cmp := strings.Compare(strings.ToLower(a.DisplayName), strings.ToLower(b.DisplayName))
-		if cmp == 0 {
-			cmp = strings.Compare(strings.ToLower(a.Username), strings.ToLower(b.Username))
-		}
-		if cmp == 0 {
-			cmp = strings.Compare(a.ID, b.ID)
-		}
-		if sortBy == "name-desc" {
-			return -cmp
-		}
-		return cmp
+		return compareEventMemberNames(a, b, sortBy)
 	})
+}
+
+func sortEventMembersWithCheckIns(members []models.MemberWithCheckIns, sortBy string) {
+	slices.SortFunc(members, func(a, b models.MemberWithCheckIns) int {
+		switch sortBy {
+		case "check-ins":
+			if c := cmp.Compare(b.CheckIns, a.CheckIns); c != 0 {
+				return c
+			}
+		case "check-ins-asc":
+			if c := cmp.Compare(a.CheckIns, b.CheckIns); c != 0 {
+				return c
+			}
+		}
+		return compareEventMemberNames(a.Member, b.Member, sortBy)
+	})
+}
+
+func compareEventMemberNames(a, b models.Member, sortBy string) int {
+	if a.IsCommunityAmbassador != b.IsCommunityAmbassador {
+		if a.IsCommunityAmbassador {
+			return -1
+		}
+		return 1
+	}
+
+	nameCmp := strings.Compare(strings.ToLower(a.DisplayName), strings.ToLower(b.DisplayName))
+	if nameCmp == 0 {
+		nameCmp = strings.Compare(strings.ToLower(a.Username), strings.ToLower(b.Username))
+	}
+	if nameCmp == 0 {
+		nameCmp = strings.Compare(a.ID, b.ID)
+	}
+	if sortBy == "name-desc" {
+		return -nameCmp
+	}
+	return nameCmp
 }

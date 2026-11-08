@@ -85,6 +85,12 @@ type TopMember struct {
 	CheckIns int `db:"check_ins"`
 }
 
+// MemberWithCheckIns is a member plus their all-time CHECKED_IN count at one club.
+type MemberWithCheckIns struct {
+	Member
+	CheckIns int `db:"check_ins"`
+}
+
 type EventMember struct {
 	Member
 	EventRSVP
