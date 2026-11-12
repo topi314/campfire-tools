@@ -2046,6 +2046,34 @@ h2 > img.ca-icon {
     display: none;
 }
 
+.container-header .checklist-header-actions {
+    flex-grow: 0;
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.checklist-header-actions .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.checklist-header-actions svg {
+    width: 18px;
+    height: 18px;
+}
+
+.checklist-checked {
+    margin-top: 8px;
+}
+
+.checklist-checked > summary {
+    padding-left: 0;
+}
+
 .checklist-person {
     display: flex;
     align-items: center;
@@ -2064,6 +2092,44 @@ h2 > img.ca-icon {
     display: flex;
     gap: 8px;
     align-items: center;
+}
+
+button.checklist-check:not(.success) {
+    background-color: transparent;
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+button.checklist-check:not(.success):hover {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: #ffffff;
+}
+
+button.checklist-check.success,
+button.checklist-check.success:hover {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: #ffffff;
+}
+
+button.checklist-check.success:hover {
+    background-color: var(--color-success-hover);
+    border-color: var(--color-success-hover);
+}
+
+.checklist-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.checklist-check svg {
+    width: 18px;
+    height: 18px;
 }
 
 .checklist-event form {

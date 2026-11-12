@@ -29,6 +29,14 @@ func (d *Database) GetRaffleByID(ctx context.Context, id int) (*Raffle, error) {
 	return &raffle, nil
 }
 
+func (d *Database) GetRaffleByToken(ctx context.Context, token string) (*Raffle, error) {
+	var raffle Raffle
+	if err := d.db.GetContext(ctx, &raffle, "SELECT * FROM raffles WHERE raffle_token = $1", token); err != nil {
+		return nil, err
+	}
+	return &raffle, nil
+}
+
 func (d *Database) GetRaffleEvents(ctx context.Context, raffleID int) ([]Event, error) {
 	query := `
 		SELECT events.*
@@ -80,10 +88,17 @@ func (d *Database) RemoveRaffleEvents(ctx context.Context, raffleID int, eventID
 	return nil
 }
 
+func (d *Database) UpdateRaffleTitle(ctx context.Context, raffleID int, title string) error {
+	if _, err := d.db.ExecContext(ctx, `UPDATE raffles SET raffle_title = $2 WHERE raffle_id = $1`, raffleID, title); err != nil {
+		return fmt.Errorf("failed to update raffle title: %w", err)
+	}
+	return nil
+}
+
 func (d *Database) InsertRaffle(ctx context.Context, raffle Raffle) (int, error) {
 	query := `
-		INSERT INTO raffles (raffle_user_id, raffle_events, raffle_winner_count, raffle_only_checked_in, raffle_single_entry)
-		VALUES (:raffle_user_id, :raffle_events, :raffle_winner_count, :raffle_only_checked_in, :raffle_single_entry)
+		INSERT INTO raffles (raffle_token, raffle_user_id, raffle_events, raffle_winner_count, raffle_only_checked_in, raffle_single_entry)
+		VALUES (:raffle_token, :raffle_user_id, :raffle_events, :raffle_winner_count, :raffle_only_checked_in, :raffle_single_entry)
 		RETURNING raffle_id
 	`
 

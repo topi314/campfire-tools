@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -156,6 +157,8 @@ type LiveEventMemberRSVP struct {
 
 type Raffle struct {
 	ID            int            `db:"raffle_id"`
+	Token         string         `db:"raffle_token"`
+	Title         string         `db:"raffle_title"`
 	UserID        string         `db:"raffle_user_id"`
 	Events        pq.StringArray `db:"raffle_events"`
 	WinnerCount   int            `db:"raffle_winner_count"`
@@ -183,7 +186,7 @@ type Checklist struct {
 	ID            int            `db:"checklist_id"`
 	Token         string         `db:"checklist_token"`
 	Title         string         `db:"checklist_title"`
-	CreatedBy     string         `db:"checklist_created_by"`
+	CreatedBy     sql.NullString `db:"checklist_created_by"`
 	OnlyCheckedIn bool           `db:"checklist_only_checked_in"`
 	Events        pq.StringArray `db:"checklist_events"`
 	CreatedAt     time.Time      `db:"checklist_created_at"`

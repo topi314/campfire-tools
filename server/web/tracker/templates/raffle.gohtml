@@ -41,7 +41,7 @@ https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
             <ul class="list">
                 {{ range $raffle := .Raffles }}
                     <li class="list-item">
-                        <a href="{{ $raffle.URL }}" hx-boost="true">#{{ $raffle.ID }}</a> <span class="small-text">{{ localTime $raffle.CreatedAt "relative" }}</span>
+                        <a href="{{ $raffle.URL }}" hx-boost="true">{{ if $raffle.Title }}{{ $raffle.Title }}{{ else }}#{{ $raffle.ID }}{{ end }}</a> <span class="small-text">{{ localTime $raffle.CreatedAt "relative" }}</span>
                     </li>
                 {{ end }}
             </ul>

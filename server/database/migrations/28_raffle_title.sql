@@ -1,0 +1,2 @@
+ALTER TABLE raffles
+    ADD COLUMN raffle_title VARCHAR NOT NULL DEFAULT '';

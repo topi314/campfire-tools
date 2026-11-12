@@ -66,28 +66,31 @@ type ChecklistNotice struct {
 
 type ChecklistAddResults struct {
 	ChecklistID int
+	ActionBase  string
 	Query       string
 	Members     []models.Member
 	OnList      map[string]bool
 }
 
 type ChecklistPage struct {
-	ID            int
-	Title         string
-	ShareURL      string
-	EntriesURL    string
-	BackURL       string
-	CanEdit       bool
-	OnlyCheckedIn bool
-	People        []ChecklistPerson
-	Received      int
-	Total         int
-	Events        []models.Event
-	HasNotice     bool
-	Notice        ChecklistNotice
-	SwapNotice    bool
-	Error         string
-	Add           ChecklistAddResults
+	ID              int
+	Title           string
+	ShareURL        string
+	EntriesURL      string
+	ActionBase      string
+	ManageEventsURL string
+	BackURL         string
+	CanEdit         bool
+	OnlyCheckedIn   bool
+	People          []ChecklistPerson
+	Received        int
+	Total           int
+	Events          []models.Event
+	HasNotice       bool
+	Notice          ChecklistNotice
+	SwapNotice      bool
+	Error           string
+	Add             ChecklistAddResults
 }
 
 type TrackerClubChecklistVars struct {
@@ -108,32 +111,30 @@ func (h *handler) renderChecklistIndex(w http.ResponseWriter, r *http.Request, e
 	}
 
 	session := auth.GetSession(r)
-	if session.UserID == "" {
-		h.forceLogin(w, r)
-		return
-	}
-
 	ctx := r.Context()
-	rows, err := h.DB.GetChecklistsByUserID(ctx, session.UserID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get checklists", slog.Any("err", err))
-		http.Error(w, "Failed to get checklists: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	var checklists []ChecklistSummary
+	if session.UserID != "" {
+		rows, err := h.DB.GetChecklistsByUserID(ctx, session.UserID)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get checklists", slog.Any("err", err))
+			http.Error(w, "Failed to get checklists: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	checklists := make([]ChecklistSummary, len(rows))
-	for i, row := range rows {
-		checklists[i] = ChecklistSummary{
-			ID:        row.ID,
-			Title:     row.Title,
-			URL:       checklistPath(row.ID),
-			Received:  row.Received,
-			Total:     row.Total,
-			CreatedAt: row.CreatedAt,
+		checklists = make([]ChecklistSummary, len(rows))
+		for i, row := range rows {
+			checklists[i] = ChecklistSummary{
+				ID:        row.ID,
+				Title:     row.Title,
+				URL:       checklistPath(row.ID),
+				Received:  row.Received,
+				Total:     row.Total,
+				CreatedAt: row.CreatedAt,
+			}
 		}
 	}
 
-	if err = h.Templates().ExecuteTemplate(w, "checklist_index.gohtml", ChecklistIndexVars{
+	if err := h.Templates().ExecuteTemplate(w, "checklist_index.gohtml", ChecklistIndexVars{
 		Checklists: checklists,
 		Error:      errorMessage,
 	}); err != nil {
@@ -217,10 +218,6 @@ func (h *handler) renderTrackerClubChecklist(w http.ResponseWriter, r *http.Requ
 func (h *handler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	session := auth.GetSession(r)
-	if session.UserID == "" {
-		h.forceLogin(w, r)
-		return
-	}
 
 	if err := r.ParseForm(); err != nil {
 		h.renderChecklistIndex(w, r, "Failed to parse form data")
@@ -246,9 +243,14 @@ func (h *handler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var createdBy sql.NullString
+	if session.UserID != "" {
+		createdBy = sql.NullString{String: session.UserID, Valid: true}
+	}
+
 	checklistID, err := h.insertChecklist(ctx, database.Checklist{
 		Title:         title,
-		CreatedBy:     session.UserID,
+		CreatedBy:     createdBy,
 		OnlyCheckedIn: xquery.ParseBool(r.Form, "only_checked_in", false),
 		Events:        eventIDs,
 	})
@@ -258,10 +260,12 @@ func (h *handler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.AddChecklistUser(ctx, checklistID, session.UserID); err != nil {
-		slog.ErrorContext(ctx, "Failed to add checklist creator", slog.Any("err", err))
-		h.renderChecklistIndex(w, r, "Failed to create checklist: "+err.Error())
-		return
+	if session.UserID != "" {
+		if err = h.DB.AddChecklistUser(ctx, checklistID, session.UserID); err != nil {
+			slog.ErrorContext(ctx, "Failed to add checklist creator", slog.Any("err", err))
+			h.renderChecklistIndex(w, r, "Failed to create checklist: "+err.Error())
+			return
+		}
 	}
 
 	checklist, err := h.DB.GetChecklistByID(ctx, checklistID)
@@ -270,13 +274,17 @@ func (h *handler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, checklistPath(checklistID)+"?error=Failed+to+import+people", http.StatusSeeOther)
 		return
 	}
+	dest := "/checklist/share/" + checklist.Token
+	if session.UserID != "" {
+		dest = checklistHere(r, checklist)
+	}
 	if err = h.importChecklistPeople(ctx, *checklist); err != nil {
 		slog.ErrorContext(ctx, "Failed to import checklist people", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklistID)+"?error=Failed+to+import+people", http.StatusSeeOther)
+		http.Redirect(w, r, dest+"?error=Failed+to+import+people", http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, checklistPath(checklistID), http.StatusSeeOther)
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 func (h *handler) ChecklistShare(w http.ResponseWriter, r *http.Request) {
@@ -297,12 +305,14 @@ func (h *handler) ChecklistShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, err := h.buildChecklistPage(ctx, r, *checklist, false, "")
+	syncErr := h.syncChecklistPeople(ctx, *checklist)
+	page, err := h.buildChecklistPage(ctx, r, *checklist, checklistIsPublic(*checklist), "")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to build shared checklist", slog.Any("err", err))
 		http.Error(w, "Failed to load checklist: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	page.Error = syncErr
 	h.renderChecklistPage(w, r, page)
 }
 
@@ -313,7 +323,8 @@ func (h *handler) ChecklistShareEntries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	page, err := h.buildChecklistPage(ctx, r, *checklist, false, "")
+	h.syncChecklistPeople(ctx, *checklist)
+	page, err := h.buildChecklistPage(ctx, r, *checklist, checklistIsPublic(*checklist), "")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to build shared checklist entries", slog.Any("err", err))
 		http.Error(w, "Failed to load checklist: "+err.Error(), http.StatusInternalServerError)
@@ -324,11 +335,12 @@ func (h *handler) ChecklistShareEntries(w http.ResponseWriter, r *http.Request) 
 
 func (h *handler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 
+	syncErr := h.syncChecklistPeople(ctx, *checklist)
 	page, err := h.buildChecklistPage(ctx, r, *checklist, true, strings.TrimSpace(r.URL.Query().Get("already")))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to build checklist", slog.Any("err", err))
@@ -336,16 +348,20 @@ func (h *handler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page.Error = strings.TrimSpace(r.URL.Query().Get("error"))
+	if page.Error == "" {
+		page.Error = syncErr
+	}
 	h.renderChecklistPage(w, r, page)
 }
 
 func (h *handler) ChecklistEntries(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 
+	h.syncChecklistPeople(ctx, *checklist)
 	page, err := h.buildChecklistPage(ctx, r, *checklist, true, "")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to build checklist entries", slog.Any("err", err))
@@ -357,7 +373,7 @@ func (h *handler) ChecklistEntries(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostChecklistToggle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, session, ok := h.authorizedChecklist(w, r)
+	checklist, userID, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
@@ -371,10 +387,10 @@ func (h *handler) PostChecklistToggle(w http.ResponseWriter, r *http.Request) {
 	wantReceived := r.FormValue("received") == "true"
 	now := time.Now()
 
-	var already bool
+	var updated bool
 	var err error
 	if wantReceived {
-		already, err = h.DB.MarkChecklistEntryReceived(ctx, checklist.ID, memberID, session.UserID, now)
+		updated, err = h.DB.MarkChecklistEntryReceived(ctx, checklist.ID, memberID, userID, now)
 	} else {
 		err = h.DB.UnmarkChecklistEntryReceived(ctx, checklist.ID, memberID)
 	}
@@ -389,8 +405,8 @@ func (h *handler) PostChecklistToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isHTMX(r) {
-		target := checklistPath(checklist.ID)
-		if already {
+		target := checklistHere(r, checklist)
+		if wantReceived && !updated {
 			target += "?already=" + url.QueryEscape(memberID)
 		}
 		http.Redirect(w, r, target, http.StatusSeeOther)
@@ -398,7 +414,7 @@ func (h *handler) PostChecklistToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	noticeMemberID := ""
-	if already {
+	if wantReceived && !updated {
 		noticeMemberID = memberID
 	}
 	page, err := h.buildChecklistPage(ctx, r, *checklist, true, noticeMemberID)
@@ -413,120 +429,139 @@ func (h *handler) PostChecklistToggle(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostChecklistTitle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+parse+form", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
 	title, titleErr := cleanChecklistTitle(r.FormValue("title"))
 	if titleErr != "" {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error="+url.QueryEscape(titleErr), http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error="+url.QueryEscape(titleErr), http.StatusSeeOther)
 		return
 	}
 	if err := h.DB.UpdateChecklistTitle(ctx, checklist.ID, title); err != nil {
 		slog.ErrorContext(ctx, "Failed to rename checklist", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+rename", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+rename", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
-}
-
-func (h *handler) PostChecklistRefresh(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
-	if !ok {
-		return
-	}
-
-	if err := h.importChecklistPeople(ctx, *checklist); err != nil {
-		slog.ErrorContext(ctx, "Failed to refresh checklist", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+update+from+events", http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	http.Redirect(w, r, checklistHere(r, checklist), http.StatusSeeOther)
 }
 
 func (h *handler) PostChecklistEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+parse+form", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
 	rawEvents := checklistEventInputs(r)
 	if len(rawEvents) == 0 {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Add+at+least+one+event", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Add+at+least+one+event", http.StatusSeeOther)
 		return
 	}
 	if len(rawEvents) > checklistEventLimit {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error="+url.QueryEscape(fmt.Sprintf("please limit the number of events to %d", checklistEventLimit)), http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error="+url.QueryEscape(fmt.Sprintf("please limit the number of events to %d", checklistEventLimit)), http.StatusSeeOther)
 		return
 	}
 
 	eventIDs, err := h.resolveChecklistEventIDs(ctx, rawEvents)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to resolve checklist events", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+fetch+events", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+fetch+events", http.StatusSeeOther)
 		return
 	}
 	if countUniqueEventIDs([]string(checklist.Events), eventIDs) > checklistEventLimit {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error="+url.QueryEscape(fmt.Sprintf("a checklist can include at most %d events", checklistEventLimit)), http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error="+url.QueryEscape(fmt.Sprintf("a checklist can include at most %d events", checklistEventLimit)), http.StatusSeeOther)
 		return
 	}
 	if err = h.DB.AppendChecklistEvents(ctx, checklist.ID, eventIDs); err != nil {
 		slog.ErrorContext(ctx, "Failed to append checklist events", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+add+events", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+add+events", http.StatusSeeOther)
 		return
 	}
 
 	updated, err := h.DB.GetChecklistByID(ctx, checklist.ID)
 	if err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+import+people", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+import+people", http.StatusSeeOther)
 		return
 	}
 	if err = h.importChecklistPeople(ctx, *updated); err != nil {
 		slog.ErrorContext(ctx, "Failed to import people for new checklist events", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+import+people", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+import+people", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	http.Redirect(w, r, checklistEventsPage(r, checklist), http.StatusSeeOther)
 }
 
 func (h *handler) PostChecklistEventsRemove(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+parse+form", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
-	eventID := strings.TrimSpace(r.FormValue("event_id"))
-	if eventID == "" {
-		http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	eventIDs := r.Form["ids"]
+	if eventID := strings.TrimSpace(r.FormValue("event_id")); eventID != "" {
+		eventIDs = append(eventIDs, eventID)
+	}
+	if len(eventIDs) == 0 {
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Select+at+least+one+event", http.StatusSeeOther)
 		return
 	}
-	if err := h.DB.RemoveChecklistEvents(ctx, checklist.ID, []string{eventID}); err != nil {
+	if err := h.DB.RemoveChecklistEvents(ctx, checklist.ID, eventIDs); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove checklist event", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+remove+event", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+remove+event", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	http.Redirect(w, r, checklistEventsPage(r, checklist), http.StatusSeeOther)
+}
+
+type ChecklistEventsPage struct {
+	Title            string
+	BackURL          string
+	FormAction       string
+	RemoveFormAction string
+	OnlyCheckedIn    bool
+	Events           []models.Event
+	Error            string
+}
+
+func (h *handler) GetChecklistEvents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	checklist, _, ok := h.checklistEditor(w, r)
+	if !ok {
+		return
+	}
+
+	actionBase := checklistActionBase(r, checklist)
+	if err := h.Templates().ExecuteTemplate(w, "checklist_events.gohtml", ChecklistEventsPage{
+		Title:            checklist.Title,
+		BackURL:          checklistHere(r, checklist),
+		FormAction:       actionBase + "/events",
+		RemoveFormAction: actionBase + "/events/remove",
+		OnlyCheckedIn:    checklist.OnlyCheckedIn,
+		Events:           h.checklistEventModels(ctx, checklist.Events),
+		Error:            strings.TrimSpace(r.URL.Query().Get("error")),
+	}); err != nil {
+		slog.ErrorContext(ctx, "Failed to render checklist events", slog.Any("err", err))
+	}
 }
 
 func (h *handler) GetChecklistMembers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
@@ -537,6 +572,7 @@ func (h *handler) GetChecklistMembers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to search members: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	results.ActionBase = checklistActionBase(r, checklist)
 	if err = h.Templates().ExecuteTemplate(w, "checklist_add_results", results); err != nil {
 		slog.ErrorContext(ctx, "Failed to render checklist member search", slog.Any("err", err))
 	}
@@ -544,62 +580,81 @@ func (h *handler) GetChecklistMembers(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostChecklistMembers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
+	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+parse+form", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
 	memberID := strings.TrimSpace(r.FormValue("member_id"))
 	if memberID == "" {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Member+is+required", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Member+is+required", http.StatusSeeOther)
 		return
 	}
 	if _, err := h.DB.GetMember(ctx, memberID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Member+not+found", http.StatusSeeOther)
+			http.Redirect(w, r, checklistHere(r, checklist)+"?error=Member+not+found", http.StatusSeeOther)
 			return
 		}
 		slog.ErrorContext(ctx, "Failed to get member for checklist", slog.String("member_id", memberID), slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+add+member", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+add+member", http.StatusSeeOther)
 		return
 	}
 	if err := h.DB.InsertChecklistEntries(ctx, checklist.ID, []string{memberID}); err != nil {
 		slog.ErrorContext(ctx, "Failed to add checklist member", slog.String("member_id", memberID), slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+add+member", http.StatusSeeOther)
+		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+add+member", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	http.Redirect(w, r, checklistHere(r, checklist), http.StatusSeeOther)
 }
 
-func (h *handler) PostChecklistMembersRemove(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	checklist, _, ok := h.authorizedChecklist(w, r)
-	if !ok {
-		return
+func checklistIsPublic(checklist database.Checklist) bool {
+	return !checklist.CreatedBy.Valid || checklist.CreatedBy.String == ""
+}
+
+func checklistHere(r *http.Request, checklist *database.Checklist) string {
+	if strings.TrimSpace(r.PathValue("token")) != "" {
+		return "/checklist/share/" + checklist.Token
 	}
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+parse+form", http.StatusSeeOther)
-		return
+	return checklistPath(checklist.ID)
+}
+
+func checklistEventsPage(r *http.Request, checklist *database.Checklist) string {
+	if strings.TrimSpace(r.PathValue("token")) != "" {
+		return "/checklist/share/" + checklist.Token + "/edit/events"
+	}
+	return checklistPath(checklist.ID) + "/events/manage"
+}
+
+func checklistActionBase(r *http.Request, checklist *database.Checklist) string {
+	if strings.TrimSpace(r.PathValue("token")) != "" {
+		return "/checklist/share/" + checklist.Token + "/edit"
+	}
+	return checklistPath(checklist.ID)
+}
+
+func (h *handler) checklistEditor(w http.ResponseWriter, r *http.Request) (*database.Checklist, string, bool) {
+	if strings.TrimSpace(r.PathValue("token")) != "" {
+		checklist, ok := h.checklistByToken(w, r)
+		if !ok {
+			return nil, "", false
+		}
+		if !checklistIsPublic(*checklist) {
+			h.NotFound(w, r)
+			return nil, "", false
+		}
+		session := auth.GetSession(r)
+		return checklist, session.UserID, true
 	}
 
-	memberID := strings.TrimSpace(r.FormValue("member_id"))
-	if memberID == "" {
-		memberID = strings.TrimSpace(r.PathValue("member_id"))
+	checklist, session, ok := h.authorizedChecklist(w, r)
+	if !ok {
+		return nil, "", false
 	}
-	if memberID == "" {
-		http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
-		return
-	}
-	if err := h.DB.DeleteChecklistEntry(ctx, checklist.ID, memberID); err != nil {
-		slog.ErrorContext(ctx, "Failed to remove checklist member", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklist.ID)+"?error=Failed+to+remove+member", http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	return checklist, session.UserID, true
 }
 
 func (h *handler) authorizedChecklist(w http.ResponseWriter, r *http.Request) (*database.Checklist, database.SessionWithUser, bool) {
@@ -681,11 +736,17 @@ func (h *handler) buildChecklistPage(ctx context.Context, r *http.Request, check
 			OnList:      map[string]bool{},
 		},
 	}
-	if canEdit {
-		page.EntriesURL = checklistPath(checklist.ID) + "/entries"
+	shareBase := "/checklist/share/" + checklist.Token
+	if strings.TrimSpace(r.PathValue("token")) != "" {
+		page.ActionBase = shareBase + "/edit"
+		page.EntriesURL = shareBase + "/entries"
+		page.ManageEventsURL = page.ActionBase + "/events"
 	} else {
-		page.EntriesURL = "/checklist/share/" + checklist.Token + "/entries"
+		page.ActionBase = checklistPath(checklist.ID)
+		page.EntriesURL = page.ActionBase + "/entries/poll"
+		page.ManageEventsURL = page.ActionBase + "/events/manage"
 	}
+	page.Add.ActionBase = page.ActionBase
 
 	for _, row := range rows {
 		person := checklistPersonFromRow(row)
@@ -769,6 +830,14 @@ func (h *handler) checklistEventModels(ctx context.Context, eventIDs []string) [
 		events = append(events, event)
 	}
 	return events
+}
+
+func (h *handler) syncChecklistPeople(ctx context.Context, checklist database.Checklist) string {
+	if err := h.importChecklistPeople(ctx, checklist); err != nil {
+		slog.ErrorContext(ctx, "Failed to refresh checklist people", slog.Int("checklist_id", checklist.ID), slog.Any("err", err))
+		return "Failed to update people from events"
+	}
+	return ""
 }
 
 func (h *handler) importChecklistPeople(ctx context.Context, checklist database.Checklist) error {

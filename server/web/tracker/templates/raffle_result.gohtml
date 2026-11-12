@@ -2,7 +2,7 @@
 <div class="container">
     <div class="container-header">
         {{ template "back_button" .BackURL }}
-        <h1>Raffle Result</h1>
+        <h1>{{ if .Title }}{{ .Title }}{{ else }}Raffle Result{{ end }}</h1>
     </div>
 
     {{ if .Error }}
@@ -46,6 +46,7 @@
                         Rerun
                     </button>
                 </form>
+                <button type="button" class="button" onclick="document.getElementById('raffle-edit-dialog').showModal()">Edit</button>
                 <a href="{{ .AddEventsURL }}" class="button" hx-boost="true">
                     Manage Events
                 </a>
@@ -115,6 +116,21 @@
         </p>
     </div>
 </div>
+{{ if .ID }}
+    <dialog id="raffle-edit-dialog" class="dialog">
+        <h3>Edit</h3>
+        <form action="{{ .TitleAction }}" method="POST">
+            <label class="form-control" for="raffle-title">
+                Title
+                <input class="form-control" type="text" id="raffle-title" name="title" value="{{ .Title }}" maxlength="200">
+            </label>
+            <div class="buttons">
+                <button type="button" class="button" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="submit" class="button">Save</button>
+            </div>
+        </form>
+    </dialog>
+{{ end }}
 <script>
     document.getElementById("past-winners")?.addEventListener("toggle", (event) => {
         toggleParam(event.target, "past-winners");

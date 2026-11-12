@@ -61,35 +61,40 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 	}
 	type addResults struct {
 		ChecklistID int
+		ActionBase  string
 		Query       string
 		Members     []models.Member
 		OnList      map[string]bool
 	}
 	page := struct {
-		ID            int
-		Title         string
-		ShareURL      string
-		EntriesURL    string
-		BackURL       string
-		CanEdit       bool
-		OnlyCheckedIn bool
-		People        []person
-		Received      int
-		Total         int
-		Events        []models.Event
-		HasNotice     bool
-		Notice        notice
-		SwapNotice    bool
-		Error         string
-		Add           addResults
+		ID              int
+		Title           string
+		ShareURL        string
+		EntriesURL      string
+		ActionBase      string
+		ManageEventsURL string
+		BackURL         string
+		CanEdit         bool
+		OnlyCheckedIn   bool
+		People          []person
+		Received        int
+		Total           int
+		Events          []models.Event
+		HasNotice       bool
+		Notice          notice
+		SwapNotice      bool
+		Error           string
+		Add             addResults
 	}{
-		ID:            1,
-		Title:         "Stickers",
-		ShareURL:      "http://example.test/checklist/share/token",
-		EntriesURL:    "/checklist/1/entries",
-		BackURL:       "/checklist",
-		CanEdit:       true,
-		OnlyCheckedIn: true,
+		ID:              1,
+		Title:           "Stickers",
+		ShareURL:        "http://example.test/checklist/share/token",
+		EntriesURL:      "/checklist/1/entries/poll",
+		ActionBase:      "/checklist/1",
+		ManageEventsURL: "/checklist/1/events/manage",
+		BackURL:         "/checklist",
+		CanEdit:         true,
+		OnlyCheckedIn:   true,
 		People: []person{
 			{
 				Member:         models.Member{ID: "m1", Username: "jdoe_smith", DisplayName: "Jordan"},
@@ -130,6 +135,7 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		Error: "already",
 		Add: addResults{
 			ChecklistID: 1,
+			ActionBase:  "/checklist/1",
 			Query:       "jo",
 			Members:     []models.Member{{ID: "m2", Username: "other", DisplayName: "Other"}},
 			OnList:      map[string]bool{"m1": true},
@@ -139,6 +145,23 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 	page.SwapNotice = true
 	mustExecute(t, tpl, "checklist_entries", page)
 	mustExecute(t, tpl, "checklist_add_results", page.Add)
+	mustExecute(t, tpl, "checklist_events.gohtml", struct {
+		Title            string
+		BackURL          string
+		FormAction       string
+		RemoveFormAction string
+		OnlyCheckedIn    bool
+		Events           []models.Event
+		Error            string
+	}{
+		Title:            "Stickers",
+		BackURL:          "/checklist/1",
+		FormAction:       "/checklist/1/events",
+		RemoveFormAction: "/checklist/1/events/remove",
+		OnlyCheckedIn:    true,
+		Events:           []models.Event{{ID: "e1", Name: "Meetup", URL: "/event/e1"}},
+		Error:            "nope",
+	})
 
 	type creator struct {
 		ID       string

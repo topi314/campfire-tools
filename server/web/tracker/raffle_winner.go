@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/topi314/campfire-tools/server/auth"
 	"github.com/topi314/campfire-tools/server/database"
 )
 
@@ -30,16 +29,7 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		slog.String("blocked_members_open", blockedMembersOpenStr),
 	)
 
-	raffleID, err := strconv.Atoi(raffleIDStr)
-	if err != nil {
-		h.NotFound(w, r)
-		return
-	}
-
-	pastWinnersOpen, _ := strconv.ParseBool(pastWinnersOpenStr)
-	blockedMembersOpen, _ := strconv.ParseBool(blockedMembersOpenStr)
-
-	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
+	raffleID, raffle, err := h.getAuthorizedRaffle(ctx, r, raffleIDStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.NotFound(w, r)
@@ -50,11 +40,8 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := auth.GetSession(r)
-	if raffle.UserID != "" && raffle.UserID != session.UserID {
-		h.NotFound(w, r)
-		return
-	}
+	pastWinnersOpen, _ := strconv.ParseBool(pastWinnersOpenStr)
+	blockedMembersOpen, _ := strconv.ParseBool(blockedMembersOpenStr)
 
 	if err = h.DB.ConfirmRaffleWinner(ctx, raffleID, memberID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -78,17 +65,18 @@ func (h *handler) ConfirmRaffleWinner(w http.ResponseWriter, r *http.Request) {
 		rawQuery += "blocked-members=true"
 	}
 
-	redirectRaffle(w, r, raffleID, clubID, rawQuery)
+	redirectRaffle(w, r, raffle.Token, clubID, rawQuery)
 }
 
-func redirectRaffle(w http.ResponseWriter, r *http.Request, raffleID int, clubID string, rawQuery string) {
-	var redirectURL string
+func raffleURL(token, clubID string) string {
 	if clubID != "" {
-		redirectURL = fmt.Sprintf("/tracker/club/%s/raffle/%d", clubID, raffleID)
-	} else {
-		redirectURL = fmt.Sprintf("/raffle/%d", raffleID)
+		return fmt.Sprintf("/tracker/club/%s/raffle/%s", clubID, token)
 	}
-	http.Redirect(w, r, withQuery(redirectURL, rawQuery), http.StatusSeeOther)
+	return "/raffle/" + token
+}
+
+func redirectRaffle(w http.ResponseWriter, r *http.Request, token, clubID, rawQuery string) {
+	http.Redirect(w, r, withQuery(raffleURL(token, clubID), rawQuery), http.StatusSeeOther)
 }
 
 func withQuery(url string, query string) string {

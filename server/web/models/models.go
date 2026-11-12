@@ -366,18 +366,20 @@ type TopEvent struct {
 func NewRaffle(raffle database.Raffle) Raffle {
 	return Raffle{
 		ID:            raffle.ID,
+		Title:         raffle.Title,
 		UserID:        raffle.UserID,
 		Events:        raffle.Events,
 		WinnerCount:   raffle.WinnerCount,
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
 		SingleEntry:   raffle.SingleEntry,
 		CreatedAt:     raffle.CreatedAt,
-		URL:           fmt.Sprintf("/raffle/%d", raffle.ID),
+		URL:           "/raffle/" + raffle.Token,
 	}
 }
 
 type Raffle struct {
 	ID            int
+	Title         string
 	UserID        string
 	Events        []string
 	WinnerCount   int
@@ -387,12 +389,12 @@ type Raffle struct {
 	URL           string
 }
 
-func NewWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
+func NewWinner(winner database.RaffleWinnerWithMember, clubID, raffleToken string) Winner {
 	var confirmURL string
 	if clubID != "" {
-		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/confirm/%s", clubID, winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%s/confirm/%s", clubID, raffleToken, winner.Member.ID)
 	} else {
-		confirmURL = fmt.Sprintf("/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/raffle/%s/confirm/%s", raffleToken, winner.Member.ID)
 	}
 
 	return Winner{

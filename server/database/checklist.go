@@ -217,7 +217,7 @@ func (d *Database) MarkChecklistEntryReceived(ctx context.Context, checklistID i
 	result, err := d.db.ExecContext(ctx, `
 		UPDATE checklist_entries
 		SET checklist_entry_received = TRUE,
-			checklist_entry_received_by = $3,
+			checklist_entry_received_by = NULLIF($3, ''),
 			checklist_entry_received_at = $4
 		WHERE checklist_entry_checklist_id = $1
 		AND checklist_entry_member_id = $2
