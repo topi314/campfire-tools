@@ -2005,4 +2005,67 @@ h2 > img.ca-icon {
         text-align: center;
         font-size: 13px;
     }
+
+    .checklist-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .checklist-sort {
+        flex-basis: auto;
+    }
+}
+
+.checklist-tools {
+    display: flex;
+    gap: 10px;
+    align-items: end;
+    width: 100%;
+}
+
+.checklist-search {
+    flex: 1;
+    min-width: 0;
+}
+
+.checklist-sort {
+    flex: 0 0 180px;
+}
+
+.checklist-search input,
+.checklist-sort select {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.checklist-count {
+    margin: 0;
+}
+
+.checklist-people > li[hidden] {
+    display: none;
+}
+
+.checklist-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.checklist-person > span {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.checklist-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.checklist-event form {
+    margin-left: auto;
 }

@@ -1,0 +1,390 @@
+{{ template "head" .Title }}
+<div class="container container-wide" data-checklist>
+    <div class="container-header">
+        {{ template "back_button" .BackURL }}
+        <h1>{{ .Title }}</h1>
+    </div>
+
+    {{ if .CanEdit }}
+        <div class="buttons">
+            <button type="button" class="button" data-copy="{{ .ShareURL }}">Copy share link</button>
+        </div>
+    {{ end }}
+
+    {{ if .Error }}
+        <p class="error">{{ .Error }}</p>
+    {{ end }}
+
+    <div id="checklist-notice">
+        {{ template "checklist_notice_body" . }}
+    </div>
+
+    <div class="checklist-tools">
+        <label class="checklist-search" for="checklist-search">
+            Search
+            <input type="search" id="checklist-search" data-checklist-search placeholder="Display name or username" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="checklist-sort" for="checklist-sort">
+            Sort
+            <select id="checklist-sort" data-checklist-sort>
+                <option value="waiting" selected>Waiting first</option>
+                <option value="display">Display name</option>
+                <option value="username">Username</option>
+                <option value="recent">Recently marked</option>
+            </select>
+        </label>
+    </div>
+
+    {{ template "checklist_entries" . }}
+
+    {{ if .CanEdit }}
+        <div class="section">
+            <div class="section-header">
+                <h2>Events ({{ len .Events }})</h2>
+                {{ if .Events }}
+                    <form action="/checklist/{{ .ID }}/refresh" method="POST">
+                        <button type="submit" class="button">Update from events</button>
+                    </form>
+                {{ end }}
+            </div>
+            {{ if .Events }}
+                <ul class="list">
+                    {{ range $event := .Events }}
+                        <li class="list-item checklist-event">
+                            <a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a>
+                            <form action="/checklist/{{ $.ID }}/events/remove" method="POST">
+                                <input type="hidden" name="event_id" value="{{ $event.ID }}">
+                                <button type="submit" class="button small danger">Remove</button>
+                            </form>
+                        </li>
+                    {{ end }}
+                </ul>
+            {{ else }}
+                <p>No events yet. People you add by name still stay on the list.</p>
+            {{ end }}
+            <form action="/checklist/{{ .ID }}/events" method="POST">
+                <label class="form-control" for="events">
+                    Add event links
+                    <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/..."></textarea>
+                </label>
+                <button class="form-control" type="submit">Add events</button>
+            </form>
+            <p class="small-text">Only checked-in members: {{ if .OnlyCheckedIn }}yes{{ else }}no, checked-in and accepted{{ end }}. Removing an event leaves people already on the list.</p>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>Add someone</h2>
+                <form class="inline-form-control" hx-get="/checklist/{{ .ID }}/members" hx-target="#checklist-add-results" hx-swap="outerHTML" hx-trigger="submit, input changed delay:400ms from:input">
+                    <label for="q">
+                        <input type="search" id="q" name="q" placeholder="Username, display name, or member ID" minlength="2">
+                    </label>
+                </form>
+            </div>
+            {{ template "checklist_add_results" .Add }}
+        </div>
+
+        <div class="section">
+            <h2>Rename</h2>
+            <form action="/checklist/{{ .ID }}/title" method="POST">
+                <label class="form-control" for="title">
+                    Title
+                    <input class="form-control" type="text" id="title" name="title" value="{{ .Title }}" maxlength="200" required>
+                </label>
+                <button class="form-control" type="submit">Save</button>
+            </form>
+        </div>
+    {{ else if .Events }}
+        <div class="section">
+            <h2>Events ({{ len .Events }})</h2>
+            <ul class="list">
+                {{ range $event := .Events }}
+                    <li class="list-item">
+                        <a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a>
+                    </li>
+                {{ end }}
+            </ul>
+        </div>
+    {{ end }}
+</div>
+<script>
+    (function () {
+        if (window.__checklistUI) {
+            window.__checklistUI.bind();
+            return;
+        }
+
+        let cache = [];
+
+        function root() {
+            return document.querySelector("[data-checklist]");
+        }
+
+        function scoreField(query, value) {
+            if (!query) {
+                return 0;
+            }
+            if (!value) {
+                return -1;
+            }
+            if (value.startsWith(query)) {
+                return 3000 - Math.min(value.length, 500);
+            }
+            const at = value.indexOf(query);
+            if (at >= 0) {
+                return 2000 - Math.min(at, 500);
+            }
+            let qi = 0;
+            let first = -1;
+            let gaps = 0;
+            let prev = -1;
+            for (let i = 0; i < value.length && qi < query.length; i++) {
+                if (value.charCodeAt(i) === query.charCodeAt(qi)) {
+                    if (first < 0) {
+                        first = i;
+                    }
+                    if (prev >= 0 && i > prev + 1) {
+                        gaps += i - prev - 1;
+                    }
+                    prev = i;
+                    qi++;
+                }
+            }
+            if (qi < query.length) {
+                return -1;
+            }
+            return 1000 - gaps - first;
+        }
+
+        function score(query, row) {
+            const display = scoreField(query, row.display);
+            const username = scoreField(query, row.username);
+            return display > username ? display : username;
+        }
+
+        function compareText(a, b) {
+            if (a < b) {
+                return -1;
+            }
+            if (a > b) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function rebuild() {
+            cache = [];
+            const list = document.getElementById("checklist-entries");
+            if (!list) {
+                return;
+            }
+            const rows = list.querySelectorAll("[data-display]");
+            for (let i = 0; i < rows.length; i++) {
+                const el = rows[i];
+                cache.push({
+                    el: el,
+                    display: el.getAttribute("data-display") || "",
+                    username: el.getAttribute("data-username") || "",
+                    received: el.getAttribute("data-received") === "1",
+                    receivedAt: Number(el.getAttribute("data-received-at") || "0"),
+                });
+            }
+        }
+
+        function apply() {
+            const page = root();
+            if (!page) {
+                return;
+            }
+            const input = page.querySelector("[data-checklist-search]");
+            const sort = page.querySelector("[data-checklist-sort]");
+            const list = document.getElementById("checklist-entries");
+            const items = list && list.querySelector("ul");
+            if (!input || !sort || !items) {
+                return;
+            }
+
+            const query = input.value.trim().toLowerCase();
+            const mode = sort.value;
+            const ranked = [];
+            for (let i = 0; i < cache.length; i++) {
+                const row = cache[i];
+                const rowScore = query ? score(query, row) : 0;
+                if (query && rowScore < 0) {
+                    row.el.hidden = true;
+                    continue;
+                }
+                row.el.hidden = false;
+                ranked.push({row: row, score: rowScore, index: i});
+            }
+
+            ranked.sort(function (a, b) {
+                if (query) {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return compareText(a.row.display, b.row.display);
+                }
+                if (mode === "display") {
+                    return compareText(a.row.display, b.row.display);
+                }
+                if (mode === "username") {
+                    return compareText(a.row.username, b.row.username);
+                }
+                if (mode === "recent") {
+                    if (a.row.receivedAt !== b.row.receivedAt) {
+                        return b.row.receivedAt - a.row.receivedAt;
+                    }
+                    return compareText(a.row.display, b.row.display);
+                }
+                if (a.row.received !== b.row.received) {
+                    return a.row.received ? 1 : -1;
+                }
+                return compareText(a.row.display, b.row.display);
+            });
+
+            for (let i = 0; i < ranked.length; i++) {
+                items.appendChild(ranked[i].row.el);
+            }
+
+            const empty = document.getElementById("checklist-search-empty");
+            if (empty) {
+                empty.hidden = !query || ranked.length > 0;
+            }
+        }
+
+        function bind() {
+            const page = root();
+            if (!page || page.dataset.bound) {
+                return;
+            }
+            page.dataset.bound = "1";
+            const input = page.querySelector("[data-checklist-search]");
+            const sort = page.querySelector("[data-checklist-sort]");
+            if (input) {
+                input.addEventListener("input", apply);
+            }
+            if (sort) {
+                sort.addEventListener("change", apply);
+            }
+            rebuild();
+            apply();
+        }
+
+        document.addEventListener("htmx:afterSwap", function () {
+            if (!root()) {
+                return;
+            }
+            rebuild();
+            apply();
+        });
+
+        window.__checklistUI = {bind: bind};
+        bind();
+    })();
+</script>
+{{ template "tracker_footer" }}
+
+{{ define "checklist_notice_body" }}
+    {{ if .HasNotice }}
+        <p class="error">{{ .Notice.Person }} is already marked{{ if .Notice.Marker }} by {{ .Notice.Marker }}{{ end }}{{ if .Notice.HasAt }} {{ localTime .Notice.At "relative" }}{{ end }}.</p>
+    {{ end }}
+{{ end }}
+
+{{ define "checklist_entries" }}
+    <div id="checklist-entries" hx-get="{{ .EntriesURL }}" hx-trigger="every 5s" hx-swap="outerHTML">
+        <p class="checklist-count">{{ .Received }} / {{ .Total }} received</p>
+        {{ if not .People }}
+            <p>No one on this checklist yet.</p>
+        {{ else }}
+            <p id="checklist-search-empty" hidden>No matching people.</p>
+            <ul class="winners checklist-people">
+                {{ range $person := .People }}
+                    <li data-display="{{ $person.SearchDisplay }}" data-username="{{ $person.SearchUsername }}" data-received="{{ if $person.Received }}1{{ else }}0{{ end }}" data-received-at="{{ $person.ReceivedAtUnix }}">
+                        <div>
+                            <span class="checklist-person">
+                                {{ if $person.Member.AvatarURL }}
+                                    <img src="{{ $person.Member.AvatarURL }}" class="icon-32" alt="">
+                                {{ else }}
+                                    <img src="/static/default_avatar.png" class="icon-32" alt="">
+                                {{ end }}
+                                <span>
+                                    <span>{{ $person.Member.DisplayName }}</span>
+                                    {{ if $person.Member.Username }}
+                                        <span class="small-text">{{ $person.Member.Username }}</span>
+                                    {{ end }}
+                                    {{ if $person.Received }}
+                                        <span class="small-text">
+                                            Marked{{ if $person.HasMarker }} by {{ template "discord_user" $person.Marker }}{{ end }}{{ if $person.HasReceivedAt }} {{ localTime $person.ReceivedAt "relative" }}{{ end }}
+                                        </span>
+                                    {{ end }}
+                                </span>
+                            </span>
+                            {{ if $.CanEdit }}
+                                <span class="checklist-actions">
+                                    <form action="/checklist/{{ $.ID }}/toggle/{{ $person.Member.ID }}" method="POST" hx-post="/checklist/{{ $.ID }}/toggle/{{ $person.Member.ID }}" hx-target="#checklist-entries" hx-swap="outerHTML">
+                                        <input type="hidden" name="received" value="{{ if $person.Received }}false{{ else }}true{{ end }}">
+                                        {{ if $person.Received }}
+                                            <button type="submit" class="button small">Undo</button>
+                                        {{ else }}
+                                            <button type="submit" class="button small success">Received</button>
+                                        {{ end }}
+                                    </form>
+                                    <form action="/checklist/{{ $.ID }}/members/remove" method="POST">
+                                        <input type="hidden" name="member_id" value="{{ $person.Member.ID }}">
+                                        <button type="submit" class="button small danger">Remove</button>
+                                    </form>
+                                </span>
+                            {{ end }}
+                        </div>
+                    </li>
+                {{ end }}
+            </ul>
+        {{ end }}
+    </div>
+    {{ if .SwapNotice }}
+        <div id="checklist-notice" hx-swap-oob="true">
+            {{ template "checklist_notice_body" . }}
+        </div>
+    {{ end }}
+{{ end }}
+
+{{ define "checklist_add_results" }}
+    <div id="checklist-add-results">
+        {{ if eq .Query "" }}
+            <p>Search for a member to add them.</p>
+        {{ else if lt (len .Query) 2 }}
+            <p>Enter at least 2 characters to search.</p>
+        {{ else if not .Members }}
+            <p>No members found for "{{ .Query }}".</p>
+        {{ else }}
+            <div class="table-4">
+                <span></span>
+                <span>Username</span>
+                <span>Display Name</span>
+                <span></span>
+                {{ range $member := .Members }}
+                    <span>
+                        {{ if $member.AvatarURL }}
+                            <img src="{{ $member.AvatarURL }}" class="icon-32" alt="">
+                        {{ else }}
+                            <img src="/static/default_avatar.png" class="icon-32" alt="">
+                        {{ end }}
+                    </span>
+                    <span>{{ $member.Username }}</span>
+                    <span>{{ $member.DisplayName }}</span>
+                    <span>
+                        {{ if index $.OnList $member.ID }}
+                            <span class="small-text">On the list</span>
+                        {{ else }}
+                            <form action="/checklist/{{ $.ChecklistID }}/members" method="POST">
+                                <input type="hidden" name="member_id" value="{{ $member.ID }}">
+                                <button type="submit" class="button small success">Add</button>
+                            </form>
+                        {{ end }}
+                    </span>
+                {{ end }}
+            </div>
+        {{ end }}
+    </div>
+{{ end }}

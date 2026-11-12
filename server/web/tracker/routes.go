@@ -49,6 +49,21 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /raffle/{raffle_id}/events/remove", h.PostRemoveRaffleEvents)
 	mux.HandleFunc("POST /raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
 
+	mux.HandleFunc("GET  /checklist", h.ChecklistIndex)
+	mux.HandleFunc("POST /checklist", h.CreateChecklist)
+	mux.HandleFunc("GET  /checklist/share/{token}", h.ChecklistShare)
+	mux.HandleFunc("GET  /checklist/share/{token}/entries", h.ChecklistShareEntries)
+	mux.HandleFunc("GET  /checklist/{checklist_id}", h.GetChecklist)
+	mux.HandleFunc("GET  /checklist/{checklist_id}/entries", h.ChecklistEntries)
+	mux.HandleFunc("POST /checklist/{checklist_id}/toggle/{member_id}", h.PostChecklistToggle)
+	mux.HandleFunc("POST /checklist/{checklist_id}/title", h.PostChecklistTitle)
+	mux.HandleFunc("POST /checklist/{checklist_id}/refresh", h.PostChecklistRefresh)
+	mux.HandleFunc("POST /checklist/{checklist_id}/events", h.PostChecklistEvents)
+	mux.HandleFunc("POST /checklist/{checklist_id}/events/remove", h.PostChecklistEventsRemove)
+	mux.HandleFunc("GET  /checklist/{checklist_id}/members", h.GetChecklistMembers)
+	mux.HandleFunc("POST /checklist/{checklist_id}/members", h.PostChecklistMembers)
+	mux.HandleFunc("POST /checklist/{checklist_id}/members/remove", h.PostChecklistMembersRemove)
+
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)
 
@@ -104,6 +119,9 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/events", h.PostAddRaffleEvents)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/events/remove", h.PostRemoveRaffleEvents)
 	mux.HandleFunc("POST /tracker/club/{club_id}/raffle/{raffle_id}/confirm/{member_id}", h.ConfirmRaffleWinner)
+
+	mux.HandleFunc("GET  /tracker/club/{club_id}/checklist", h.TrackerClubChecklist)
+	mux.HandleFunc("POST /tracker/club/{club_id}/checklist", h.CreateChecklist)
 
 	mux.HandleFunc("GET  /tracker/event/import", h.TrackerEventImport)
 	mux.HandleFunc("POST /tracker/event/import", h.TrackerEventDoImport)

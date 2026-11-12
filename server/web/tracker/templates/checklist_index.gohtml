@@ -1,0 +1,52 @@
+{{ template "head" "Campfire Checklist" }}
+<div class="container container-wide">
+    <div class="container-header">
+        {{ template "back_button" "/" }}
+        <h1>Checklist</h1>
+    </div>
+
+    <p>Track who received something. Share the link so other logged-in people can check the same list.</p>
+
+    <div class="section">
+        <form action="/checklist" method="POST">
+            <label class="form-control" for="title">
+                Title
+                <input class="form-control" type="text" id="title" name="title" maxlength="200" required autofocus placeholder="Sticker drop">
+            </label>
+            <label class="form-control" for="events" title="Enter event links. Each link should be on a new line.">
+                Event Links
+                <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
+https://cmpf.re/..."></textarea>
+            </label>
+            <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
+                Only Checked-In Members
+                <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" checked>
+            </label>
+            {{ if .Error }}
+                <p class="error">{{ .Error }}</p>
+            {{ end }}
+            <button class="form-control" type="submit">Create</button>
+        </form>
+    </div>
+
+    {{ if .Checklists }}
+        <div class="section">
+            <h2>Checklists ({{ len .Checklists }})</h2>
+            <ul class="list">
+                {{ range $checklist := .Checklists }}
+                    <li class="list-item">
+                        <a href="{{ $checklist.URL }}" hx-boost="true">{{ $checklist.Title }}</a>
+                        <span class="small-text">{{ $checklist.Received }}/{{ $checklist.Total }} · {{ localTime $checklist.CreatedAt "relative" }}</span>
+                    </li>
+                {{ end }}
+            </ul>
+        </div>
+    {{ end }}
+</div>
+<script>
+    document.getElementById("events").addEventListener("input", (event) => {
+        event.target.style.height = "auto";
+        event.target.style.height = (event.target.scrollHeight + 4) + "px";
+    });
+</script>
+{{ template "tracker_footer" }}

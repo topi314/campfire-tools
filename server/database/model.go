@@ -179,6 +179,16 @@ type RaffleWinnerWithMember struct {
 	CheckIns int `db:"check_ins"`
 }
 
+type Checklist struct {
+	ID            int            `db:"checklist_id"`
+	Token         string         `db:"checklist_token"`
+	Title         string         `db:"checklist_title"`
+	CreatedBy     string         `db:"checklist_created_by"`
+	OnlyCheckedIn bool           `db:"checklist_only_checked_in"`
+	Events        pq.StringArray `db:"checklist_events"`
+	CreatedAt     time.Time      `db:"checklist_created_at"`
+}
+
 type DiscordUser struct {
 	ID          string    `db:"discord_user_id"`
 	Username    string    `db:"discord_user_username"`
