@@ -84,6 +84,18 @@ func (d *Database) GetEvent(ctx context.Context, eventID string) (*EventWithCrea
 	return &event, nil
 }
 
+func (d *Database) MarkEventFinished(ctx context.Context, eventID string) error {
+	if _, err := d.db.ExecContext(ctx, `
+		UPDATE events
+		SET event_finished = TRUE
+		WHERE event_id = $1
+		AND event_finished = FALSE
+	`, eventID); err != nil {
+		return fmt.Errorf("failed to mark event finished: %w", err)
+	}
+	return nil
+}
+
 func (d *Database) GetEvents(ctx context.Context, clubID string, from time.Time, to time.Time, caOnly bool, eventCreator string, eventCategory string) ([]EventWithCheckIns, error) {
 	query := `
 		SELECT events.*, 

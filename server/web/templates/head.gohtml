@@ -36,7 +36,7 @@
                 }
             })();
         </script>
-        <link rel="stylesheet" href="/static/style.css">
+        <link rel="stylesheet" href="/static/style.css?v=10">
         <link rel="icon" href="/static/favicon.png" type="image/png">
         <meta name="darkreader-lock">
         <meta name="color-scheme" content="light dark">
@@ -318,18 +318,31 @@
                     return;
                 }
                 const value = button.getAttribute("data-copy") || "";
-                const previous = button.textContent;
+                const previousHTML = button.innerHTML;
+                const previousLabel = button.getAttribute("aria-label");
                 navigator.clipboard.writeText(value).then(() => {
-                    button.textContent = "Copied";
+                    if (button.querySelector("svg")) {
+                        button.setAttribute("aria-label", "Copied");
+                    } else {
+                        button.textContent = "Copied";
+                    }
                     window.setTimeout(() => {
-                        button.textContent = previous;
+                        button.innerHTML = previousHTML;
+                        if (previousLabel === null) {
+                            button.removeAttribute("aria-label");
+                        } else {
+                            button.setAttribute("aria-label", previousLabel);
+                        }
                     }, 1200);
                 });
             });
 
             document.addEventListener("DOMContentLoaded", () => refreshPageChrome(document));
             document.addEventListener("htmx:afterSwap", (event) => {
-                refreshPageChrome(event.detail && event.detail.target);
+                refreshPageChrome(event.target);
+            });
+            document.addEventListener("htmx:oobAfterSwap", (event) => {
+                refreshPageChrome(event.target);
             });
         </script>
         {{ template "live_reload_script" }}
@@ -341,6 +354,7 @@
         <div class="site-header-end">
             <nav class="site-nav" aria-label="Primary">
                 <a href="/raffle" hx-boost="true">Raffle</a>
+                <a href="/checklist" hx-boost="true">Checklist</a>
                 <a href="/export" hx-boost="true">Export</a>
                 <a href="/event" hx-boost="true">Event</a>
                 <a href="/tracker" hx-boost="true">Tracker</a>

@@ -366,18 +366,20 @@ type TopEvent struct {
 func NewRaffle(raffle database.Raffle) Raffle {
 	return Raffle{
 		ID:            raffle.ID,
+		Title:         raffle.Title,
 		UserID:        raffle.UserID,
 		Events:        raffle.Events,
 		WinnerCount:   raffle.WinnerCount,
 		OnlyCheckedIn: raffle.OnlyCheckedIn,
 		SingleEntry:   raffle.SingleEntry,
 		CreatedAt:     raffle.CreatedAt,
-		URL:           fmt.Sprintf("/raffle/%d", raffle.ID),
+		URL:           "/raffle/" + raffle.Token,
 	}
 }
 
 type Raffle struct {
 	ID            int
+	Title         string
 	UserID        string
 	Events        []string
 	WinnerCount   int
@@ -387,31 +389,54 @@ type Raffle struct {
 	URL           string
 }
 
-func NewWinner(winner database.RaffleWinnerWithMember, clubID string) Winner {
+func NewWinner(winner database.RaffleWinnerWithMember, clubID, raffleToken string) Winner {
 	var confirmURL string
+	var unconfirmURL string
 	if clubID != "" {
-		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%d/confirm/%s", clubID, winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%s/confirm/%s", clubID, raffleToken, winner.Member.ID)
+		unconfirmURL = fmt.Sprintf("/tracker/club/%s/raffle/%s/unconfirm/%s", clubID, raffleToken, winner.Member.ID)
 	} else {
-		confirmURL = fmt.Sprintf("/raffle/%d/confirm/%s", winner.RaffleID, winner.Member.ID)
+		confirmURL = fmt.Sprintf("/raffle/%s/confirm/%s", raffleToken, winner.Member.ID)
+		unconfirmURL = fmt.Sprintf("/raffle/%s/unconfirm/%s", raffleToken, winner.Member.ID)
 	}
 
-	return Winner{
-		Member:     NewMember(winner.Member, clubID, 32),
-		Accepted:   winner.Accepted,
-		CheckIns:   winner.CheckIns,
-		Confirmed:  winner.Confirmed,
-		Previous:   winner.Past,
-		ConfirmURL: confirmURL,
+	view := Winner{
+		Member:       NewMember(winner.Member, clubID, 32),
+		Accepted:     winner.Accepted,
+		CheckIns:     winner.CheckIns,
+		Confirmed:    winner.Confirmed,
+		Previous:     winner.Past,
+		ConfirmURL:   confirmURL,
+		UnconfirmURL: unconfirmURL,
 	}
+	if winner.ConfirmedAt.Valid {
+		view.HasConfirmedAt = true
+		view.ConfirmedAt = winner.ConfirmedAt.Time
+	}
+	if winner.MarkerID.Valid {
+		view.HasMarker = true
+		view.Marker = NewDiscordUser(database.DiscordUser{
+			ID:          winner.MarkerID.String,
+			Username:    winner.MarkerUsername.String,
+			DisplayName: winner.MarkerDisplayName.String,
+			AvatarURL:   winner.MarkerAvatarURL.String,
+		})
+	}
+	return view
 }
 
 type Winner struct {
 	Member
-	Accepted   int
-	CheckIns   int
-	Confirmed  bool
-	Previous   bool
-	ConfirmURL string
+	Accepted       int
+	CheckIns       int
+	Confirmed      bool
+	ConfirmedAt    time.Time
+	HasConfirmedAt bool
+	Marker         DiscordUser
+	HasMarker      bool
+	Previous       bool
+	ConfirmURL     string
+	UnconfirmURL   string
 }
 
 func NewToken(token database.CampfireToken) Token {

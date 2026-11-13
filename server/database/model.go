@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -156,6 +157,8 @@ type LiveEventMemberRSVP struct {
 
 type Raffle struct {
 	ID            int            `db:"raffle_id"`
+	Token         string         `db:"raffle_token"`
+	Title         string         `db:"raffle_title"`
 	UserID        string         `db:"raffle_user_id"`
 	Events        pq.StringArray `db:"raffle_events"`
 	WinnerCount   int            `db:"raffle_winner_count"`
@@ -165,18 +168,34 @@ type Raffle struct {
 }
 
 type RaffleWinner struct {
-	RaffleID  int       `db:"raffle_winner_raffle_id"`
-	MemberID  string    `db:"raffle_winner_member_id"`
-	Confirmed bool      `db:"raffle_winner_confirmed"`
-	Past      bool      `db:"raffle_winner_past"`
-	CreatedAt time.Time `db:"raffle_winner_created_at"`
+	RaffleID    int            `db:"raffle_winner_raffle_id"`
+	MemberID    string         `db:"raffle_winner_member_id"`
+	Confirmed   bool           `db:"raffle_winner_confirmed"`
+	Past        bool           `db:"raffle_winner_past"`
+	CreatedAt   time.Time      `db:"raffle_winner_created_at"`
+	ConfirmedBy sql.NullString `db:"raffle_winner_confirmed_by"`
+	ConfirmedAt sql.NullTime   `db:"raffle_winner_confirmed_at"`
 }
 
 type RaffleWinnerWithMember struct {
 	RaffleWinner
 	Member
-	Accepted int `db:"accepted"`
-	CheckIns int `db:"check_ins"`
+	Accepted          int            `db:"accepted"`
+	CheckIns          int            `db:"check_ins"`
+	MarkerID          sql.NullString `db:"marker_id"`
+	MarkerUsername    sql.NullString `db:"marker_username"`
+	MarkerDisplayName sql.NullString `db:"marker_display_name"`
+	MarkerAvatarURL   sql.NullString `db:"marker_avatar_url"`
+}
+
+type Checklist struct {
+	ID            int            `db:"checklist_id"`
+	Token         string         `db:"checklist_token"`
+	Title         string         `db:"checklist_title"`
+	CreatedBy     sql.NullString `db:"checklist_created_by"`
+	OnlyCheckedIn bool           `db:"checklist_only_checked_in"`
+	Events        pq.StringArray `db:"checklist_events"`
+	CreatedAt     time.Time      `db:"checklist_created_at"`
 }
 
 type DiscordUser struct {

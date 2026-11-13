@@ -903,6 +903,9 @@ label.club-setting:has(input:focus-visible) .archive-switch-track {
 
 .winners {
     width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
     text-align: left;
     font-size: 20px;
     font-weight: bold;
@@ -921,12 +924,15 @@ label.club-setting:has(input:focus-visible) .archive-switch-track {
     align-items: flex-end;
 }
 
-.winners > li:last-child {
+.winners > li:last-child > div {
     border-bottom: none;
 }
 
 .past-winners {
     width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
     text-align: left;
     font-size: 16px;
     font-weight: bold;
@@ -2005,4 +2011,291 @@ h2 > img.ca-icon {
         text-align: center;
         font-size: 13px;
     }
+
+    .checklist-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.checklist-tools {
+    display: flex;
+    gap: 10px;
+    align-items: end;
+    width: 100%;
+}
+
+.checklist-search {
+    flex: 1;
+    min-width: 0;
+}
+
+.checklist-search input {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.checklist-count {
+    margin: 0;
+}
+
+.details {
+    margin-top: 28px;
+}
+
+.details h2 {
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text2-color);
+}
+
+.details dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px 20px;
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--background2-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.details-wide {
+    grid-column: 1 / -1;
+}
+
+.details dt {
+    font-size: 13px;
+    color: var(--text2-color);
+}
+
+.details dd {
+    margin: 2px 0 0;
+}
+
+.details dd ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.details dd li + li {
+    margin-top: 4px;
+}
+
+.checklist-people > li[hidden] {
+    display: none;
+}
+
+.container-header > .header-side {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.container-header .header-actions {
+    flex-grow: 0;
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.header-actions .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.header-actions .button.rerun,
+.header-actions .button.reload {
+    width: auto;
+    padding: 0 12px;
+    gap: 6px;
+}
+
+.header-actions svg {
+    width: 18px;
+    height: 18px;
+}
+
+.collapse {
+    margin-top: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background2-color);
+    overflow: hidden;
+}
+
+.collapse > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 12px 14px;
+    list-style: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.collapse > summary::-webkit-details-marker {
+    display: none;
+}
+
+.collapse > summary::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--text2-color);
+    border-bottom: 2px solid var(--text2-color);
+    transform: rotate(-45deg);
+    flex-shrink: 0;
+}
+
+.collapse[open] > summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.collapse[open] > summary::before {
+    transform: rotate(45deg);
+}
+
+.collapse > summary:hover {
+    background: var(--surface-color);
+}
+
+.collapse > *:not(:last-child) {
+    margin-bottom: 0;
+}
+
+.collapse > ul {
+    margin: 0;
+    padding: 4px 8px 8px 31px;
+}
+
+.collapse > ul.winners > li > div {
+    padding-left: 0;
+}
+
+.checklist-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.checklist-person-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.checklist-marked {
+    margin-left: auto;
+    font-weight: normal;
+    text-align: right;
+}
+
+.checklist-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+button.checklist-check:not(.success) {
+    background-color: transparent;
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+button.checklist-check:not(.success):hover {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: #ffffff;
+}
+
+button.checklist-check.success,
+button.checklist-check.success:hover {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: #ffffff;
+}
+
+button.checklist-check.success:hover {
+    background-color: var(--color-success-hover);
+    border-color: var(--color-success-hover);
+}
+
+.checklist-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.checklist-check svg,
+.checklist-block svg {
+    width: 18px;
+    height: 18px;
+}
+
+button.checklist-block {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: transparent;
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+button.checklist-block:hover {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    color: #ffffff;
+}
+
+button.checklist-unmark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: transparent;
+    color: var(--text2-color);
+    border-color: var(--border-color);
+}
+
+button.checklist-unmark:hover {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+}
+
+.checklist-unmark svg {
+    width: 18px;
+    height: 18px;
+}
+
+span.checklist-check.success {
+    background-color: var(--color-success);
+    border: 1px solid var(--color-success);
+    border-radius: 8px;
+    color: #ffffff;
+}
+
+.checklist-event form {
+    margin-left: auto;
 }

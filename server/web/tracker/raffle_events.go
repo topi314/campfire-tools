@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +22,11 @@ import (
 
 type RaffleAddEventsVars struct {
 	RaffleID         int
+	Title            string
+	TitleAction      string
+	WinnerCount      int
+	OnlyCheckedIn    bool
+	SingleEntry      bool
 	ClubID           string
 	BackURL          string
 	FormAction       string
@@ -59,20 +63,26 @@ func (h *handler) AddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	var backURL string
 	var formAction string
 	if clubID != "" {
-		backURL = fmt.Sprintf("/tracker/club/%s/raffle/%d", clubID, raffleID)
-		formAction = fmt.Sprintf("/tracker/club/%s/raffle/%d/events", clubID, raffleID)
-		h.renderClubAddRaffleEvents(w, r, clubID, raffleID, backURL, formAction, raffle.Events, existingEvents, "")
+		backURL = raffleURL(raffle.Token, clubID)
+		formAction = backURL + "/events"
+		h.renderClubAddRaffleEvents(w, r, clubID, raffle, backURL, formAction, raffle.Events, existingEvents, strings.TrimSpace(r.URL.Query().Get("error")))
 		return
 	}
 
-	backURL = fmt.Sprintf("/raffle/%d", raffleID)
-	formAction = fmt.Sprintf("/raffle/%d/events", raffleID)
+	backURL = raffleURL(raffle.Token, "")
+	formAction = backURL + "/events"
 	if err = h.Templates().ExecuteTemplate(w, "raffle_add_events.gohtml", RaffleAddEventsVars{
 		RaffleID:         raffleID,
+		Title:            raffle.Title,
+		TitleAction:      backURL + "/title",
+		WinnerCount:      raffle.WinnerCount,
+		OnlyCheckedIn:    raffle.OnlyCheckedIn,
+		SingleEntry:      raffle.SingleEntry,
 		BackURL:          backURL,
 		FormAction:       formAction,
 		RemoveFormAction: formAction + "/remove",
 		Existing:         existingEvents,
+		Error:            strings.TrimSpace(r.URL.Query().Get("error")),
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render add raffle events template", slog.Any("err", err))
 	}
@@ -103,7 +113,7 @@ func (h *handler) PostAddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	eventIDs := r.Form["ids"]
 
 	if events == "" && len(eventIDs) == 0 {
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Missing events to add")
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, "Missing events to add")
 		return
 	}
 
@@ -118,7 +128,7 @@ func (h *handler) PostAddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	allEvents = append(allEvents, eventIDs...)
 
 	if len(allEvents) > 50 {
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, fmt.Sprintf("please limit the number of events to add to 50, got %d.", len(allEvents)))
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, fmt.Sprintf("please limit the number of events to add to 50, got %d.", len(allEvents)))
 		return
 	}
 
@@ -140,23 +150,23 @@ func (h *handler) PostAddRaffleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	if err = eg.Wait(); err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch events for raffle", slog.Any("err", err))
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Failed to fetch events: "+err.Error())
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, "Failed to fetch events: "+err.Error())
 		return
 	}
 
 	mergedCount := countUniqueEventIDs(raffle.Events, newEventIDs)
 	if mergedCount > 50 {
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, fmt.Sprintf("raffle cannot have more than 50 events, would have %d.", mergedCount))
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, fmt.Sprintf("raffle cannot have more than 50 events, would have %d.", mergedCount))
 		return
 	}
 
 	if err = h.DB.AppendRaffleEvents(ctx, raffleID, newEventIDs); err != nil {
 		slog.ErrorContext(ctx, "Failed to append raffle events", slog.Any("err", err))
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Failed to add events: "+err.Error())
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, "Failed to add events: "+err.Error())
 		return
 	}
 
-	redirectRaffle(w, r, raffleID, clubID, "")
+	http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events", http.StatusSeeOther)
 }
 
 func (h *handler) PostRemoveRaffleEvents(w http.ResponseWriter, r *http.Request) {
@@ -182,42 +192,61 @@ func (h *handler) PostRemoveRaffleEvents(w http.ResponseWriter, r *http.Request)
 
 	eventIDs := r.Form["ids"]
 	if len(eventIDs) == 0 {
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Missing events to remove")
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, "Missing events to remove")
 		return
 	}
 
 	if err = h.DB.RemoveRaffleEvents(ctx, raffleID, eventIDs); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove raffle events", slog.Any("err", err))
-		h.renderAddRaffleEventsError(w, r, clubID, raffleID, raffle.Events, "Failed to remove events: "+err.Error())
+		h.renderAddRaffleEventsError(w, r, clubID, raffle, "Failed to remove events: "+err.Error())
 		return
 	}
 
-	redirectRaffle(w, r, raffleID, clubID, "")
+	http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events", http.StatusSeeOther)
 }
 
-func (h *handler) getAuthorizedRaffle(ctx context.Context, r *http.Request, raffleIDStr string) (int, *database.Raffle, error) {
-	raffleID, err := strconv.Atoi(raffleIDStr)
-	if err != nil {
+func (h *handler) getAuthorizedRaffle(ctx context.Context, r *http.Request, token string) (int, *database.Raffle, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
 		return 0, nil, sql.ErrNoRows
 	}
 
-	raffle, err := h.DB.GetRaffleByID(ctx, raffleID)
+	raffle, err := h.DB.GetRaffleByToken(ctx, token)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	session := auth.GetSession(r)
 	if raffle.UserID != "" && raffle.UserID != session.UserID {
-		return 0, nil, sql.ErrNoRows
+		if session.UserID == "" {
+			return 0, nil, sql.ErrNoRows
+		}
+		member, memberErr := h.DB.IsRaffleUser(ctx, raffle.ID, session.UserID)
+		if memberErr != nil {
+			return 0, nil, memberErr
+		}
+		if !member {
+			return 0, nil, sql.ErrNoRows
+		}
 	}
 
-	return raffleID, raffle, nil
+	return raffle.ID, raffle, nil
 }
 
-func (h *handler) renderAddRaffleEventsError(w http.ResponseWriter, r *http.Request, clubID string, raffleID int, existingEventIDs []string, errorMessage string) {
+func winnerLocked(winner database.RaffleWinnerWithMember, memberID string) bool {
+	if winner.Member.ID != memberID {
+		return false
+	}
+	if winner.Confirmed {
+		return true
+	}
+	return !winner.Past
+}
+
+func (h *handler) renderAddRaffleEventsError(w http.ResponseWriter, r *http.Request, clubID string, raffle *database.Raffle, errorMessage string) {
 	ctx := r.Context()
 
-	existingEvents, err := h.fetchRaffleRenderEvents(ctx, clubID, existingEventIDs)
+	existingEvents, err := h.fetchRaffleRenderEvents(ctx, clubID, raffle.Events)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to fetch raffle events", slog.Any("err", err))
 		http.Error(w, "Failed to get raffle events: "+err.Error(), http.StatusInternalServerError)
@@ -227,16 +256,18 @@ func (h *handler) renderAddRaffleEventsError(w http.ResponseWriter, r *http.Requ
 	var backURL string
 	var formAction string
 	if clubID != "" {
-		backURL = fmt.Sprintf("/tracker/club/%s/raffle/%d", clubID, raffleID)
-		formAction = fmt.Sprintf("/tracker/club/%s/raffle/%d/events", clubID, raffleID)
-		h.renderClubAddRaffleEvents(w, r, clubID, raffleID, backURL, formAction, existingEventIDs, existingEvents, errorMessage)
+		backURL = raffleURL(raffle.Token, clubID)
+		formAction = backURL + "/events"
+		h.renderClubAddRaffleEvents(w, r, clubID, raffle, backURL, formAction, raffle.Events, existingEvents, errorMessage)
 		return
 	}
 
-	backURL = fmt.Sprintf("/raffle/%d", raffleID)
-	formAction = fmt.Sprintf("/raffle/%d/events", raffleID)
+	backURL = raffleURL(raffle.Token, "")
+	formAction = backURL + "/events"
 	if err = h.Templates().ExecuteTemplate(w, "raffle_add_events.gohtml", RaffleAddEventsVars{
-		RaffleID:         raffleID,
+		RaffleID:         raffle.ID,
+		Title:            raffle.Title,
+		TitleAction:      backURL + "/title",
 		BackURL:          backURL,
 		FormAction:       formAction,
 		RemoveFormAction: formAction + "/remove",
@@ -247,7 +278,7 @@ func (h *handler) renderAddRaffleEventsError(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Request, clubID string, raffleID int, backURL, formAction string, existingEventIDs []string, renderExisting []models.Event, errorMessage string) {
+func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Request, clubID string, raffle *database.Raffle, backURL, formAction string, existingEventIDs []string, renderExisting []models.Event, errorMessage string) {
 	ctx := r.Context()
 	query := r.URL.Query()
 
@@ -305,7 +336,12 @@ func (h *handler) renderClubAddRaffleEvents(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err = h.Templates().ExecuteTemplate(w, "tracker_club_raffle_add_events.gohtml", RaffleAddEventsVars{
-		RaffleID:         raffleID,
+		RaffleID:         raffle.ID,
+		Title:            raffle.Title,
+		TitleAction:      backURL + "/title",
+		WinnerCount:      raffle.WinnerCount,
+		OnlyCheckedIn:    raffle.OnlyCheckedIn,
+		SingleEntry:      raffle.SingleEntry,
 		ClubID:           clubID,
 		BackURL:          backURL,
 		FormAction:       formAction,
