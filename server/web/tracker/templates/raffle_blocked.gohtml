@@ -91,7 +91,7 @@
                             {{ if index $.BlockedMemberID $member.ID }}
                                 <span class="small-text">Blocked</span>
                             {{ else }}
-                                <form action="/raffle/blocked" method="POST">
+                                <form action="/raffle/blocked" method="POST" onsubmit="return confirm('Block {{ $member.DisplayName }} from your raffles?')">
                                     <input type="hidden" name="member_id" value="{{ $member.ID }}">
                                     <button type="submit" class="button">Block</button>
                                 </form>

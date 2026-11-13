@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -32,20 +33,39 @@ type RaffleVars struct {
 	Error           string
 }
 
+type RaffleNotice struct {
+	Person string
+	Marker string
+	At     time.Time
+	HasAt  bool
+	Gone   bool
+}
+
 type RaffleResultVars struct {
 	models.Raffle
-	Events              []models.Event
-	ClubID              string
-	RerunRaffleURL      string
-	AddEventsURL        string
-	TitleAction         string
-	Error               string
-	Winners             []models.Winner
-	PastWinners         []models.Winner
-	PastWinnersOpen     bool
-	BlockedMembers      []models.Member
-	BlockedMembersOpen  bool
-	BackURL             string
+	Events             []models.Event
+	ClubID             string
+	RerunRaffleURL     string
+	AddEventsURL       string
+	ShareURL           string
+	PollURL            string
+	Users              []models.DiscordUser
+	Error              string
+	HasNotice          bool
+	Notice             RaffleNotice
+	SwapNotice         bool
+	Winners            []models.Winner
+	ConfirmedWinners   []models.Winner
+	ConfirmedOpen      bool
+	PastWinners        []models.Winner
+	PastWinnersOpen    bool
+	BlockedMembers     []models.Member
+	BlockedMemberID    map[string]bool
+	BlockedMembersOpen bool
+	CanBlock           bool
+	BlockAction        string
+	UnblockAction      string
+	BackURL            string
 }
 
 func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
@@ -72,11 +92,19 @@ func (h *handler) Raffle(w http.ResponseWriter, r *http.Request) {
 func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	clubID := r.PathValue("club_id")
-
 	if err := r.ParseForm(); err != nil {
 		slog.ErrorContext(ctx, "Failed to parse form data", slog.Any("err", err))
 		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		h.renderRaffle(w, r, nil, "Name is required")
+		return
+	}
+	if len([]rune(title)) > 200 {
+		h.renderRaffle(w, r, nil, "Name must be 200 characters or fewer")
 		return
 	}
 
@@ -141,6 +169,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 
 	raffle := database.Raffle{
 		UserID:        session.UserID,
+		Title:         title,
 		Events:        allEventIDs,
 		WinnerCount:   winnerCount,
 		OnlyCheckedIn: onlyCheckedIn,
@@ -160,6 +189,13 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 		h.renderRaffle(w, r, nil, "Failed to create raffle: "+err.Error())
 		return
 	}
+	if session.UserID != "" {
+		if err = h.DB.AddRaffleUser(ctx, raffle.ID, session.UserID); err != nil {
+			slog.ErrorContext(ctx, "Failed to add raffle creator", slog.Any("err", err))
+			h.renderRaffle(w, r, nil, "Failed to create raffle: "+err.Error())
+			return
+		}
+	}
 	raffleID := raffle.ID
 
 	if err = h.processRaffleWinners(ctx, raffleID, winners, true); err != nil {
@@ -168,7 +204,7 @@ func (h *handler) RunRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	redirectRaffle(w, r, raffle.Token, clubID, "")
+	redirectRaffle(w, r, raffle.Token, "", "")
 }
 
 func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
@@ -201,38 +237,38 @@ func (h *handler) RerunRaffle(w http.ResponseWriter, r *http.Request) {
 	pastWinnersOpen, _ := strconv.ParseBool(pastWinnersOpenStr)
 	blockedMembersOpen, _ := strconv.ParseBool(blockedMembersOpenStr)
 
-	pastWinners, err := h.DB.GetRaffleWinners(ctx, raffleID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get past raffle winners from database", slog.Any("err", err))
-		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to get past raffle winners: "+err.Error())
-		return
-	}
-
-	winners, err := h.raffleWinners(ctx, *raffle, pastWinners)
-	if err != nil {
+	if err = h.DB.RunRaffleDraw(ctx, raffleID, func(existing []database.RaffleWinnerWithMember) ([]string, error) {
+		winners, drawErr := h.raffleWinners(ctx, *raffle, existing)
+		if drawErr != nil {
+			return nil, drawErr
+		}
+		if len(winners) > 0 {
+			members := make([]database.Member, 0, len(winners))
+			for _, winner := range winners {
+				members = append(members, database.Member{
+					ID:          winner.ID,
+					Username:    winner.Username,
+					DisplayName: winner.DisplayName,
+					AvatarURL:   winner.AvatarURL,
+					RawJSON:     winner.Raw,
+				})
+			}
+			if insertErr := h.DB.InsertMembers(ctx, members); insertErr != nil {
+				return nil, insertErr
+			}
+		}
+		memberIDs := make([]string, 0, len(winners))
+		for _, winner := range winners {
+			memberIDs = append(memberIDs, winner.ID)
+		}
+		return memberIDs, nil
+	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to rerun raffle", slog.Any("err", err))
 		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to rerun raffle: "+err.Error())
 		return
 	}
 
-	if err = h.processRaffleWinners(ctx, raffleID, winners, false); err != nil {
-		slog.ErrorContext(ctx, "Failed to process raffle winners", slog.Any("err", err))
-		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to process raffle winners: "+err.Error())
-		return
-	}
-
-	var rawQuery string
-	if pastWinnersOpen {
-		rawQuery = "past-winners=true"
-	}
-	if blockedMembersOpen {
-		if rawQuery != "" {
-			rawQuery += "&"
-		}
-		rawQuery += "blocked-members=true"
-	}
-
-	redirectRaffle(w, r, raffle.Token, clubID, rawQuery)
+	redirectRaffle(w, r, raffle.Token, clubID, rafflePanelQuery(pastWinnersOpen, blockedMembersOpen, xquery.ParseBool(r.Form, "confirmed", false)))
 }
 
 func (h *handler) PostRaffleTitle(w http.ResponseWriter, r *http.Request) {
@@ -250,21 +286,28 @@ func (h *handler) PostRaffleTitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = r.ParseForm(); err != nil {
-		redirectRaffle(w, r, raffle.Token, clubID, "error=Failed+to+parse+form")
+		http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
 	title := strings.TrimSpace(r.FormValue("title"))
 	if len([]rune(title)) > 200 {
-		redirectRaffle(w, r, raffle.Token, clubID, "error="+url.QueryEscape("Title must be 200 characters or fewer"))
+		http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events?error="+url.QueryEscape("Name must be 200 characters or fewer"), http.StatusSeeOther)
 		return
 	}
-	if err = h.DB.UpdateRaffleTitle(ctx, raffle.ID, title); err != nil {
-		slog.ErrorContext(ctx, "Failed to rename raffle", slog.Any("err", err))
-		redirectRaffle(w, r, raffle.Token, clubID, "error=Failed+to+rename")
+	winnerCount := xquery.ParseInt(r.Form, "winner_count", 0)
+	if winnerCount < 1 {
+		http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events?error="+url.QueryEscape("Number of winners must be at least 1"), http.StatusSeeOther)
 		return
 	}
-	redirectRaffle(w, r, raffle.Token, clubID, "")
+	onlyCheckedIn := xquery.ParseBool(r.Form, "only_checked_in", false)
+	singleEntry := xquery.ParseBool(r.Form, "single_entry", false)
+	if err = h.DB.UpdateRaffleSettings(ctx, raffle.ID, title, winnerCount, onlyCheckedIn, singleEntry); err != nil {
+		slog.ErrorContext(ctx, "Failed to update raffle settings", slog.Any("err", err))
+		http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events?error=Failed+to+save", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, raffleURL(raffle.Token, clubID)+"/events", http.StatusSeeOther)
 }
 
 func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
@@ -305,15 +348,7 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var winners []models.Winner
-	var pastWinners []models.Winner
-	for _, winner := range allWinners {
-		if winner.Past {
-			pastWinners = append(pastWinners, models.NewWinner(winner, clubID, raffle.Token))
-		} else {
-			winners = append(winners, models.NewWinner(winner, clubID, raffle.Token))
-		}
-	}
+	winners, confirmedWinners, pastWinners := splitRaffleWinners(allWinners, clubID, raffle.Token)
 
 	var blockedMembers []models.Member
 	if raffle.UserID != "" {
@@ -339,19 +374,38 @@ func (h *handler) GetRaffle(w http.ResponseWriter, r *http.Request) {
 		addEventsURL = raffleURL(raffle.Token, "") + "/events"
 	}
 
+	access, err := h.DB.GetRaffleUsers(ctx, raffle.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get raffle users", slog.Any("err", err))
+		h.renderRaffleResult(w, r, *raffle, clubID, "Failed to get raffle users: "+err.Error())
+		return
+	}
+	users := make([]models.DiscordUser, 0, len(access))
+	for _, user := range access {
+		users = append(users, models.NewDiscordUser(user))
+	}
+
 	if err = h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", RaffleResultVars{
 		Raffle:             models.NewRaffle(*raffle),
 		Events:             renderEvents,
 		ClubID:             clubID,
 		RerunRaffleURL:     r.URL.Path,
 		AddEventsURL:       addEventsURL,
-		TitleAction:        raffleURL(raffle.Token, clubID) + "/title",
+		ShareURL:           absoluteURL(r, raffleSharePath(raffle.Token)),
+		PollURL:            raffleURL(raffle.Token, clubID) + "/winners/poll",
+		Users:              users,
 		Error:              strings.TrimSpace(query.Get("error")),
 		Winners:            winners,
+		ConfirmedWinners:   confirmedWinners,
+		ConfirmedOpen:      xquery.ParseBool(query, "confirmed", false),
 		PastWinners:        pastWinners,
 		PastWinnersOpen:    pastWinnersOpen,
 		BlockedMembers:     blockedMembers,
+		BlockedMemberID:    blockedMemberIDs(blockedMembers),
 		BlockedMembersOpen: blockedMembersOpen,
+		CanBlock:           raffleCanBlock(r, raffle),
+		BlockAction:        raffleURL(raffle.Token, clubID) + "/block/",
+		UnblockAction:      raffleURL(raffle.Token, clubID) + "/unblock/",
 		BackURL:            backURL,
 	}); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))
@@ -406,9 +460,9 @@ func (h *handler) raffleWinners(ctx context.Context, raffle database.Raffle, pas
 					continue
 				}
 
-				// Skip if the user is a past winner & confirmed
+				// Confirmed winners stay out. Current winners are locked so another draw cannot pick them.
 				if slices.ContainsFunc(pastWinners, func(pastWinner database.RaffleWinnerWithMember) bool {
-					return pastWinner.Member.ID == rsvpStatus.UserID && pastWinner.Confirmed
+					return winnerLocked(pastWinner, rsvpStatus.UserID)
 				}) {
 					continue
 				}
@@ -573,25 +627,30 @@ func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event
 	}
 
 	dbEvent, err := h.DB.GetEvent(ctx, event)
-	if err == nil && dbEvent.Finished {
-		fullEvent, err := h.unmarshalEvent(ctx, *dbEvent)
-		if err == nil {
-			return fullEvent, nil
+	if err == nil && eventFinished(dbEvent.Event, time.Now()) {
+		if !dbEvent.Finished {
+			if markErr := h.DB.MarkEventFinished(ctx, dbEvent.Event.ID); markErr != nil {
+				slog.ErrorContext(ctx, "Failed to mark event finished", slog.String("event_id", dbEvent.Event.ID), slog.Any("err", markErr))
+			}
 		}
+		return h.unmarshalEvent(ctx, *dbEvent)
 	}
 
 	fullEvent, err := h.Campfire.GetEvent(ctx, event)
-	if err == nil && dbEvent != nil && !dbEvent.Finished {
-		if err = h.ProcessFullEventImport(ctx, *fullEvent, true); err != nil {
-			slog.ErrorContext(ctx, "Failed to update event in database", slog.String("event_id", event), slog.Any("err", err))
-		}
-	}
-
 	if err != nil {
 		return nil, err
 	}
-
+	if importErr := h.ProcessFullEventImport(ctx, *fullEvent, true); importErr != nil {
+		slog.ErrorContext(ctx, "Failed to update event in database", slog.String("event_id", event), slog.Any("err", importErr))
+	}
 	return fullEvent, nil
+}
+
+func eventFinished(event database.Event, now time.Time) bool {
+	if event.Finished {
+		return true
+	}
+	return !event.EndTime.IsZero() && !event.EndTime.After(now)
 }
 
 func (h *handler) unmarshalEvent(ctx context.Context, event database.EventWithCreator) (*campfire.Event, error) {
@@ -684,9 +743,6 @@ func (h *handler) renderRaffleResult(w http.ResponseWriter, r *http.Request, raf
 		Raffle: models.NewRaffle(raffle),
 		ClubID: clubID,
 		Error:  errorMessage,
-	}
-	if raffle.Token != "" {
-		vars.TitleAction = raffleURL(raffle.Token, clubID) + "/title"
 	}
 	if err := h.Templates().ExecuteTemplate(w, "raffle_result.gohtml", vars); err != nil {
 		slog.ErrorContext(ctx, "Failed to render raffle result template", slog.Any("err", err))

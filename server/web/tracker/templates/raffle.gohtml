@@ -3,18 +3,21 @@
     <div class="container-header">
         {{ template "back_button" "/" }}
         <h1>Raffle</h1>
+        <a href="/raffle/blocked" class="button header-side" hx-boost="true">Blocked Members</a>
     </div>
 
-    <div class="buttons" hx-boost="true">
-        <a href="/raffle/blocked" class="button">Blocked Members</a>
-    </div>
+    <p>Pick winners from event check-ins.</p>
 
     <div class="section">
         <form action="/raffle" method="POST">
+            <label class="form-control" for="raffle-name" title="Name for this raffle.">
+                Name
+                <input class="form-control" type="text" id="raffle-name" name="title" maxlength="200" required autofocus placeholder="Sticker raffle">
+            </label>
             <label class="form-control" for="events" title="Enter event links for the raffle. Each link should be on a new line.">
                 Event Links
                 <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus>{{ .SelectedEventID }}</textarea>
+https://cmpf.re/..." required>{{ .SelectedEventID }}</textarea>
                 {{ if .Error }}
                     <p class="error">{{ .Error }}</p>
                 {{ end }}

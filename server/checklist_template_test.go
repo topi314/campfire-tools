@@ -52,6 +52,7 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		HasReceivedAt  bool
 		Marker         models.DiscordUser
 		HasMarker      bool
+		CheckIns       int
 	}
 	type notice struct {
 		Person string
@@ -75,11 +76,15 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		ManageEventsURL string
 		BackURL         string
 		CanEdit         bool
+		Public          bool
 		OnlyCheckedIn   bool
+		CheckedOpen     bool
+		CreatedAt       time.Time
 		People          []person
 		Received        int
 		Total           int
 		Events          []models.Event
+		Users           []models.DiscordUser
 		HasNotice       bool
 		Notice          notice
 		SwapNotice      bool
@@ -94,7 +99,10 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		ManageEventsURL: "/checklist/1/events/manage",
 		BackURL:         "/checklist",
 		CanEdit:         true,
+		Public:          false,
 		OnlyCheckedIn:   true,
+		CheckedOpen:     true,
+		CreatedAt:       time.Now(),
 		People: []person{
 			{
 				Member:         models.Member{ID: "m1", Username: "jdoe_smith", DisplayName: "Jordan"},
@@ -105,6 +113,7 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 				ReceivedAt:     time.Now(),
 				HasReceivedAt:  true,
 				HasMarker:      true,
+				CheckIns:       2,
 				Marker: models.NewDiscordUser(database.DiscordUser{
 					ID:          "d1",
 					Username:    "sam",
@@ -122,9 +131,15 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 				SearchUsername: "jds_user",
 			},
 		},
-		Received:  1,
-		Total:     3,
-		Events:    []models.Event{{ID: "e1", Name: "Meetup", URL: "/event/e1"}},
+		Received: 1,
+		Total:    3,
+		Events:   []models.Event{{ID: "e1", Name: "Meetup", URL: "/event/e1"}},
+		Users: []models.DiscordUser{{
+			ID:          "d1",
+			Username:    "sam",
+			DisplayName: "Sam",
+			AvatarURL:   "/static/default.png",
+		}},
 		HasNotice: true,
 		Notice: notice{
 			Person: "Jordan",
@@ -147,6 +162,7 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 	mustExecute(t, tpl, "checklist_add_results", page.Add)
 	mustExecute(t, tpl, "checklist_events.gohtml", struct {
 		Title            string
+		TitleAction      string
 		BackURL          string
 		FormAction       string
 		RemoveFormAction string
@@ -155,6 +171,7 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		Error            string
 	}{
 		Title:            "Stickers",
+		TitleAction:      "/checklist/1/title",
 		BackURL:          "/checklist/1",
 		FormAction:       "/checklist/1/events",
 		RemoveFormAction: "/checklist/1/events/remove",

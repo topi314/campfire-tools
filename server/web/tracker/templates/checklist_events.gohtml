@@ -1,15 +1,23 @@
-{{ template "head" "Manage Events" }}
+{{ template "head" "Edit Checklist" }}
 <div class="container">
     <div class="container-header">
         {{ template "back_button" .BackURL }}
-        <h1>Manage Events</h1>
+        <h1>Edit {{ .Title }}</h1>
     </div>
-
-    <p>{{ .Title }}</p>
 
     {{ if .Error }}
         <p class="error" id="error-message">{{ .Error }}</p>
     {{ end }}
+
+    <div class="section">
+        <form action="{{ .TitleAction }}" method="POST">
+            <label class="form-control" for="checklist-title">
+                Name
+                <input class="form-control" type="text" id="checklist-title" name="title" value="{{ .Title }}" maxlength="200" required placeholder="Sticker drop" autofocus>
+            </label>
+            <button class="form-control" type="submit">Save</button>
+        </form>
+    </div>
 
     {{ if .Events }}
         <div class="section">
@@ -40,7 +48,7 @@
             <label class="form-control" for="events" title="Enter event links to add. Each link should be on a new line.">
                 Event Links
                 <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus></textarea>
+https://cmpf.re/..." required></textarea>
             </label>
             <button class="form-control" type="submit">Add Events</button>
         </form>

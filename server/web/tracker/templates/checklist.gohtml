@@ -3,30 +3,31 @@
     <div class="container-header">
         {{ template "back_button" .BackURL }}
         <h1>{{ .Title }}</h1>
-        {{ if .CanEdit }}
-            <div class="buttons checklist-header-actions">
+        <div class="buttons header-actions">
+            <button type="button" class="button button-primary reload" hx-get="{{ .EntriesURL }}" hx-target="#checklist-entries" hx-swap="outerHTML" hx-include="#checklist-checked-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                    <path d="M8 16H3v5"></path>
+                </svg>
+                Reload
+            </button>
+            {{ if .CanEdit }}
                 <button type="button" class="button" data-copy="{{ .ShareURL }}" title="Copy share link" aria-label="Copy share link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                     </svg>
                 </button>
-                <button type="button" class="button" title="Edit" aria-label="Edit" onclick="document.getElementById('checklist-edit-dialog').showModal()">
+                <a href="{{ .ManageEventsURL }}" class="button" title="Edit" aria-label="Edit" hx-boost="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 20h9"></path>
                         <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                     </svg>
-                </button>
-                <a href="{{ .ManageEventsURL }}" class="button" title="Manage events" aria-label="Manage events" hx-boost="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
                 </a>
-            </div>
-        {{ end }}
+            {{ end }}
+        </div>
     </div>
 
     {{ if .Error }}
@@ -38,37 +39,54 @@
     </div>
 
     <div class="checklist-tools">
+        <input type="hidden" id="checklist-checked-state" name="checked" value="{{ if .CheckedOpen }}true{{ else }}false{{ end }}">
         <label class="checklist-search" for="checklist-search">
             Search
             <input type="search" id="checklist-search" data-checklist-search placeholder="Display name or username" autocomplete="off" spellcheck="false">
-        </label>
-        <label class="checklist-sort" for="checklist-sort">
-            Sort
-            <select id="checklist-sort" data-checklist-sort>
-                <option value="display" selected>Display name</option>
-                <option value="username">Username</option>
-                <option value="recent">Recently marked</option>
-            </select>
         </label>
     </div>
 
     {{ template "checklist_entries" . }}
 
-    {{ if .CanEdit }}
-        <dialog id="checklist-edit-dialog" class="dialog">
-            <h3>Edit</h3>
-            <form action="{{ .ActionBase }}/title" method="POST">
-                <label class="form-control" for="checklist-title">
-                    Title
-                    <input class="form-control" type="text" id="checklist-title" name="title" value="{{ .Title }}" maxlength="200" required>
-                </label>
-                <div class="buttons">
-                    <button type="button" class="button" onclick="this.closest('dialog').close()">Cancel</button>
-                    <button type="submit" class="button">Save</button>
+    <div class="section details">
+        <h2>Details</h2>
+        <dl>
+            <div>
+                <dt>Created</dt>
+                <dd>{{ localTime .CreatedAt "relative" }}</dd>
+            </div>
+            <div>
+                <dt>Checked-in only</dt>
+                <dd>{{ if .OnlyCheckedIn }}Yes{{ else }}Checked-in and accepted{{ end }}</dd>
+            </div>
+            {{ if .Users }}
+                <div class="details-wide">
+                    <dt>Sharing</dt>
+                    <dd>
+                        <ul>
+                            {{ range $user := .Users }}
+                                <li>{{ template "discord_user" $user }}</li>
+                            {{ end }}
+                        </ul>
+                    </dd>
                 </div>
-            </form>
-        </dialog>
-    {{ end }}
+            {{ end }}
+            <div class="details-wide">
+                <dt>Events</dt>
+                <dd>
+                    {{ if .Events }}
+                        <ul>
+                            {{ range $event := .Events }}
+                                <li><a href="{{ $event.URL }}" hx-boost="true">{{ $event.Name }}</a></li>
+                            {{ end }}
+                        </ul>
+                    {{ else }}
+                        None
+                    {{ end }}
+                </dd>
+            </div>
+        </dl>
+    </div>
 </div>
 <script>
     (function () {
@@ -78,7 +96,21 @@
         }
 
         let cache = [];
-        let checkedOpen = false;
+        let checkedOpen = new URL(window.location).searchParams.get("checked") === "true";
+
+        function setCheckedParam(open) {
+            const url = new URL(window.location);
+            if (open) {
+                url.searchParams.set("checked", "true");
+            } else {
+                url.searchParams.delete("checked");
+            }
+            window.history.replaceState(null, "", url.toString());
+            const field = document.getElementById("checklist-checked-state");
+            if (field) {
+                field.value = open ? "true" : "false";
+            }
+        }
 
         function root() {
             return document.querySelector("[data-checklist]");
@@ -126,16 +158,6 @@
             return display > username ? display : username;
         }
 
-        function compareText(a, b) {
-            if (a < b) {
-                return -1;
-            }
-            if (a > b) {
-                return 1;
-            }
-            return 0;
-        }
-
         function rebuild() {
             cache = [];
             const list = document.getElementById("checklist-entries");
@@ -150,7 +172,6 @@
                     display: el.getAttribute("data-display") || "",
                     username: el.getAttribute("data-username") || "",
                     received: el.getAttribute("data-received") === "1",
-                    receivedAt: Number(el.getAttribute("data-received-at") || "0"),
                 });
             }
         }
@@ -161,15 +182,13 @@
                 return;
             }
             const input = page.querySelector("[data-checklist-search]");
-            const sort = page.querySelector("[data-checklist-sort]");
             const waiting = document.getElementById("checklist-waiting");
             const done = document.getElementById("checklist-done");
-            if (!input || !sort || !waiting) {
+            if (!input || !waiting) {
                 return;
             }
 
             const query = input.value.trim().toLowerCase();
-            const mode = sort.value;
             const groups = [[], []];
             for (let i = 0; i < cache.length; i++) {
                 const row = cache[i];
@@ -183,21 +202,10 @@
             }
 
             function compare(a, b) {
-                if (query) {
-                    if (b.score !== a.score) {
-                        return b.score - a.score;
-                    }
-                    return compareText(a.row.display, b.row.display);
+                if (query && b.score !== a.score) {
+                    return b.score - a.score;
                 }
-                if (mode === "username") {
-                    return compareText(a.row.username, b.row.username);
-                }
-                if (mode === "recent") {
-                    if (a.row.receivedAt !== b.row.receivedAt) {
-                        return b.row.receivedAt - a.row.receivedAt;
-                    }
-                }
-                return compareText(a.row.display, b.row.display);
+                return a.index - b.index;
             }
 
             groups[0].sort(compare);
@@ -213,14 +221,20 @@
 
             const details = document.getElementById("checklist-checked");
             if (details) {
-                details.hidden = query && groups[1].length === 0;
-                details.open = !details.hidden && (checkedOpen || (query && groups[1].length > 0));
+                if (query) {
+                    details.hidden = groups[1].length === 0;
+                    details.open = !details.hidden && (checkedOpen || groups[1].length > 0);
+                } else {
+                    details.hidden = false;
+                }
                 if (!details.dataset.bound) {
                     details.dataset.bound = "1";
                     details.addEventListener("toggle", function () {
-                        if (!input.value.trim()) {
-                            checkedOpen = details.open;
+                        if (input.value.trim()) {
+                            return;
                         }
+                        checkedOpen = details.open;
+                        setCheckedParam(details.open);
                     });
                 }
             }
@@ -238,12 +252,8 @@
             }
             page.dataset.bound = "1";
             const input = page.querySelector("[data-checklist-search]");
-            const sort = page.querySelector("[data-checklist-sort]");
             if (input) {
                 input.addEventListener("input", apply);
-            }
-            if (sort) {
-                sort.addEventListener("change", apply);
             }
             rebuild();
             apply();
@@ -251,13 +261,19 @@
 
         document.addEventListener("htmx:beforeSwap", function (event) {
             const target = event.detail && event.detail.target;
-            if (!target || target.id !== "checklist-entries") {
+            if (!target || target.id !== "checklist-entries" || !event.detail.serverResponse) {
                 return;
             }
             const details = document.getElementById("checklist-checked");
-            if (details && !details.hidden) {
-                checkedOpen = details.open;
+            const open = !!(details && !details.hidden && details.open);
+            checkedOpen = open;
+            if (!open || event.detail.serverResponse.indexOf('id="checklist-checked" open') !== -1) {
+                return;
             }
+            event.detail.serverResponse = event.detail.serverResponse.replace(
+                'id="checklist-checked"',
+                'id="checklist-checked" open'
+            );
         });
 
         document.addEventListener("htmx:afterSwap", function () {
@@ -281,7 +297,7 @@
 {{ end }}
 
 {{ define "checklist_person" }}
-    <li data-display="{{ .Person.SearchDisplay }}" data-username="{{ .Person.SearchUsername }}" data-received="{{ if .Person.Received }}1{{ else }}0{{ end }}" data-received-at="{{ .Person.ReceivedAtUnix }}">
+    <li data-display="{{ .Person.SearchDisplay }}" data-username="{{ .Person.SearchUsername }}" data-received="{{ if .Person.Received }}1{{ else }}0{{ end }}">
         <div>
             <span class="checklist-person">
                 {{ if .Person.Member.AvatarURL }}
@@ -289,27 +305,32 @@
                 {{ else }}
                     <img src="/static/default_avatar.png" class="icon-32" alt="">
                 {{ end }}
-                <span>
-                    <span>{{ .Person.Member.DisplayName }}</span>
+                <span class="checklist-person-name">
+                    <span>{{ .Person.Member.DisplayName }}{{ if .Person.CheckIns }} ({{ .Person.CheckIns }}){{ end }}</span>
                     {{ if .Person.Member.Username }}
                         <span class="small-text">{{ .Person.Member.Username }}</span>
-                    {{ end }}
-                    {{ if .Person.Received }}
-                        <span class="small-text">
-                            Marked{{ if .Person.HasMarker }} by {{ template "discord_user" .Person.Marker }}{{ end }}{{ if .Person.HasReceivedAt }} {{ localTime .Person.ReceivedAt "relative" }}{{ end }}
-                        </span>
                     {{ end }}
                 </span>
             </span>
             {{ if .CanEdit }}
                 <span class="checklist-actions">
-                    <form action="{{ .ActionBase }}/toggle/{{ .Person.Member.ID }}" method="POST" hx-post="{{ .ActionBase }}/toggle/{{ .Person.Member.ID }}" hx-target="#checklist-entries" hx-swap="outerHTML">
-                        <input type="hidden" name="received" value="{{ if .Person.Received }}false{{ else }}true{{ end }}">
-                        <button type="submit" class="button small checklist-check{{ if .Person.Received }} success{{ end }}" aria-label="{{ if .Person.Received }}Uncheck{{ else }}Check{{ end }} {{ .Person.Member.DisplayName }}">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </button>
+                    <form action="{{ .ActionBase }}/toggle/{{ .Person.Member.ID }}" method="POST" hx-post="{{ .ActionBase }}/toggle/{{ .Person.Member.ID }}" hx-target="#checklist-entries" hx-swap="outerHTML" hx-include="#checklist-checked-state">
+                        {{ if .Person.Received }}
+                            <input type="hidden" name="received" value="false">
+                            <button type="submit" class="button checklist-unmark" aria-label="Unmark {{ .Person.Member.DisplayName }}" title="Unmark">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        {{ else }}
+                            <input type="hidden" name="received" value="true">
+                            <button type="submit" class="button checklist-check" aria-label="Check {{ .Person.Member.DisplayName }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                        {{ end }}
                     </form>
                 </span>
             {{ end }}
@@ -318,14 +339,14 @@
 {{ end }}
 
 {{ define "checklist_entries" }}
-    <div id="checklist-entries" hx-get="{{ .EntriesURL }}" hx-trigger="every 5s" hx-swap="outerHTML" hx-sync="this:drop">
-        <p class="checklist-count">{{ .Received }} / {{ .Total }} checked</p>
+    <div id="checklist-entries" hx-get="{{ .EntriesURL }}" hx-trigger="every 5s" hx-swap="outerHTML" hx-sync="this:drop" hx-include="#checklist-checked-state">
+        <p class="checklist-count">{{ .Received }} / {{ .Total }} received</p>
         {{ if not .People }}
             <p>No one on this checklist yet.</p>
         {{ else }}
             <p id="checklist-search-empty" hidden>No matching people.</p>
             {{ if eq .Received .Total }}
-                <p>No one left to check.</p>
+                <p>No one left.</p>
             {{ end }}
             <ul id="checklist-waiting" class="winners checklist-people">
                 {{ range $person := .People }}
@@ -335,8 +356,8 @@
                 {{ end }}
             </ul>
             {{ if .Received }}
-                <details id="checklist-checked" class="checklist-checked">
-                    <summary>Checked ({{ .Received }})</summary>
+                <details id="checklist-checked" class="collapse" {{ if .CheckedOpen }}open{{ end }}>
+                    <summary>Received ({{ .Received }})</summary>
                     <ul id="checklist-done" class="winners checklist-people">
                         {{ range $person := .People }}
                             {{ if $person.Received }}

@@ -168,18 +168,24 @@ type Raffle struct {
 }
 
 type RaffleWinner struct {
-	RaffleID  int       `db:"raffle_winner_raffle_id"`
-	MemberID  string    `db:"raffle_winner_member_id"`
-	Confirmed bool      `db:"raffle_winner_confirmed"`
-	Past      bool      `db:"raffle_winner_past"`
-	CreatedAt time.Time `db:"raffle_winner_created_at"`
+	RaffleID    int            `db:"raffle_winner_raffle_id"`
+	MemberID    string         `db:"raffle_winner_member_id"`
+	Confirmed   bool           `db:"raffle_winner_confirmed"`
+	Past        bool           `db:"raffle_winner_past"`
+	CreatedAt   time.Time      `db:"raffle_winner_created_at"`
+	ConfirmedBy sql.NullString `db:"raffle_winner_confirmed_by"`
+	ConfirmedAt sql.NullTime   `db:"raffle_winner_confirmed_at"`
 }
 
 type RaffleWinnerWithMember struct {
 	RaffleWinner
 	Member
-	Accepted int `db:"accepted"`
-	CheckIns int `db:"check_ins"`
+	Accepted          int            `db:"accepted"`
+	CheckIns          int            `db:"check_ins"`
+	MarkerID          sql.NullString `db:"marker_id"`
+	MarkerUsername    sql.NullString `db:"marker_username"`
+	MarkerDisplayName sql.NullString `db:"marker_display_name"`
+	MarkerAvatarURL   sql.NullString `db:"marker_avatar_url"`
 }
 
 type Checklist struct {

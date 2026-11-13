@@ -55,6 +55,7 @@ type ChecklistPerson struct {
 	HasReceivedAt  bool
 	Marker         models.DiscordUser
 	HasMarker      bool
+	CheckIns       int
 }
 
 type ChecklistNotice struct {
@@ -81,11 +82,15 @@ type ChecklistPage struct {
 	ManageEventsURL string
 	BackURL         string
 	CanEdit         bool
+	Public          bool
 	OnlyCheckedIn   bool
+	CheckedOpen     bool
+	CreatedAt       time.Time
 	People          []ChecklistPerson
 	Received        int
 	Total           int
 	Events          []models.Event
+	Users           []models.DiscordUser
 	HasNotice       bool
 	Notice          ChecklistNotice
 	SwapNotice      bool
@@ -126,7 +131,7 @@ func (h *handler) renderChecklistIndex(w http.ResponseWriter, r *http.Request, e
 			checklists[i] = ChecklistSummary{
 				ID:        row.ID,
 				Title:     row.Title,
-				URL:       checklistPath(row.ID),
+				URL:       checklistPath(row.Token),
 				Received:  row.Received,
 				Total:     row.Total,
 				CreatedAt: row.CreatedAt,
@@ -271,7 +276,7 @@ func (h *handler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 	checklist, err := h.DB.GetChecklistByID(ctx, checklistID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to load new checklist", slog.Any("err", err))
-		http.Redirect(w, r, checklistPath(checklistID)+"?error=Failed+to+import+people", http.StatusSeeOther)
+		http.Redirect(w, r, "/checklist?error=Failed+to+import+people", http.StatusSeeOther)
 		return
 	}
 	dest := "/checklist/share/" + checklist.Token
@@ -295,48 +300,30 @@ func (h *handler) ChecklistShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := auth.GetSession(r)
-	if session.UserID != "" {
-		if err := h.DB.AddChecklistUser(ctx, checklist.ID, session.UserID); err != nil {
-			slog.ErrorContext(ctx, "Failed to record checklist open", slog.Any("err", err))
-			http.Error(w, "Failed to open checklist: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, checklistPath(checklist.ID), http.StatusSeeOther)
+	if session.UserID == "" {
+		h.forceLogin(w, r)
 		return
 	}
-
-	syncErr := h.syncChecklistPeople(ctx, *checklist)
-	page, err := h.buildChecklistPage(ctx, r, *checklist, checklistIsPublic(*checklist), "")
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to build shared checklist", slog.Any("err", err))
-		http.Error(w, "Failed to load checklist: "+err.Error(), http.StatusInternalServerError)
+	if err := h.DB.AddChecklistUser(ctx, checklist.ID, session.UserID); err != nil {
+		slog.ErrorContext(ctx, "Failed to record checklist open", slog.Any("err", err))
+		http.Error(w, "Failed to open checklist: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	page.Error = syncErr
-	h.renderChecklistPage(w, r, page)
-}
-
-func (h *handler) ChecklistShareEntries(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	checklist, ok := h.checklistByToken(w, r)
-	if !ok {
-		return
-	}
-
-	h.syncChecklistPeople(ctx, *checklist)
-	page, err := h.buildChecklistPage(ctx, r, *checklist, checklistIsPublic(*checklist), "")
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to build shared checklist entries", slog.Any("err", err))
-		http.Error(w, "Failed to load checklist: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	h.renderChecklistEntries(w, r, page)
+	http.Redirect(w, r, checklistPath(checklist.Token), http.StatusSeeOther)
 }
 
 func (h *handler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	checklist, _, ok := h.checklistEditor(w, r)
 	if !ok {
+		return
+	}
+	if _, err := strconv.Atoi(r.PathValue("checklist_id")); err == nil {
+		target := checklistPath(checklist.Token)
+		if query := r.URL.RawQuery; query != "" {
+			target += "?" + query
+		}
+		http.Redirect(w, r, target, http.StatusSeeOther)
 		return
 	}
 
@@ -434,21 +421,21 @@ func (h *handler) PostChecklistTitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
 	title, titleErr := cleanChecklistTitle(r.FormValue("title"))
 	if titleErr != "" {
-		http.Redirect(w, r, checklistHere(r, checklist)+"?error="+url.QueryEscape(titleErr), http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error="+url.QueryEscape(titleErr), http.StatusSeeOther)
 		return
 	}
 	if err := h.DB.UpdateChecklistTitle(ctx, checklist.ID, title); err != nil {
 		slog.ErrorContext(ctx, "Failed to rename checklist", slog.Any("err", err))
-		http.Redirect(w, r, checklistHere(r, checklist)+"?error=Failed+to+rename", http.StatusSeeOther)
+		http.Redirect(w, r, checklistEventsPage(r, checklist)+"?error=Failed+to+rename", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, checklistHere(r, checklist), http.StatusSeeOther)
+	http.Redirect(w, r, checklistEventsPage(r, checklist), http.StatusSeeOther)
 }
 
 func (h *handler) PostChecklistEvents(w http.ResponseWriter, r *http.Request) {
@@ -530,6 +517,7 @@ func (h *handler) PostChecklistEventsRemove(w http.ResponseWriter, r *http.Reque
 
 type ChecklistEventsPage struct {
 	Title            string
+	TitleAction      string
 	BackURL          string
 	FormAction       string
 	RemoveFormAction string
@@ -548,6 +536,7 @@ func (h *handler) GetChecklistEvents(w http.ResponseWriter, r *http.Request) {
 	actionBase := checklistActionBase(r, checklist)
 	if err := h.Templates().ExecuteTemplate(w, "checklist_events.gohtml", ChecklistEventsPage{
 		Title:            checklist.Title,
+		TitleAction:      actionBase + "/title",
 		BackURL:          checklistHere(r, checklist),
 		FormAction:       actionBase + "/events",
 		RemoveFormAction: actionBase + "/events/remove",
@@ -616,40 +605,18 @@ func checklistIsPublic(checklist database.Checklist) bool {
 }
 
 func checklistHere(r *http.Request, checklist *database.Checklist) string {
-	if strings.TrimSpace(r.PathValue("token")) != "" {
-		return "/checklist/share/" + checklist.Token
-	}
-	return checklistPath(checklist.ID)
+	return checklistPath(checklist.Token)
 }
 
 func checklistEventsPage(r *http.Request, checklist *database.Checklist) string {
-	if strings.TrimSpace(r.PathValue("token")) != "" {
-		return "/checklist/share/" + checklist.Token + "/edit/events"
-	}
-	return checklistPath(checklist.ID) + "/events/manage"
+	return checklistPath(checklist.Token) + "/events/manage"
 }
 
 func checklistActionBase(r *http.Request, checklist *database.Checklist) string {
-	if strings.TrimSpace(r.PathValue("token")) != "" {
-		return "/checklist/share/" + checklist.Token + "/edit"
-	}
-	return checklistPath(checklist.ID)
+	return checklistPath(checklist.Token)
 }
 
 func (h *handler) checklistEditor(w http.ResponseWriter, r *http.Request) (*database.Checklist, string, bool) {
-	if strings.TrimSpace(r.PathValue("token")) != "" {
-		checklist, ok := h.checklistByToken(w, r)
-		if !ok {
-			return nil, "", false
-		}
-		if !checklistIsPublic(*checklist) {
-			h.NotFound(w, r)
-			return nil, "", false
-		}
-		session := auth.GetSession(r)
-		return checklist, session.UserID, true
-	}
-
 	checklist, session, ok := h.authorizedChecklist(w, r)
 	if !ok {
 		return nil, "", false
@@ -664,14 +631,8 @@ func (h *handler) authorizedChecklist(w http.ResponseWriter, r *http.Request) (*
 		return nil, session, false
 	}
 
-	checklistID, err := strconv.Atoi(r.PathValue("checklist_id"))
-	if err != nil {
-		h.NotFound(w, r)
-		return nil, session, false
-	}
-
 	ctx := r.Context()
-	checklist, err := h.DB.GetChecklistByID(ctx, checklistID)
+	checklist, err := h.checklistByPath(ctx, r)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.NotFound(w, r)
@@ -721,31 +682,37 @@ func (h *handler) buildChecklistPage(ctx context.Context, r *http.Request, check
 		return ChecklistPage{}, err
 	}
 
+	access, err := h.DB.GetChecklistUsers(ctx, checklist.ID)
+	if err != nil {
+		return ChecklistPage{}, err
+	}
+	users := make([]models.DiscordUser, 0, len(access))
+	for _, user := range access {
+		users = append(users, models.NewDiscordUser(user))
+	}
+
 	page := ChecklistPage{
 		ID:            checklist.ID,
 		Title:         checklist.Title,
 		ShareURL:      absoluteURL(r, "/checklist/share/"+checklist.Token),
 		BackURL:       "/checklist",
 		CanEdit:       canEdit,
+		Public:        checklistIsPublic(checklist),
 		OnlyCheckedIn: checklist.OnlyCheckedIn,
+		CheckedOpen:   xquery.ParseBool(r.URL.Query(), "checked", false) || xquery.ParseBool(r.Form, "checked", false),
+		CreatedAt:     checklist.CreatedAt,
 		People:        make([]ChecklistPerson, 0, len(rows)),
 		Total:         len(rows),
 		Events:        h.checklistEventModels(ctx, checklist.Events),
+		Users:         users,
 		Add: ChecklistAddResults{
 			ChecklistID: checklist.ID,
 			OnList:      map[string]bool{},
 		},
 	}
-	shareBase := "/checklist/share/" + checklist.Token
-	if strings.TrimSpace(r.PathValue("token")) != "" {
-		page.ActionBase = shareBase + "/edit"
-		page.EntriesURL = shareBase + "/entries"
-		page.ManageEventsURL = page.ActionBase + "/events"
-	} else {
-		page.ActionBase = checklistPath(checklist.ID)
-		page.EntriesURL = page.ActionBase + "/entries/poll"
-		page.ManageEventsURL = page.ActionBase + "/events/manage"
-	}
+	page.ActionBase = checklistPath(checklist.Token)
+	page.EntriesURL = page.ActionBase + "/entries/poll"
+	page.ManageEventsURL = page.ActionBase + "/events/manage"
 	page.Add.ActionBase = page.ActionBase
 
 	for _, row := range rows {
@@ -984,6 +951,7 @@ func checklistPersonFromRow(row database.ChecklistEntryRow) ChecklistPerson {
 		SearchDisplay:  strings.ToLower(member.DisplayName),
 		SearchUsername: strings.ToLower(member.Username),
 		Received:       row.Received,
+		CheckIns:       row.CheckIns,
 	}
 	if row.ReceivedAt.Valid {
 		person.HasReceivedAt = true
@@ -1032,10 +1000,10 @@ func checklistEventInputs(r *http.Request) []string {
 func cleanChecklistTitle(title string) (string, string) {
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return "", "Title is required"
+		return "", "Name is required"
 	}
 	if len([]rune(title)) > checklistTitleLimit {
-		return "", fmt.Sprintf("Title must be %d characters or fewer", checklistTitleLimit)
+		return "", fmt.Sprintf("Name must be %d characters or fewer", checklistTitleLimit)
 	}
 	return title, ""
 }
@@ -1068,8 +1036,24 @@ func newChecklistToken() (string, error) {
 	return string(buf), nil
 }
 
-func checklistPath(id int) string {
-	return fmt.Sprintf("/checklist/%d", id)
+func checklistPath(token string) string {
+	return "/checklist/" + token
+}
+
+func checklistPathID(r *http.Request) int {
+	id, _ := strconv.Atoi(r.PathValue("checklist_id"))
+	return id
+}
+
+func (h *handler) checklistByPath(ctx context.Context, r *http.Request) (*database.Checklist, error) {
+	value := strings.TrimSpace(r.PathValue("checklist_id"))
+	if value == "" {
+		return nil, sql.ErrNoRows
+	}
+	if _, err := strconv.Atoi(value); err == nil {
+		return h.DB.GetChecklistByID(ctx, checklistPathID(r))
+	}
+	return h.DB.GetChecklistByToken(ctx, value)
 }
 
 func absoluteURL(r *http.Request, path string) string {

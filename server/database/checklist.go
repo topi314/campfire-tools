@@ -27,6 +27,7 @@ type ChecklistEntryRow struct {
 	MarkerUsername    sql.NullString `db:"marker_username"`
 	MarkerDisplayName sql.NullString `db:"marker_display_name"`
 	MarkerAvatarURL   sql.NullString `db:"marker_avatar_url"`
+	CheckIns          int            `db:"check_ins"`
 }
 
 func (d *Database) GetChecklistsByUserID(ctx context.Context, userID string) ([]ChecklistWithCounts, error) {
@@ -139,6 +140,26 @@ func (d *Database) AddChecklistUser(ctx context.Context, checklistID int, userID
 	return nil
 }
 
+func (d *Database) GetChecklistUsers(ctx context.Context, checklistID int) ([]DiscordUser, error) {
+	query := `
+		SELECT
+			discord_users.discord_user_id,
+			discord_users.discord_user_username,
+			discord_users.discord_user_display_name,
+			discord_users.discord_user_avatar_url,
+			discord_users.discord_user_imported_at
+		FROM checklist_users
+		JOIN discord_users ON discord_users.discord_user_id = checklist_users.checklist_user_user_id
+		WHERE checklist_users.checklist_user_checklist_id = $1
+		ORDER BY discord_users.discord_user_display_name ASC, discord_users.discord_user_username ASC
+	`
+	var users []DiscordUser
+	if err := d.db.SelectContext(ctx, &users, query, checklistID); err != nil {
+		return nil, fmt.Errorf("failed to get checklist users: %w", err)
+	}
+	return users, nil
+}
+
 func (d *Database) IsChecklistUser(ctx context.Context, checklistID int, userID string) (bool, error) {
 	var exists bool
 	query := `
@@ -168,7 +189,15 @@ func (d *Database) GetChecklistEntries(ctx context.Context, checklistID int) ([]
 			discord_users.discord_user_id AS marker_id,
 			discord_users.discord_user_username AS marker_username,
 			discord_users.discord_user_display_name AS marker_display_name,
-			discord_users.discord_user_avatar_url AS marker_avatar_url
+			discord_users.discord_user_avatar_url AS marker_avatar_url,
+			(
+				SELECT COUNT(*)
+				FROM event_rsvps
+				JOIN checklists ON checklists.checklist_id = checklist_entries.checklist_entry_checklist_id
+				WHERE event_rsvp_event_id = ANY(checklists.checklist_events)
+				AND event_rsvp_member_id = checklist_entries.checklist_entry_member_id
+				AND event_rsvp_status = 'CHECKED_IN'
+			) AS check_ins
 		FROM checklist_entries
 		JOIN members ON members.member_id = checklist_entries.checklist_entry_member_id
 		LEFT JOIN discord_users ON discord_users.discord_user_id = checklist_entries.checklist_entry_received_by

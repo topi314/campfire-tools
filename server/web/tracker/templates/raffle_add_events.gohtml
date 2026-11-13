@@ -1,13 +1,35 @@
-{{ template "head" "Campfire Raffle Manage Events" }}
+{{ template "head" "Edit Raffle" }}
 <div class="container">
     <div class="container-header">
         {{ template "back_button" .BackURL }}
-        <h1>Manage Events for Raffle #{{ .RaffleID }}</h1>
+        <h1>Edit {{ if .Title }}{{ .Title }}{{ else }}#{{ .RaffleID }}{{ end }}</h1>
     </div>
 
     {{ if .Error }}
         <p class="error" id="error-message">{{ .Error }}</p>
     {{ end }}
+
+    <div class="section">
+        <form action="{{ .TitleAction }}" method="POST">
+            <label class="form-control" for="raffle-title">
+                Name
+                <input class="form-control" type="text" id="raffle-title" name="title" value="{{ .Title }}" maxlength="200" placeholder="Sticker raffle" autofocus>
+            </label>
+            <label class="form-control" for="winner-count" title="Number of winners to select from the raffle">
+                Number of Winners
+                <input class="form-control" type="number" id="winner-count" name="winner_count" min="1" value="{{ .WinnerCount }}" required>
+            </label>
+            <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
+                Only Checked-In Members
+                <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" {{ if .OnlyCheckedIn }}checked{{ end }}>
+            </label>
+            <label class="form-control" for="single-entry" title="Only allow one entry per member">
+                Single Entry Per Member
+                <input class="form-control" type="checkbox" id="single-entry" name="single_entry" {{ if .SingleEntry }}checked{{ end }}>
+            </label>
+            <button class="form-control" type="submit">Save</button>
+        </form>
+    </div>
 
     {{ if .Existing }}
         <div class="section">
@@ -35,7 +57,7 @@
             <label class="form-control" for="events" title="Enter event links to add. Each link should be on a new line.">
                 Event Links
                 <textarea class="form-control" id="events" name="events" placeholder="https://cmpf.re/...
-https://cmpf.re/..." required autofocus></textarea>
+https://cmpf.re/..." required></textarea>
             </label>
             <button class="form-control" type="submit">Add Events</button>
         </form>
