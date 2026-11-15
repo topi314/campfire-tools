@@ -8,6 +8,27 @@ package tracker
 // days.
 var ConfiguredEvents = []ConfiguredEvent{
 	{
+		Key:  "go-wild-area-2026",
+		Name: "GO Wild Area 2026",
+		Days: []ConfiguredDay{
+			{Label: "Saturday", LiveEventID: "27acc9bc-340e-49d3-a26c-0d4304d56a28"},
+			{Label: "Sunday", LiveEventID: "c0b2444f-dbf3-406b-af7b-b8ce8b731dd5"},
+		},
+	},
+	{
+		Key:  "go-wild-area-2026-into-the-wild",
+		Name: "GO Wild Area 2026 & Into the Wild",
+		Days: []ConfiguredDay{
+			{Label: "Monday", LiveEventID: "80f41643-04bd-4924-aba0-94aa45b8a563"},
+			{Label: "Tuesday", LiveEventID: "7071f3a0-aa86-4fe2-8a96-a3325aa6a54a"},
+			{Label: "Wednesday", LiveEventID: "04a2d295-f2e1-4d8b-abc5-fc2fba8e78e2"},
+			{Label: "Thursday", LiveEventID: "353d1167-8f01-46e3-a6cf-8fbe97bfe668"},
+			{Label: "Friday", LiveEventID: "c37c9a0f-0596-45aa-82e7-3db0f948113a"},
+			{Label: "Saturday", LiveEventID: "27acc9bc-340e-49d3-a26c-0d4304d56a28"},
+			{Label: "Sunday", LiveEventID: "c0b2444f-dbf3-406b-af7b-b8ce8b731dd5"},
+		},
+	},
+	{
 		Key:  "go-fest-2026-mega-finale",
 		Name: "GO Fest 2026 Mega Finale",
 		Days: []ConfiguredDay{
