@@ -43,7 +43,6 @@ query ArchivedEvents_Query(
                             name
                             game
                             visibility
-                            amIMember
                             avatarUrl
                             badgeGrants
                             createdByCommunityAmbassador

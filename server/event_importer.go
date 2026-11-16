@@ -51,8 +51,11 @@ func (s *Server) doImportNextEvent(ctx context.Context) error {
 }
 
 func (s *Server) ImportActiveClubEvents(ctx context.Context, clubID string) error {
-	events, _, err := s.Campfire.GetFutureEvents(ctx, clubID, nil)
+	club, events, err := s.Campfire.GetFutureEvents(ctx, clubID, nil)
 	if err != nil {
+		return err
+	}
+	if err = s.saveClub(ctx, club); err != nil {
 		return err
 	}
 
@@ -63,17 +66,15 @@ func (s *Server) ImportActiveClubEvents(ctx context.Context, clubID string) erro
 	slog.InfoContext(ctx, "Found future events to import", slog.String("club_id", clubID), slog.Int("events", len(events)))
 
 	for _, event := range events {
-		// Skip if event already exists
-		if _, err = s.DB.GetEvent(ctx, event.ID); err == nil {
-			continue
+		members := eventMembers(event)
+		if eventMembersIncomplete(event) {
+			members, _, err = s.Campfire.GetEventMembers(ctx, event.ID, nil)
+			if err != nil {
+				return err
+			}
 		}
 
-		members, _, err := s.Campfire.GetEventMembers(ctx, event.ID, nil)
-		if err != nil {
-			return err
-		}
-
-		if processErr := s.ProcessEventImport(ctx, event, members, true); processErr != nil {
+		if processErr := s.ProcessEventImport(ctx, event, members); processErr != nil {
 			slog.ErrorContext(ctx, "Failed to insert event RSVPs", slog.String("club_id", clubID), slog.String("event_id", event.ID), slog.Any("err", processErr))
 			continue
 		}
@@ -89,53 +90,60 @@ func (s *Server) ImportActiveClubEvents(ctx context.Context, clubID string) erro
 	return nil
 }
 
-func (s *Server) ProcessFullEventImport(ctx context.Context, event campfire.Event, skipClub bool) error {
+func eventMembers(event campfire.Event) []campfire.Member {
 	members := make([]campfire.Member, 0, len(event.Members.Edges))
-	for _, member := range event.Members.Edges {
-		members = append(members, member.Node)
+	for _, edge := range event.Members.Edges {
+		members = append(members, edge.Node)
 	}
-	return s.ProcessEventImport(ctx, event, members, skipClub)
+	return members
 }
 
-func (s *Server) ProcessEventImport(ctx context.Context, event campfire.Event, members []campfire.Member, skipClub bool) error {
-	clubMembers := []database.Member{
-		{
-			ID:          event.Creator.ID,
-			Username:    event.Creator.Username,
-			DisplayName: event.Creator.DisplayName,
-			AvatarURL:   event.Creator.AvatarURL,
-			RawJSON:     event.Creator.Raw,
-		},
-	}
-	if !slices.ContainsFunc(clubMembers, func(item database.Member) bool {
-		return item.ID == event.Club.Creator.ID
-	}) && !skipClub {
-		clubMembers = append(clubMembers, database.Member{
-			ID:          event.Club.Creator.ID,
-			Username:    event.Club.Creator.Username,
-			DisplayName: event.Club.Creator.DisplayName,
-			AvatarURL:   event.Club.Creator.AvatarURL,
-			RawJSON:     event.Club.Creator.Raw,
-		})
+func eventMembersIncomplete(event campfire.Event) bool {
+	return event.Members.PageInfo.HasNextPage || event.Members.TotalCount > len(event.Members.Edges)
+}
+
+func (s *Server) saveClub(ctx context.Context, club *campfire.Club) error {
+	if club == nil || club.ID == "" {
+		return fmt.Errorf("failed to fetch club")
 	}
 
-	if err := s.DB.InsertMembers(ctx, clubMembers); err != nil {
+	if err := s.DB.InsertMembers(ctx, []database.Member{{
+		ID:          club.Creator.ID,
+		Username:    club.Creator.Username,
+		DisplayName: club.Creator.DisplayName,
+		AvatarURL:   club.Creator.AvatarURL,
+		RawJSON:     club.Creator.Raw,
+	}}); err != nil {
+		return fmt.Errorf("failed to insert club creator: %w", err)
+	}
+
+	if err := s.DB.InsertClubs(ctx, []database.Club{{
+		ID:                           club.ID,
+		Name:                         club.Name,
+		AvatarURL:                    club.AvatarURL,
+		CreatorID:                    club.Creator.ID,
+		CreatedByCommunityAmbassador: club.CreatedByCommunityAmbassador,
+		RawJSON:                      club.Raw,
+	}}); err != nil {
+		return fmt.Errorf("failed to insert club: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) ProcessFullEventImport(ctx context.Context, event campfire.Event) error {
+	return s.ProcessEventImport(ctx, event, eventMembers(event))
+}
+
+func (s *Server) ProcessEventImport(ctx context.Context, event campfire.Event, members []campfire.Member) error {
+	if err := s.DB.InsertMembers(ctx, []database.Member{{
+		ID:          event.Creator.ID,
+		Username:    event.Creator.Username,
+		DisplayName: event.Creator.DisplayName,
+		AvatarURL:   event.Creator.AvatarURL,
+		RawJSON:     event.Creator.Raw,
+	}}); err != nil {
 		return fmt.Errorf("failed to insert creator member: %w", err)
-	}
-
-	if !skipClub {
-		if err := s.DB.InsertClubs(ctx, []database.Club{
-			{
-				ID:                           event.Club.ID,
-				Name:                         event.Club.Name,
-				AvatarURL:                    event.Club.AvatarURL,
-				CreatorID:                    event.Club.Creator.ID,
-				CreatedByCommunityAmbassador: event.Club.CreatedByCommunityAmbassador,
-				RawJSON:                      event.Club.Raw,
-			},
-		}); err != nil {
-			return fmt.Errorf("failed to insert club: %w", err)
-		}
 	}
 
 	dbEvent := database.Event{

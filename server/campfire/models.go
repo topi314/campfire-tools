@@ -171,7 +171,6 @@ type Club struct {
 	BadgeGrants                  []string        `json:"badgeGrants"`
 	CreatedByCommunityAmbassador bool            `json:"createdByCommunityAmbassador"`
 	Game                         string          `json:"game"`
-	AmIMember                    bool            `json:"amIMember"`
 	Address                      string          `json:"address"`
 	Location                     string          `json:"location"`
 	Members                      CountConnection `json:"members"`
@@ -220,23 +219,39 @@ func (c *ArchivedFeed) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type activeFeedResp struct {
-	Club ActiveFeed `json:"club"`
+type activeEventsResp struct {
+	Club activeEventsClub `json:"club"`
 }
 
-type ActiveFeed struct {
+// activeEventsClub is one active-events page: the club fields, without the feed stored in Raw, plus that page of events.
+type activeEventsClub struct {
+	Club
 	ActiveFeed Pagination[Event] `json:"activeFeed"`
-	Raw        []byte            `json:"-"`
 }
 
-func (c *ActiveFeed) UnmarshalJSON(data []byte) error {
-	type Alias ActiveFeed
-	var a Alias
-	if err := json.Unmarshal(data, &a); err != nil {
+func (c *activeEventsClub) UnmarshalJSON(data []byte) error {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil {
 		return err
 	}
-	*c = ActiveFeed(a)
-	c.Raw = data
+	delete(obj, "activeFeed")
+	clubJSON, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	var club Club
+	if err = json.Unmarshal(clubJSON, &club); err != nil {
+		return err
+	}
+
+	var feed struct {
+		ActiveFeed Pagination[Event] `json:"activeFeed"`
+	}
+	if err = json.Unmarshal(data, &feed); err != nil {
+		return err
+	}
+	c.Club = club
+	c.ActiveFeed = feed.ActiveFeed
 	return nil
 }
 

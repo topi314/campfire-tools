@@ -640,7 +640,7 @@ func (h *handler) fetchEvent(ctx context.Context, event string) (*campfire.Event
 	if err != nil {
 		return nil, err
 	}
-	if importErr := h.ProcessFullEventImport(ctx, *fullEvent, true); importErr != nil {
+	if importErr := h.ProcessFullEventImport(ctx, *fullEvent); importErr != nil {
 		slog.ErrorContext(ctx, "Failed to update event in database", slog.String("event_id", event), slog.Any("err", importErr))
 	}
 	return fullEvent, nil

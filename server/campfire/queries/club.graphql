@@ -6,7 +6,6 @@ query Club_Query(
         name
         game
         visibility
-        amIMember
         avatarUrl
         badgeGrants
         createdByCommunityAmbassador

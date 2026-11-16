@@ -2,9 +2,31 @@ query ActiveEvents_Query(
     $clubId: ID!
     $first: Int!
     $after: String
+    $membersFirst: Int!
 ) {
     club(id: $clubId) {
         id
+        name
+        game
+        visibility
+        avatarUrl
+        badgeGrants
+        createdByCommunityAmbassador
+        address
+        location
+        members {
+            totalCount
+        }
+        creator {
+            id
+            username
+            displayName
+            avatarUrl
+            badges {
+                badgeType
+                alias
+            }
+        }
         activeFeed(first: $first, after: $after) {
             totalCount
             edges {
@@ -43,7 +65,6 @@ query ActiveEvents_Query(
                             name
                             game
                             visibility
-                            amIMember
                             avatarUrl
                             badgeGrants
                             createdByCommunityAmbassador
@@ -59,6 +80,25 @@ query ActiveEvents_Query(
                             }
                         }
                         checkedInMembersCount
+                        members(first: $membersFirst) {
+                            totalCount
+                            edges {
+                                node {
+                                    id
+                                    username
+                                    displayName
+                                    avatarUrl
+                                    badges {
+                                        badgeType
+                                        alias
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                        }
                         rsvpStatuses {
                             userId
                             rsvpStatus

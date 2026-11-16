@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	eventsPerPage  = 100
-	membersPerPage = 100
+	eventsPerPage       = 100
+	membersPerPage      = 100
+	feedMembersPerEvent = 200
 )
 
 var (
@@ -56,39 +57,46 @@ func (c *Client) GetPastEvents(ctx context.Context, clubID string, initialCursor
 	return allEvents, nil, nil
 }
 
-func (c *Client) GetFutureEvents(ctx context.Context, clubID string, initialCursor *string) ([]Event, *string, error) {
+func (c *Client) GetFutureEvents(ctx context.Context, clubID string, initialCursor *string) (*Club, []Event, error) {
 	token, err := c.token(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var allEvents []Event
-	var cursor *string
+	var (
+		allEvents []Event
+		club      *Club
+		cursor    *string
+	)
 	if initialCursor != nil {
 		cursor = initialCursor
 	}
 
 	for {
-		var club activeFeedResp
+		var page activeEventsResp
 		if err = c.Do(ctx, token, activeEventsQuery, map[string]any{
-			"clubId": clubID,
-			"first":  eventsPerPage,
-			"after":  cursor,
-		}, &club); err != nil {
-			return allEvents, cursor, err
+			"clubId":       clubID,
+			"first":        eventsPerPage,
+			"after":        cursor,
+			"membersFirst": feedMembersPerEvent,
+		}, &page); err != nil {
+			return nil, allEvents, err
+		}
+		if club == nil {
+			club = &page.Club.Club
 		}
 
-		for _, edge := range club.Club.ActiveFeed.Edges {
+		for _, edge := range page.Club.ActiveFeed.Edges {
 			allEvents = append(allEvents, edge.Node)
 		}
 
-		if !club.Club.ActiveFeed.PageInfo.HasNextPage {
+		if !page.Club.ActiveFeed.PageInfo.HasNextPage {
 			break
 		}
-		cursor = &club.Club.ActiveFeed.PageInfo.EndCursor
+		cursor = &page.Club.ActiveFeed.PageInfo.EndCursor
 	}
 
-	return allEvents, nil, nil
+	return club, allEvents, nil
 }
 
 func (c *Client) GetEventMembers(ctx context.Context, eventID string, initialCursor *string) ([]Member, *string, error) {

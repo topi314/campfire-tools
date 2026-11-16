@@ -58,7 +58,7 @@ func (s *Server) importEvent(ctx context.Context, eventID string) error {
 		return err
 	}
 
-	if err = s.ProcessFullEventImport(ctx, *event, true); err != nil {
+	if err = s.ProcessFullEventImport(ctx, *event); err != nil {
 		return err
 	}
 
