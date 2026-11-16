@@ -60,13 +60,6 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		At     time.Time
 		HasAt  bool
 	}
-	type addResults struct {
-		ChecklistID int
-		ActionBase  string
-		Query       string
-		Members     []models.Member
-		OnList      map[string]bool
-	}
 	page := struct {
 		ID              int
 		Title           string
@@ -89,7 +82,6 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 		Notice          notice
 		SwapNotice      bool
 		Error           string
-		Add             addResults
 	}{
 		ID:              1,
 		Title:           "Stickers",
@@ -148,18 +140,10 @@ func TestChecklistTemplatesExecute(t *testing.T) {
 			HasAt:  true,
 		},
 		Error: "already",
-		Add: addResults{
-			ChecklistID: 1,
-			ActionBase:  "/checklist/1",
-			Query:       "jo",
-			Members:     []models.Member{{ID: "m2", Username: "other", DisplayName: "Other"}},
-			OnList:      map[string]bool{"m1": true},
-		},
 	}
 	mustExecute(t, tpl, "checklist.gohtml", page)
 	page.SwapNotice = true
 	mustExecute(t, tpl, "checklist_entries", page)
-	mustExecute(t, tpl, "checklist_add_results", page.Add)
 	mustExecute(t, tpl, "checklist_events.gohtml", struct {
 		Title            string
 		TitleAction      string

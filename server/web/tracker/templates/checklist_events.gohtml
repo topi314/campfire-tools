@@ -15,8 +15,13 @@
                 Name
                 <input class="form-control" type="text" id="checklist-title" name="title" value="{{ .Title }}" maxlength="200" required placeholder="Sticker drop" autofocus>
             </label>
+            <label class="form-control" for="only-checked-in" title="Only include members who have checked in to the event">
+                Only Checked-in Members
+                <input class="form-control" type="checkbox" id="only-checked-in" name="only_checked_in" {{ if .OnlyCheckedIn }}checked{{ end }}>
+            </label>
             <button class="form-control" type="submit">Save</button>
         </form>
+        <p class="small-text">Leave this unchecked to also show accepted members. The list follows the current event RSVPs. Not attending is hidden, and a received mark stays if they attend again.</p>
     </div>
 
     {{ if .Events }}
@@ -35,11 +40,11 @@
                 </label>
                 <button class="form-control" type="submit">Remove Events</button>
             </form>
-            <p class="small-text">Only checked-in members: {{ if .OnlyCheckedIn }}yes{{ else }}no, checked-in and accepted{{ end }}. Removing an event leaves people already on the list.</p>
+            <p class="small-text">Removing an event leaves people already on the list.</p>
         </div>
     {{ else }}
         <div class="section">
-            <p>No events yet. People you add by name still stay on the list.</p>
+            <p>No events yet.</p>
         </div>
     {{ end }}
 

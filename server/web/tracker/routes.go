@@ -65,8 +65,6 @@ func Routes(srv *server.Server) http.Handler {
 	mux.HandleFunc("GET  /checklist/{checklist_id}/events/manage", h.GetChecklistEvents)
 	mux.HandleFunc("POST /checklist/{checklist_id}/events", h.PostChecklistEvents)
 	mux.HandleFunc("POST /checklist/{checklist_id}/events/remove", h.PostChecklistEventsRemove)
-	mux.HandleFunc("GET  /checklist/{checklist_id}/members/search", h.GetChecklistMembers)
-	mux.HandleFunc("POST /checklist/{checklist_id}/members", h.PostChecklistMembers)
 
 	mux.HandleFunc("GET  /export", h.Export)
 	mux.HandleFunc("POST /export", h.DoExport)

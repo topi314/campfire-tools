@@ -34,11 +34,24 @@ func (d *Database) GetChecklistsByUserID(ctx context.Context, userID string) ([]
 	query := `
 		SELECT
 			checklists.*,
-			COUNT(checklist_entries.checklist_entry_member_id) AS total,
-			COUNT(checklist_entries.checklist_entry_member_id) FILTER (WHERE checklist_entries.checklist_entry_received) AS received
+			COUNT(visible.member_id) AS total,
+			COUNT(visible.member_id) FILTER (WHERE checklist_entries.checklist_entry_received) AS received
 		FROM checklists
 		JOIN checklist_users ON checklist_users.checklist_user_checklist_id = checklists.checklist_id
+		LEFT JOIN LATERAL (
+			SELECT event_rsvps.event_rsvp_member_id AS member_id
+			FROM event_rsvps
+			WHERE event_rsvps.event_rsvp_event_id = ANY (checklists.checklist_events)
+			AND event_rsvps.event_rsvp_status = ANY (
+				CASE WHEN checklists.checklist_only_checked_in
+					THEN ARRAY['CHECKED_IN']::varchar[]
+					ELSE ARRAY['CHECKED_IN', 'ACCEPTED']::varchar[]
+				END
+			)
+			GROUP BY event_rsvps.event_rsvp_member_id
+		) AS visible ON TRUE
 		LEFT JOIN checklist_entries ON checklist_entries.checklist_entry_checklist_id = checklists.checklist_id
+			AND checklist_entries.checklist_entry_member_id = visible.member_id
 		WHERE checklist_users.checklist_user_user_id = $1
 		GROUP BY checklists.checklist_id
 		ORDER BY checklists.checklist_created_at DESC, checklists.checklist_id DESC
@@ -90,9 +103,14 @@ func (d *Database) InsertChecklist(ctx context.Context, checklist Checklist) (in
 	return id, nil
 }
 
-func (d *Database) UpdateChecklistTitle(ctx context.Context, id int, title string) error {
-	if _, err := d.db.ExecContext(ctx, "UPDATE checklists SET checklist_title = $2 WHERE checklist_id = $1", id, title); err != nil {
-		return fmt.Errorf("failed to update checklist title: %w", err)
+func (d *Database) UpdateChecklistSettings(ctx context.Context, id int, title string, onlyCheckedIn bool) error {
+	if _, err := d.db.ExecContext(ctx, `
+		UPDATE checklists
+		SET checklist_title = $2,
+			checklist_only_checked_in = $3
+		WHERE checklist_id = $1
+	`, id, title, onlyCheckedIn); err != nil {
+		return fmt.Errorf("failed to update checklist settings: %w", err)
 	}
 	return nil
 }
@@ -178,31 +196,44 @@ func (d *Database) IsChecklistUser(ctx context.Context, checklistID int, userID 
 
 func (d *Database) GetChecklistEntries(ctx context.Context, checklistID int) ([]ChecklistEntryRow, error) {
 	query := `
+		WITH checklist AS (
+			SELECT checklist_events, checklist_only_checked_in
+			FROM checklists
+			WHERE checklist_id = $1
+		),
+		visible AS (
+			SELECT
+				event_rsvps.event_rsvp_member_id AS member_id,
+				COUNT(*) FILTER (WHERE event_rsvps.event_rsvp_status = 'CHECKED_IN') AS check_ins
+			FROM event_rsvps
+			JOIN checklist ON event_rsvps.event_rsvp_event_id = ANY (checklist.checklist_events)
+			WHERE event_rsvps.event_rsvp_status = ANY (
+				CASE WHEN checklist.checklist_only_checked_in
+					THEN ARRAY['CHECKED_IN']::varchar[]
+					ELSE ARRAY['CHECKED_IN', 'ACCEPTED']::varchar[]
+				END
+			)
+			GROUP BY event_rsvps.event_rsvp_member_id
+		)
 		SELECT
 			members.member_id,
 			members.member_username,
 			members.member_display_name,
 			members.member_avatar_url,
-			checklist_entries.checklist_entry_received,
+			COALESCE(checklist_entries.checklist_entry_received, FALSE) AS checklist_entry_received,
 			checklist_entries.checklist_entry_received_by,
 			checklist_entries.checklist_entry_received_at,
 			discord_users.discord_user_id AS marker_id,
 			discord_users.discord_user_username AS marker_username,
 			discord_users.discord_user_display_name AS marker_display_name,
 			discord_users.discord_user_avatar_url AS marker_avatar_url,
-			(
-				SELECT COUNT(*)
-				FROM event_rsvps
-				JOIN checklists ON checklists.checklist_id = checklist_entries.checklist_entry_checklist_id
-				WHERE event_rsvp_event_id = ANY(checklists.checklist_events)
-				AND event_rsvp_member_id = checklist_entries.checklist_entry_member_id
-				AND event_rsvp_status = 'CHECKED_IN'
-			) AS check_ins
-		FROM checklist_entries
-		JOIN members ON members.member_id = checklist_entries.checklist_entry_member_id
+			visible.check_ins
+		FROM visible
+		JOIN members ON members.member_id = visible.member_id
+		LEFT JOIN checklist_entries ON checklist_entries.checklist_entry_checklist_id = $1
+			AND checklist_entries.checklist_entry_member_id = visible.member_id
 		LEFT JOIN discord_users ON discord_users.discord_user_id = checklist_entries.checklist_entry_received_by
-		WHERE checklist_entries.checklist_entry_checklist_id = $1
-		ORDER BY checklist_entries.checklist_entry_received ASC, members.member_display_name ASC, members.member_username ASC
+		ORDER BY checklist_entry_received ASC, members.member_display_name ASC, members.member_username ASC
 	`
 
 	var rows []ChecklistEntryRow
@@ -212,45 +243,24 @@ func (d *Database) GetChecklistEntries(ctx context.Context, checklistID int) ([]
 	return rows, nil
 }
 
-func (d *Database) InsertChecklistEntries(ctx context.Context, checklistID int, memberIDs []string) error {
-	if len(memberIDs) == 0 {
-		return nil
-	}
-
-	query := `
-		INSERT INTO checklist_entries (checklist_entry_checklist_id, checklist_entry_member_id)
-		SELECT $1, member_id
-		FROM unnest($2::varchar[]) AS member_id
-		ON CONFLICT DO NOTHING
-	`
-	if _, err := d.db.ExecContext(ctx, query, checklistID, pq.Array(memberIDs)); err != nil {
-		return fmt.Errorf("failed to insert checklist entries: %w", err)
-	}
-	return nil
-}
-
-func (d *Database) DeleteChecklistEntry(ctx context.Context, checklistID int, memberID string) error {
-	if _, err := d.db.ExecContext(ctx, `
-		DELETE FROM checklist_entries
-		WHERE checklist_entry_checklist_id = $1
-		AND checklist_entry_member_id = $2
-	`, checklistID, memberID); err != nil {
-		return fmt.Errorf("failed to delete checklist entry: %w", err)
-	}
-	return nil
-}
-
 // MarkChecklistEntryReceived marks a waiting person as received.
-// updated is false when they were already received. A missing row returns sql.ErrNoRows.
+// updated is false when they were already received.
 func (d *Database) MarkChecklistEntryReceived(ctx context.Context, checklistID int, memberID, userID string, at time.Time) (updated bool, err error) {
 	result, err := d.db.ExecContext(ctx, `
-		UPDATE checklist_entries
-		SET checklist_entry_received = TRUE,
+		INSERT INTO checklist_entries (
+			checklist_entry_checklist_id,
+			checklist_entry_member_id,
+			checklist_entry_received,
+			checklist_entry_received_by,
+			checklist_entry_received_at
+		)
+		VALUES ($1, $2, TRUE, NULLIF($3, ''), $4)
+		ON CONFLICT (checklist_entry_checklist_id, checklist_entry_member_id)
+		DO UPDATE SET
+			checklist_entry_received = TRUE,
 			checklist_entry_received_by = NULLIF($3, ''),
 			checklist_entry_received_at = $4
-		WHERE checklist_entry_checklist_id = $1
-		AND checklist_entry_member_id = $2
-		AND checklist_entry_received = FALSE
+		WHERE NOT checklist_entries.checklist_entry_received
 	`, checklistID, memberID, userID, at)
 	if err != nil {
 		return false, fmt.Errorf("failed to mark checklist entry received: %w", err)
@@ -260,26 +270,12 @@ func (d *Database) MarkChecklistEntryReceived(ctx context.Context, checklistID i
 	if err != nil {
 		return false, err
 	}
-	if n > 0 {
-		return true, nil
-	}
-
-	exists, err := d.checklistEntryExists(ctx, checklistID, memberID)
-	if err != nil {
-		return false, err
-	}
-	if !exists {
-		return false, sql.ErrNoRows
-	}
-	return false, nil
+	return n > 0, nil
 }
 
 func (d *Database) UnmarkChecklistEntryReceived(ctx context.Context, checklistID int, memberID string) error {
 	result, err := d.db.ExecContext(ctx, `
-		UPDATE checklist_entries
-		SET checklist_entry_received = FALSE,
-			checklist_entry_received_by = NULL,
-			checklist_entry_received_at = NULL
+		DELETE FROM checklist_entries
 		WHERE checklist_entry_checklist_id = $1
 		AND checklist_entry_member_id = $2
 	`, checklistID, memberID)
@@ -292,29 +288,7 @@ func (d *Database) UnmarkChecklistEntryReceived(ctx context.Context, checklistID
 		return err
 	}
 	if n == 0 {
-		exists, err := d.checklistEntryExists(ctx, checklistID, memberID)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return sql.ErrNoRows
-		}
+		return sql.ErrNoRows
 	}
 	return nil
-}
-
-func (d *Database) checklistEntryExists(ctx context.Context, checklistID int, memberID string) (bool, error) {
-	var exists bool
-	err := d.db.GetContext(ctx, &exists, `
-		SELECT EXISTS(
-			SELECT 1
-			FROM checklist_entries
-			WHERE checklist_entry_checklist_id = $1
-			AND checklist_entry_member_id = $2
-		)
-	`, checklistID, memberID)
-	if err != nil {
-		return false, fmt.Errorf("failed to check checklist entry: %w", err)
-	}
-	return exists, nil
 }
