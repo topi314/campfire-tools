@@ -110,25 +110,25 @@ func (c *Client) getEvent(ctx context.Context, eventID string, try int) (*Event,
 	}
 	slog.DebugContext(ctx, "Fetched full event", slog.String("event_id", resp.Data.Event.ID), slog.String("response", logBuf.String()))
 
-	if len(resp.Errors) == 0 {
-		return &resp.Data.Event, nil
-	}
-
 	var (
 		errArgs []any
 		errs    error
 	)
 	for _, e := range resp.Errors {
-		errArgs = append(errArgs, slog.String("message", e.String()))
-
-		switch e.Message {
-		case "event not found":
-			err = fmt.Errorf("%w: %w", ErrEventNotFound, e)
-		default:
-			err = e
+		if e.Message == "row not found" && resp.Data.Event.ID != "" {
+			slog.WarnContext(ctx, "Campfire live event row not found", slog.String("event_id", eventID))
+			continue
 		}
-		errs = errors.Join(errs, err)
+		errArgs = append(errArgs, slog.String("message", e.String()))
+		if e.Message == "event not found" {
+			errs = errors.Join(errs, fmt.Errorf("%w: %w", ErrEventNotFound, e))
+			continue
+		}
+		errs = errors.Join(errs, e)
 	}
-	slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errArgs...)...)
-	return nil, fmt.Errorf("graphql errors: %w", errs)
+	if errs != nil {
+		slog.ErrorContext(ctx, "GraphQL errors", append([]any{slog.String("event_id", eventID)}, errArgs...)...)
+		return nil, fmt.Errorf("graphql errors: %w", errs)
+	}
+	return &resp.Data.Event, nil
 }
